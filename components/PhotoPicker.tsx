@@ -3,8 +3,10 @@ import { Alert, Image, Pressable, Text, View } from 'react-native';
 import { getDb } from '@/db/client';
 import { takePhoto } from '@/features/media';
 import { useT } from '@/i18n';
+import { COLORS } from '@/lib/theme';
 import { localUriOf, type AttachmentKind } from '@/sync/attachments';
 import { BigButton } from './BigButton';
+import { Icon } from './Icon';
 
 interface Props {
   value: string[];
@@ -32,7 +34,7 @@ export function PhotoPicker({ value, onChange, kind, max = 10, label, required }
   };
   return (
     <View className="gap-2">
-      <Text className="font-medium text-sm text-muted">
+      <Text className="font-semibold text-sm text-ink">
         {label ?? t('common.photos')} {required ? '*' : `(${t('common.optional')})`}
       </Text>
       {value.length ? (
@@ -40,8 +42,8 @@ export function PhotoPicker({ value, onChange, kind, max = 10, label, required }
           {value.map((id) => {
             const uri = localUriOf(getDb(), id);
             return (
-              <Pressable key={id} accessibilityLabel={t('common.delete')} onLongPress={() => onChange(value.filter((x) => x !== id))} className="h-20 w-20 overflow-hidden rounded-card border border-border bg-bg">
-                {uri ? <Image source={{ uri }} className="h-full w-full" /> : <Text className="m-auto text-2xl">🖼️</Text>}
+              <Pressable key={id} accessibilityLabel={t('common.delete')} onLongPress={() => onChange(value.filter((x) => x !== id))} className="h-20 w-20 items-center justify-center overflow-hidden rounded-xl border border-border bg-bg">
+                {uri ? <Image source={{ uri }} className="h-full w-full" /> : <Icon name="image-outline" size={28} color={COLORS.neutral} />}
               </Pressable>
             );
           })}

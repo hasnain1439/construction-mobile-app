@@ -5,6 +5,8 @@ import { Text, View } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { ConfirmSheet } from '@components/ConfirmSheet';
 import { EmptyState } from '@components/EmptyState';
+import { Icon } from '@components/Icon';
+import { IconBadge } from '@components/IconBadge';
 import { Header } from '@components/Header';
 import { MoneyText } from '@components/MoneyText';
 import { ProjectSwitcher } from '@components/ProjectSwitcher';
@@ -20,6 +22,7 @@ import { useT, type TKey } from '@/i18n';
 import { dateTime } from '@/lib/dates';
 import { formatPKR, toPaisa } from '@/lib/money';
 import { can } from '@/lib/permissions';
+import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
 
 const STATUS: Record<string, { key: TKey; tone: Tone }> = {
   POSTED: { key: 'kharcha.posted', tone: 'success' },
@@ -51,15 +54,21 @@ export default function KharchaScreen() {
 
   const top = (
     <View className="gap-3 p-4">
-      <View className="gap-2 rounded-card bg-primary p-4">
-        <Text className="font-medium text-sm text-white/80">{t('kharcha.balance')}</Text>
+      <View className="gap-2 overflow-hidden rounded-card bg-brand-light p-5" style={RAISED_SHADOW}>
+        <View className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/5" />
+        <View className="flex-row items-center justify-between">
+          <Text className="font-medium text-sm text-brand-muted">{t('kharcha.balance')}</Text>
+          <View className="h-9 w-9 items-center justify-center rounded-full bg-accent">
+            <Icon name="wallet-outline" size={18} color={COLORS.brand} />
+          </View>
+        </View>
         <Text testID="cash-balance" className="font-bold text-3xl text-white">
           {formatPKR(a.balancePaisa)}
         </Text>
         <View className="flex-row flex-wrap gap-x-4 gap-y-1">
-          {toPaisa(a.pendingAckPaisa) ? <Text className="text-sm text-white/90">{t('kharcha.pendingFloats')}: {formatPKR(a.pendingAckPaisa)}</Text> : null}
-          {toPaisa(a.pendingApprovalPaisa) ? <Text className="text-sm text-white/90">{t('kharcha.pendingApproval')}: {formatPKR(a.pendingApprovalPaisa)}</Text> : null}
-          {toPaisa(a.recoverablePaisa) ? <Text className="text-sm text-white/90">{t('kharcha.recoverable')}: {formatPKR(a.recoverablePaisa)}</Text> : null}
+          {toPaisa(a.pendingAckPaisa) ? <Text className="text-sm text-brand-muted">{t('kharcha.pendingFloats')}: {formatPKR(a.pendingAckPaisa)}</Text> : null}
+          {toPaisa(a.pendingApprovalPaisa) ? <Text className="text-sm text-brand-muted">{t('kharcha.pendingApproval')}: {formatPKR(a.pendingApprovalPaisa)}</Text> : null}
+          {toPaisa(a.recoverablePaisa) ? <Text className="text-sm text-brand-muted">{t('kharcha.recoverable')}: {formatPKR(a.recoverablePaisa)}</Text> : null}
         </View>
       </View>
       <BigButton testID="add-kharcha" icon="➕" label={t('kharcha.add')} onPress={() => router.push('/kharcha/new')} />
@@ -70,9 +79,10 @@ export default function KharchaScreen() {
           <BigButton variant="secondary" icon="🙏" label={t('kharcha.topup')} onPress={() => router.push('/kharcha/topup')} />
         )
       ) : null}
-      {data.floats.length ? <Text className="mt-2 font-semibold text-base text-ink">{t('kharcha.floats')}</Text> : null}
+      {data.floats.length ? <Text className="mt-2 font-bold text-lg text-ink">{t('kharcha.floats')}</Text> : null}
       {data.floats.map((f) => (
-        <View key={f.id} className="flex-row items-center gap-3 rounded-card border border-primary bg-primary-soft p-3">
+        <View key={f.id} className="flex-row items-center gap-3 rounded-card border border-primary/30 bg-primary-soft p-3">
+          <IconBadge name="hand-coin-outline" tone="primary" size={40} />
           <View className="flex-1">
             <MoneyText paisa={f.amountPaisa} className="text-lg" />
             <Text className="text-xs text-muted">{[f.method, f.description, dateTime(f.occurredAt)].filter(Boolean).join(' · ')}</Text>
@@ -80,7 +90,7 @@ export default function KharchaScreen() {
           <BigButton small label={t('kharcha.acknowledge')} onPress={() => setAck(f)} />
         </View>
       ))}
-      <Text className="mt-2 font-semibold text-base text-ink">{t('kharcha.entries')}</Text>
+      <Text className="mt-2 font-bold text-lg text-ink">{t('kharcha.entries')}</Text>
     </View>
   );
 
@@ -98,9 +108,10 @@ export default function KharchaScreen() {
         renderItem={({ item: e }) => {
           const st = STATUS[e.status];
           return (
-            <View className="mx-4 mb-2 min-h-14 flex-row items-center gap-3 rounded-card border border-border bg-card p-3">
+            <View className="mx-4 mb-2 min-h-16 flex-row items-center gap-3 rounded-card bg-card p-3" style={CARD_SHADOW}>
+              <IconBadge name="🧾" tone={e.amountPaisa.startsWith('-') ? 'danger' : 'success'} size={40} />
               <View className="flex-1 gap-1">
-                <Text className="font-medium text-ink" numberOfLines={1}>
+                <Text className="font-semibold text-ink" numberOfLines={1}>
                   {e.category ? t(`cat.${e.category}` as TKey) : e.type} · {e.description}
                 </Text>
                 <View className="flex-row flex-wrap gap-1">

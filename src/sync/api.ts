@@ -1,4 +1,5 @@
 /** The three server calls the sync engine needs — an interface so tests can fake the server. */
+import { File } from 'expo-file-system';
 import { request } from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
 import type { Row } from '../db/store';
@@ -50,8 +51,10 @@ export const httpSyncApi: SyncApi = {
     form.append('kind', item.kind);
     form.append('clientId', item.clientId);
     const ext = item.mimeType === 'image/jpeg' ? 'jpg' : item.mimeType.split('/')[1] ?? 'bin';
-    // React Native's FormData takes a { uri, name, type } file part.
-    form.append('file', { uri: item.localUri, name: `${item.clientId}.${ext}`, type: item.mimeType } as unknown as Blob);
+    // Expo's fetch (SDK 52+) rejects React Native's old { uri, name, type } part ("Unsupported
+    // FormDataPart implementation"); it accepts any part with name, type and bytes().
+    const file = new File(item.localUri);
+    form.append('file', { name: `${item.clientId}.${ext}`, type: item.mimeType, bytes: () => file.bytes() } as unknown as Blob);
     return request<{ id: string }>(ENDPOINTS.attachments, { method: 'POST', form });
   },
 };

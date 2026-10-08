@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { BottomSheet } from '@components/BottomSheet';
 import { EmptyState } from '@components/EmptyState';
 import { Header } from '@components/Header';
+import { Icon } from '@components/Icon';
 import { ListItem } from '@components/ListItem';
 import { PhotoPicker } from '@components/PhotoPicker';
 import { QuantityInput } from '@components/QuantityInput';
@@ -17,6 +18,7 @@ import type { AssignmentRow } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { todayPK } from '@/lib/dates';
+import { COLORS } from '@/lib/theme';
 
 /** Sub-contract work measured on site — quantity only; the office values it (no rates here). */
 export default function MeasurementScreen() {
@@ -42,8 +44,8 @@ export default function MeasurementScreen() {
   return (
     <Screen header={<Header back title={t('hazri.measurement')} />} refresh={false} footer={<BigButton label={t('common.save')} disabled={!ok} onPress={submit} />}>
       {!subs.length ? <EmptyState icon="📏" title={t('hazri.noSubcontracts')} /> : null}
-      <ListItem title={assignment ? assignment.subcontractor.name : t('hazri.assignment')} subtitle={assignment?.scope} right={<Text className="text-xl text-muted">▾</Text>} onPress={() => setPicking(true)} />
-      <TextInput value={description} onChangeText={setDescription} placeholder={t('common.description')} placeholderTextColor="#94A3B8" className="min-h-14 rounded-card border border-border bg-card px-4 text-base text-ink" />
+      <ListItem title={assignment ? assignment.subcontractor.name : t('hazri.assignment')} subtitle={assignment?.scope} icon="🤝" iconTone="info" right={<Icon name="chevron-down" size={22} color={COLORS.neutral} />} onPress={() => setPicking(true)} />
+      <TextInput value={description} onChangeText={setDescription} placeholder={t('common.description')} placeholderTextColor={COLORS.neutral} className="min-h-14 rounded-xl border border-border bg-card px-4 text-base text-ink" />
       <QuantityInput label={t('common.quantity')} value={qty} onChange={setQty} unit={assignment?.unit} />
       <PhotoPicker kind="SITE_PHOTO" value={photos} onChange={setPhotos} max={10} />
       <BottomSheet visible={picking} onClose={() => setPicking(false)} title={t('hazri.assignment')}>
@@ -52,6 +54,8 @@ export default function MeasurementScreen() {
             key={s.id}
             title={s.subcontractor.name}
             subtitle={`${s.scope} · ${s.unit}`}
+            icon="🤝"
+            iconTone="info"
             onPress={() => {
               setAssignment(s);
               setPicking(false);

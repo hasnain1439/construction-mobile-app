@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Text, TextInput } from 'react-native';
+import { TextInput } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { BottomSheet } from '@components/BottomSheet';
 import { Header } from '@components/Header';
+import { Icon } from '@components/Icon';
 import { ListItem } from '@components/ListItem';
 import { MaterialLines, parsedLines, type Line } from '@components/MaterialLines';
 import { PhotoPicker } from '@components/PhotoPicker';
@@ -16,6 +17,7 @@ import type { SupplierRow } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { todayPK } from '@/lib/dates';
+import { COLORS } from '@/lib/theme';
 
 /** Material bought at the site on credit: challan + photo + quantities. The office adds the rates. */
 export default function SitePurchaseScreen() {
@@ -42,9 +44,9 @@ export default function SitePurchaseScreen() {
 
   return (
     <Screen header={<Header back title={t('maal.purchase')} />} refresh={false} footer={<BigButton label={t('common.save')} disabled={!ok} onPress={submit} />}>
-      <ListItem title={supplier?.name ?? t('maal.supplier')} right={<Text className="text-xl text-muted">▾</Text>} onPress={() => setPicking(true)} />
-      <TextInput value={challanNo} onChangeText={setChallanNo} placeholder={t('maal.challanNo')} placeholderTextColor="#94A3B8" className="min-h-14 rounded-card border border-border bg-card px-4 text-base text-ink" />
-      <TextInput value={vehicleNo} onChangeText={setVehicleNo} autoCapitalize="characters" placeholder={`${t('maal.vehicleNo')} (${t('common.optional')})`} placeholderTextColor="#94A3B8" className="min-h-14 rounded-card border border-border bg-card px-4 text-base text-ink" />
+      <ListItem title={supplier?.name ?? t('maal.supplier')} subtitle={supplier ? t('maal.supplier') : undefined} icon="🚚" iconTone="info" right={<Icon name="chevron-down" size={22} color={COLORS.neutral} />} onPress={() => setPicking(true)} />
+      <TextInput value={challanNo} onChangeText={setChallanNo} placeholder={t('maal.challanNo')} placeholderTextColor={COLORS.neutral} className="min-h-14 rounded-xl border border-border bg-card px-4 text-base text-ink" />
+      <TextInput value={vehicleNo} onChangeText={setVehicleNo} autoCapitalize="characters" placeholder={`${t('maal.vehicleNo')} (${t('common.optional')})`} placeholderTextColor={COLORS.neutral} className="min-h-14 rounded-xl border border-border bg-card px-4 text-base text-ink" />
       <PhotoPicker kind="CHALLAN" label={t('maal.challanPhoto')} required max={1} value={photos} onChange={setPhotos} />
       <MaterialLines value={lines} onChange={setLines} />
       <BottomSheet visible={picking} onClose={() => setPicking(false)} title={t('maal.supplier')}>
@@ -52,6 +54,8 @@ export default function SitePurchaseScreen() {
           <ListItem
             key={s.id}
             title={s.name}
+            icon="🚚"
+            iconTone="info"
             onPress={() => {
               setSupplier(s);
               setPicking(false);

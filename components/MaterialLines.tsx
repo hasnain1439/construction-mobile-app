@@ -3,8 +3,10 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { useQuery } from '@/db/live';
 import { materials } from '@/features/queries';
 import { useT } from '@/i18n';
+import { CARD_SHADOW, COLORS } from '@/lib/theme';
 import { BigButton } from './BigButton';
 import { BottomSheet } from './BottomSheet';
+import { Icon } from './Icon';
 import { ListItem } from './ListItem';
 import { QuantityInput } from './QuantityInput';
 
@@ -35,11 +37,11 @@ export function MaterialLines({ value, onChange, hint, error }: Props) {
       {value.map((l, i) => {
         const m = byId.get(l.materialId);
         return (
-          <View key={l.materialId} className="gap-2 rounded-card border border-border bg-card p-3">
+          <View key={l.materialId} className="gap-2 rounded-card bg-card p-4" style={CARD_SHADOW}>
             <View className="flex-row items-center justify-between">
               <Text className="flex-1 font-semibold text-base text-ink">{m?.name ?? '—'}</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={t('common.delete')} onPress={() => onChange(value.filter((_, n) => n !== i))} className="h-12 w-12 items-center justify-center">
-                <Text className="text-lg text-danger">✕</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('common.delete')} onPress={() => onChange(value.filter((_, n) => n !== i))} className="-mr-2 h-12 w-12 items-center justify-center rounded-full active:bg-danger-soft">
+                <Icon name="close" size={22} color={COLORS.danger} />
               </Pressable>
             </View>
             <QuantityInput testID={`qty-${m?.name ?? i}`} value={l.qty} unit={m?.unit} onChange={(qty) => onChange(value.map((x, n) => (n === i ? { ...x, qty } : x)))} error={error?.(l) ?? null} />
@@ -49,12 +51,17 @@ export function MaterialLines({ value, onChange, hint, error }: Props) {
       })}
       <BigButton testID="add-material" small variant="secondary" icon="➕" label={t('maal.addLine')} onPress={() => setOpen(true)} />
       <BottomSheet visible={open} onClose={() => setOpen(false)} title={t('maal.material')}>
-        <TextInput value={search} onChangeText={setSearch} placeholder={t('common.search')} placeholderTextColor="#94A3B8" className="min-h-12 rounded-card border border-border bg-bg px-4 text-base text-ink" />
+        <View className="min-h-12 flex-row items-center gap-2 rounded-xl border border-border bg-bg px-3">
+          <Icon name="magnify" size={20} color={COLORS.muted} />
+          <TextInput value={search} onChangeText={setSearch} placeholder={t('common.search')} placeholderTextColor={COLORS.neutral} className="min-h-12 flex-1 text-base text-ink" />
+        </View>
         {options.map((m) => (
           <ListItem
             key={m.id}
             title={m.name}
             subtitle={m.unit}
+            icon="🧱"
+            iconTone="accent"
             onPress={() => {
               onChange([...value, { materialId: m.id, qty: '' }]);
               setSearch('');

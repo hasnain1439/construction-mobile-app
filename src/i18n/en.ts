@@ -38,6 +38,7 @@ export const en = {
   'auth.invalidPhone': 'Enter a Pakistani mobile number',
   'auth.otpTitle': 'Enter the 6-digit code',
   'auth.otpSent': 'Code sent to {phone}',
+  'auth.otpEmailed': 'The same code was also sent to your email.',
   'auth.resendIn': 'Send again in {s} s',
   'auth.resend': 'Send code again',
   'auth.verify': 'Verify',

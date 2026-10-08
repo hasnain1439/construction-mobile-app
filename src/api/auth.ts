@@ -31,7 +31,7 @@ interface AuthResult {
 /** Short timeout: app start waits for it (offline the app opens anyway). */
 export const getMobileConfig = () => request<MobileConfig>(ENDPOINTS.mobileConfig, { auth: false, timeoutMs: 4000 });
 
-export const requestOtp = (phone: string) => request<{ sent: true; expiresIn: number; resendAfter: number }>(ENDPOINTS.otpRequest, { method: 'POST', auth: false, body: { phone, purpose: 'LOGIN' } });
+export const requestOtp = (phone: string) => request<{ sent: true; expiresIn: number; resendAfter: number; emailed?: boolean }>(ENDPOINTS.otpRequest, { method: 'POST', auth: false, body: { phone, purpose: 'LOGIN' } });
 
 /** Signs in; a phone that belongs to several companies gets MULTIPLE_COMPANIES (details.companies). */
 export async function verifyOtp(phone: string, code: string, tenantId?: string): Promise<SessionUser> {

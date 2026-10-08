@@ -2,6 +2,8 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useI18n } from '@/i18n';
+import { COLORS } from '@/lib/theme';
+import { Icon } from './Icon';
 
 interface Props {
   title: string;
@@ -13,16 +15,16 @@ interface Props {
 export function Header({ title, subtitle, back = false, right }: Props) {
   const { rtl } = useI18n();
   return (
-    <View className="min-h-14 flex-row items-center gap-2 border-b border-border bg-card px-2">
+    <View className="min-h-16 flex-row items-center gap-2 border-b border-border bg-card px-3">
       {back ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} className="h-12 w-12 items-center justify-center rounded-full active:bg-bg">
-          <Text className="text-2xl text-ink">{rtl ? '→' : '←'}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-full bg-bg active:bg-border">
+          <Icon name={rtl ? 'arrow-right' : 'arrow-left'} size={22} color={COLORS.ink} />
         </Pressable>
       ) : (
-        <View className="w-2" />
+        <View className="w-1" />
       )}
       <View className="flex-1 py-2">
-        <Text accessibilityRole="header" className="font-semibold text-lg text-ink" numberOfLines={1}>
+        <Text accessibilityRole="header" className="font-bold text-xl text-ink" numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? (

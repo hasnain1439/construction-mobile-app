@@ -11,9 +11,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Icon } from '@components/Icon';
+import { IconBadge } from '@components/IconBadge';
 import { ProjectProvider } from '@/features/project';
 import { SessionProvider, useSession } from '@/features/session';
 import { I18nProvider } from '@/i18n';
+import { COLORS } from '@/lib/theme';
 // Importing triggers also defines the background sync task at module scope (expo-task-manager needs that).
 import { startSyncTriggers } from '@/sync/triggers';
 
@@ -32,20 +35,23 @@ function Gate() {
   if (bootError) {
     return (
       <View className="flex-1 items-center justify-center gap-2 bg-bg p-6">
-        <Text className="text-4xl">⚠️</Text>
-        <Text className="text-center text-base text-ink">{bootError}</Text>
+        <IconBadge name="alert-circle-outline" tone="danger" size={64} />
+        <Text className="mt-2 text-center text-base text-ink">{bootError}</Text>
       </View>
     );
   }
   if (status === 'booting') {
     return (
-      <View className="flex-1 items-center justify-center bg-bg">
-        <ActivityIndicator size="large" color="#2563EB" />
+      <View className="flex-1 items-center justify-center gap-6 bg-brand">
+        <View className="h-20 w-20 items-center justify-center rounded-3xl bg-accent">
+          <Icon name="crane" size={44} color={COLORS.brand} />
+        </View>
+        <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );
   }
   const stack = (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F5F6FA' } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: COLORS.bg } }}>
       <Stack.Screen name="index" />
       <Stack.Protected guard={status === 'update'}>
         <Stack.Screen name="update" />

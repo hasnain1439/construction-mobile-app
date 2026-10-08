@@ -4,19 +4,22 @@ import { KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@components/BigButton';
 import { Header } from '@components/Header';
+import { Icon } from '@components/Icon';
+import { IconBadge } from '@components/IconBadge';
 import { requestOtp, verifyOtp, type Company } from '@/api/auth';
 import { ApiError } from '@/api/client';
 import { setPendingLogin } from '@/features/pendingLogin';
 import { useSession } from '@/features/session';
 import { errorText, useI18n } from '@/i18n';
 import { displayPhone } from '@/lib/phone';
+import { CARD_SHADOW, COLORS } from '@/lib/theme';
 
 const LENGTH = 6;
 
 export default function OtpScreen() {
   const { t, language } = useI18n();
   const { signedIn, config } = useSession();
-  const params = useLocalSearchParams<{ phone: string; resendAfter?: string }>();
+  const params = useLocalSearchParams<{ phone: string; resendAfter?: string; emailed?: string }>();
   const phone = params.phone;
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +66,13 @@ export default function OtpScreen() {
     <SafeAreaView className="flex-1 bg-bg">
       <Header back title={t('auth.otpTitle')} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 gap-5 p-6">
-        <Text className="text-base text-muted">{t('auth.otpSent', { phone: displayPhone(phone) })}</Text>
+        <View className="flex-row items-center gap-3 rounded-card bg-card p-4" style={CARD_SHADOW}>
+          <IconBadge name="message-text-outline" tone="primary" />
+          <View className="flex-1 gap-1">
+            <Text className="text-base text-ink">{t('auth.otpSent', { phone: displayPhone(phone) })}</Text>
+            {params.emailed ? <Text className="text-sm text-muted">{t('auth.otpEmailed')}</Text> : null}
+          </View>
+        </View>
         <TextInput
           testID="otp-input"
           accessibilityLabel={t('auth.otpTitle')}
@@ -78,12 +87,24 @@ export default function OtpScreen() {
           textContentType="oneTimeCode"
           autoFocus
           maxLength={LENGTH}
-          className="min-h-16 rounded-card border border-border bg-card text-center font-bold text-3xl tracking-[12px] text-ink"
+          className="min-h-16 rounded-xl border border-border bg-card text-center font-bold text-3xl tracking-[12px] text-ink"
         />
-        {error ? <Text className="text-center text-sm text-danger">{error}</Text> : null}
+        {error ? (
+          <View className="flex-row items-center gap-2 rounded-xl bg-danger-soft px-3 py-2">
+            <Icon name="alert-circle-outline" size={18} color={COLORS.danger} />
+            <Text className="flex-1 text-sm text-danger">{error}</Text>
+          </View>
+        ) : null}
         <BigButton testID="verify" label={t('auth.verify')} loading={busy} disabled={code.length !== LENGTH} onPress={() => void verify(code)} />
         <View className="items-center">
-          {wait > 0 ? <Text className="text-muted">{t('auth.resendIn', { s: wait })}</Text> : <BigButton variant="ghost" small label={t('auth.resend')} onPress={() => void resend()} />}
+          {wait > 0 ? (
+            <View className="flex-row items-center gap-1">
+              <Icon name="timer-outline" size={16} color={COLORS.muted} />
+              <Text className="text-muted">{t('auth.resendIn', { s: wait })}</Text>
+            </View>
+          ) : (
+            <BigButton variant="ghost" small label={t('auth.resend')} onPress={() => void resend()} />
+          )}
           <Text className="mt-3 text-center text-sm text-muted">{t('auth.noCodeHint')}</Text>
         </View>
       </KeyboardAvoidingView>

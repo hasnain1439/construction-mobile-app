@@ -4,6 +4,7 @@ import { BigButton } from '@components/BigButton';
 import { ConfirmSheet } from '@components/ConfirmSheet';
 import { EmptyState } from '@components/EmptyState';
 import { Header } from '@components/Header';
+import { Icon } from '@components/Icon';
 import { MoneyText } from '@components/MoneyText';
 import { Screen } from '@components/Screen';
 import { StatusChip, type Tone } from '@components/StatusChip';
@@ -15,6 +16,7 @@ import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { addDays, shortDate, todayPK, weekOf, type WeekDay } from '@/lib/dates';
 import { formatPKR, toPaisa } from '@/lib/money';
+import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
 
 const TONE: Record<string, Tone> = { DRAFT: 'neutral', SUBMITTED: 'primary', APPROVED: 'success', RETURNED: 'danger' };
 
@@ -45,10 +47,10 @@ export default function SettlementScreen() {
     <Screen header={<Header back title={t('hazri.settlement')} subtitle={`${shortDate(data.week.weekStart)} – ${shortDate(data.week.weekEnd)}`} />}>
       <View className="flex-row gap-2">
         <View className="flex-1">
-          <BigButton small variant="secondary" label={`‹ ${t('hazri.prevWeek')}`} onPress={() => setDay(addDays(data.week.weekStart, -1))} />
+          <BigButton small variant="secondary" icon="chevron-left" label={t('hazri.prevWeek')} onPress={() => setDay(addDays(data.week.weekStart, -1))} />
         </View>
         <View className="flex-1">
-          <BigButton small variant="secondary" label={`${t('hazri.thisWeek')}`} disabled={todayPK() >= data.week.weekStart && todayPK() <= data.week.weekEnd} onPress={() => setDay(todayPK())} />
+          <BigButton small variant="secondary" icon="calendar-today" label={`${t('hazri.thisWeek')}`} disabled={todayPK() >= data.week.weekStart && todayPK() <= data.week.weekEnd} onPress={() => setDay(todayPK())} />
         </View>
       </View>
 
@@ -56,18 +58,24 @@ export default function SettlementScreen() {
         <EmptyState icon="🗓️" title={t('hazri.noSettlement')} action={{ label: t('hazri.generate'), onPress: () => save((db, c) => generateSettlement(db, c, { projectId, day })) }} />
       ) : (
         <>
-          <View className="gap-2 rounded-card border border-border bg-card p-4">
+          <View className="gap-3 overflow-hidden rounded-card bg-brand-light p-5" style={RAISED_SHADOW}>
+            <View className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/5" />
             <View className="flex-row items-center justify-between">
               <StatusChip tone={TONE[s.status] ?? 'neutral'} label={t(`settlement.${s.status}` as never)} />
               {s.pendingSync ? <StatusChip tone="accent" label={`⏳ ${t('maal.waitingSync')}`} /> : null}
             </View>
             {s.netPaisa !== null ? (
-              <View className="flex-row justify-between">
-                <Text className="text-muted">{t('hazri.net')}</Text>
-                <MoneyText paisa={s.netPaisa} className="text-xl" />
+              <View>
+                <Text className="font-medium text-sm text-brand-muted">{t('hazri.net')}</Text>
+                <MoneyText paisa={s.netPaisa} className="mt-1 text-3xl !text-white" />
               </View>
             ) : null}
-            {s.returnComment ? <Text className="text-sm text-danger">↩ {s.returnComment}</Text> : null}
+            {s.returnComment ? (
+              <View className="flex-row items-start gap-2 rounded-xl bg-danger-soft px-3 py-2">
+                <Icon name="undo" size={18} color={COLORS.danger} />
+                <Text className="flex-1 text-sm text-danger">{s.returnComment}</Text>
+              </View>
+            ) : null}
           </View>
 
           {s.lines.map((l) => {
@@ -81,11 +89,12 @@ export default function SettlementScreen() {
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: on, disabled: !canPick }}
                 onPress={() => setSelected((x) => (on ? x.filter((i) => i !== l.id) : [...x, l.id]))}
-                className={`min-h-14 flex-row items-center gap-3 rounded-card border bg-card p-3 ${on ? 'border-primary' : 'border-border'}`}
+                className={`min-h-16 flex-row items-center gap-3 rounded-card border p-4 ${on ? 'border-primary bg-primary-soft' : 'border-transparent bg-card'}`}
+                style={CARD_SHADOW}
               >
-                {canPick ? <Text className="text-xl">{on ? '☑️' : '⬜'}</Text> : null}
+                {canPick ? <Icon name={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={on ? COLORS.primary : COLORS.neutral} /> : null}
                 <View className="flex-1">
-                  <Text className="font-medium text-ink">{data.names.get(l.workerId) ?? '—'}</Text>
+                  <Text className="font-semibold text-ink">{data.names.get(l.workerId) ?? '—'}</Text>
                   <Text className="text-xs text-muted">
                     {t('hazri.days')}: {l.daysWorked ?? l.fullDays + l.halfDays / 2}
                     {l.overtimeHours ? ` · OT ${l.overtimeHours}h` : ''}

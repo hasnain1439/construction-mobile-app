@@ -4,8 +4,10 @@ import { Alert, Text, View } from 'react-native';
 import { getDb } from '@/db/client';
 import { keepVoiceNote } from '@/features/media';
 import { useT } from '@/i18n';
+import { CARD_SHADOW, COLORS } from '@/lib/theme';
 import { localUriOf } from '@/sync/attachments';
 import { BigButton } from './BigButton';
+import { Icon } from './Icon';
 
 export const MAX_SECONDS = 30;
 
@@ -59,15 +61,18 @@ export function VoiceRecorder({ value, onChange }: { value: string | null; onCha
 
   if (recording) {
     return (
-      <View className="gap-2 rounded-card border border-danger bg-danger-soft p-3">
-        <Text className="font-semibold text-danger">🔴 {t('log.recording', { s: `${seconds}/${MAX_SECONDS}` })}</Text>
+      <View className="gap-3 rounded-card border border-danger/30 bg-danger-soft p-4">
+        <View className="flex-row items-center gap-2">
+          <Icon name="record-circle" size={20} color={COLORS.danger} />
+          <Text className="flex-1 font-semibold text-danger">{t('log.recording', { s: `${seconds}/${MAX_SECONDS}` })}</Text>
+        </View>
         <BigButton variant="danger" icon="⏹" label={t('log.stop')} onPress={() => void stop()} />
       </View>
     );
   }
   if (value) {
     return (
-      <View className="flex-row items-center gap-2 rounded-card border border-border bg-card p-3">
+      <View className="flex-row items-center gap-2 rounded-card bg-card p-3" style={CARD_SHADOW}>
         <View className="flex-1">
           <BigButton
             small

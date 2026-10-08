@@ -4,6 +4,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { BottomSheet } from '@components/BottomSheet';
 import { Header } from '@components/Header';
+import { Icon } from '@components/Icon';
 import { ListItem } from '@components/ListItem';
 import { MoneyText } from '@components/MoneyText';
 import { QuantityInput } from '@components/QuantityInput';
@@ -16,6 +17,7 @@ import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { shortDate, todayPK } from '@/lib/dates';
 import { formatPKR, rupeesToPaisa } from '@/lib/money';
+import { COLORS } from '@/lib/theme';
 
 /** Peshgi (advance) to a worker or a sub-contractor, paid from the munshi's site cash. */
 export default function PeshgiScreen() {
@@ -62,21 +64,22 @@ export default function PeshgiScreen() {
               setPayeeType(p);
               setPayee(null);
             }}
-            className={`min-h-12 flex-1 items-center justify-center rounded-card border ${payeeType === p ? 'border-primary bg-primary-soft' : 'border-border bg-card'}`}
+            className={`min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl border ${payeeType === p ? 'border-primary bg-primary-soft' : 'border-border bg-card'}`}
           >
+            <Icon name={p === 'WORKER' ? 'account-hard-hat' : 'account-tie-outline'} size={20} color={payeeType === p ? COLORS.primary : COLORS.muted} />
             <Text className={payeeType === p ? 'font-semibold text-primary' : 'text-ink'}>{t(p === 'WORKER' ? 'hazri.worker' : 'hazri.subcontractor')}</Text>
           </Pressable>
         ))}
       </View>
-      <ListItem title={payee?.name ?? t('hazri.peshgiTo')} subtitle={payee ? t('hazri.peshgiTo') : undefined} right={<Text className="text-xl text-muted">▾</Text>} onPress={() => setPicking(true)} testID="pick-payee" />
+      <ListItem title={payee?.name ?? t('hazri.peshgiTo')} subtitle={payee ? t('hazri.peshgiTo') : undefined} icon={payeeType === 'WORKER' ? '👷' : '🤝'} iconTone="primary" right={<Icon name="chevron-down" size={22} color={COLORS.neutral} />} onPress={() => setPicking(true)} testID="pick-payee" />
       <QuantityInput testID="peshgi-amount" money label={t('common.amount')} value={amount} onChange={setAmount} error={paisa && !enough ? t('hazri.notEnoughCash') : null} />
       {data.account ? <Text className="text-sm text-muted">{t('hazri.fromCash', { amount: formatPKR(data.account.balancePaisa) })}</Text> : null}
-      <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor="#94A3B8" className="min-h-14 rounded-card border border-border bg-card px-4 text-base text-ink" />
+      <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor={COLORS.neutral} className="min-h-14 rounded-xl border border-border bg-card px-4 text-base text-ink" />
 
-      {data.recent.length ? <Text className="mt-2 font-semibold text-ink">{t('hazri.recentPeshgi')}</Text> : null}
+      {data.recent.length ? <Text className="mt-3 font-bold text-lg text-ink">{t('hazri.recentPeshgi')}</Text> : null}
       {data.recent.map((a) => {
         const name = a.workerId ? data.workers.find((w) => w.worker.id === a.workerId)?.worker.name : data.subs.find((s) => s.id === a.assignmentId)?.subcontractor.name;
-        return <ListItem key={a.id} title={name ?? '—'} subtitle={`${shortDate(a.date)}${a.pendingSync ? ` · ⏳ ${t('kharcha.notSynced')}` : ''}`} right={<MoneyText paisa={a.amountPaisa} />} />;
+        return <ListItem key={a.id} title={name ?? '—'} subtitle={`${shortDate(a.date)}${a.pendingSync ? ` · ${t('kharcha.notSynced')}` : ''}`} icon={a.pendingSync ? 'timer-sand' : '🤝'} iconTone={a.pendingSync ? 'warning' : 'success'} right={<MoneyText paisa={a.amountPaisa} />} />;
       })}
 
       <BottomSheet visible={picking} onClose={() => setPicking(false)} title={t('hazri.peshgiTo')}>
@@ -84,6 +87,8 @@ export default function PeshgiScreen() {
           <ListItem
             key={o.id}
             title={o.name}
+            icon={payeeType === 'WORKER' ? '👷' : '🤝'}
+            iconTone="primary"
             onPress={() => {
               setPayee(o);
               setPicking(false);

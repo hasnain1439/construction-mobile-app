@@ -5,6 +5,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
 import { BigButton } from '@components/BigButton';
 import { Header } from '@components/Header';
+import { Icon } from '@components/Icon';
 import { QuantityInput } from '@components/QuantityInput';
 import { Screen } from '@components/Screen';
 import { addWorker } from '@/features/actions';
@@ -16,6 +17,7 @@ import { useT } from '@/i18n';
 import { rupeesToPaisa } from '@/lib/money';
 import { can } from '@/lib/permissions';
 import { normalisePhone } from '@/lib/phone';
+import { COLORS } from '@/lib/theme';
 
 const schema = z.object({
   name: z.string().trim().min(2),
@@ -48,19 +50,19 @@ export default function NewWorkerScreen() {
 
   return (
     <Screen header={<Header back title={t('hazri.addWorker')} />} refresh={false} footer={<BigButton testID="save-worker" label={t('common.save')} onPress={() => void submit()} />}>
-      <View className="gap-1">
-        <Text className="font-medium text-sm text-muted">{t('hazri.workerName')}</Text>
+      <View className="gap-2">
+        <Text className="font-semibold text-sm text-ink">{t('hazri.workerName')}</Text>
         <Controller
           control={control}
           name="name"
           render={({ field }) => (
-            <TextInput testID="worker-name" value={field.value} onChangeText={field.onChange} autoCapitalize="words" className={`min-h-14 rounded-card border bg-card px-4 text-lg text-ink ${errors.name ? 'border-danger' : 'border-border'}`} />
+            <TextInput testID="worker-name" value={field.value} onChangeText={field.onChange} autoCapitalize="words" className={`min-h-14 rounded-xl border bg-card px-4 text-lg text-ink ${errors.name ? 'border-danger' : 'border-border'}`} />
           )}
         />
         {errors.name ? <Text className="text-sm text-danger">{t('common.required')}</Text> : null}
       </View>
       <View className="gap-2">
-        <Text className="font-medium text-sm text-muted">{t('hazri.workerType')}</Text>
+        <Text className="font-semibold text-sm text-ink">{t('hazri.workerType')}</Text>
         <Controller
           control={control}
           name="type"
@@ -75,15 +77,15 @@ export default function NewWorkerScreen() {
           )}
         />
       </View>
-      <View className="gap-1">
-        <Text className="font-medium text-sm text-muted">
+      <View className="gap-2">
+        <Text className="font-semibold text-sm text-ink">
           {t('hazri.workerPhone')} ({t('common.optional')})
         </Text>
         <Controller
           control={control}
           name="phone"
           render={({ field }) => (
-            <TextInput value={field.value} onChangeText={field.onChange} keyboardType="phone-pad" placeholder={t('auth.phoneHint')} placeholderTextColor="#94A3B8" className={`min-h-14 rounded-card border bg-card px-4 text-lg text-ink ${errors.phone ? 'border-danger' : 'border-border'}`} />
+            <TextInput value={field.value} onChangeText={field.onChange} keyboardType="phone-pad" placeholder={t('auth.phoneHint')} placeholderTextColor={COLORS.neutral} className={`min-h-14 rounded-xl border bg-card px-4 text-lg text-ink ${errors.phone ? 'border-danger' : 'border-border'}`} />
           )}
         />
         {errors.phone ? <Text className="text-sm text-danger">{t('auth.invalidPhone')}</Text> : null}
@@ -91,7 +93,10 @@ export default function NewWorkerScreen() {
       {canRate ? (
         <Controller control={control} name="rate" render={({ field }) => <QuantityInput money label={`${t('hazri.dailyRate')} (${t('common.optional')})`} value={field.value} onChange={field.onChange} error={errors.rate ? t('common.required') : null} />} />
       ) : (
-        <Text className="text-sm text-muted">ℹ️ {t('hazri.defaultRate')}</Text>
+        <View className="flex-row items-start gap-2 rounded-xl bg-info-soft px-3 py-2">
+          <Icon name="information-outline" size={18} color={COLORS.info} />
+          <Text className="flex-1 text-sm text-ink">{t('hazri.defaultRate')}</Text>
+        </View>
       )}
     </Screen>
   );

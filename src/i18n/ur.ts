@@ -27,6 +27,7 @@ export const ur: Partial<Record<TKey, string>> = {
   'auth.phone': 'موبائل نمبر',
   'auth.sendCode': 'کوڈ بھیجیں',
   'auth.otpTitle': '۶ ہندسوں کا کوڈ لکھیں',
+  'auth.otpEmailed': 'یہی کوڈ آپ کی ای میل پر بھی بھیجا گیا ہے۔',
   'auth.resend': 'کوڈ دوبارہ بھیجیں',
   'auth.verify': 'تصدیق کریں',
   'auth.chooseCompany': 'کمپنی چنیں',

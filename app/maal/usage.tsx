@@ -13,6 +13,7 @@ import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { todayPK } from '@/lib/dates';
 import { qty } from '@/lib/qty';
+import { COLORS } from '@/lib/theme';
 
 /** "Maal lag gaya" — material used today; stock drops at once. */
 export default function UsageScreen() {
@@ -43,7 +44,7 @@ export default function UsageScreen() {
         hint={(id) => t('maal.inStock', { qty: `${qty(inStock(id))} ${mats.get(id)?.unit ?? ''}` })}
         error={(l) => (Number(l.qty) > inStock(l.materialId) ? t('err.INSUFFICIENT_STOCK') : null)}
       />
-      <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor="#94A3B8" className="min-h-14 rounded-card border border-border bg-card px-4 text-base text-ink" />
+      <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor={COLORS.neutral} className="min-h-14 rounded-xl border border-border bg-card px-4 text-base text-ink" />
     </Screen>
   );
 }

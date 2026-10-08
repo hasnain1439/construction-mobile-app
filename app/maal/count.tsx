@@ -13,6 +13,7 @@ import { siteLocation, siteStock } from '@/features/queries';
 import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { qty } from '@/lib/qty';
+import { CARD_SHADOW } from '@/lib/theme';
 
 const REASONS: CountReason[] = ['HARDENED_IN_RAIN', 'BREAKAGE', 'THEFT_SUSPECTED', 'MEASUREMENT', 'OTHER'];
 
@@ -41,7 +42,7 @@ export default function CountScreen() {
     <Screen header={<Header back title={t('maal.count')} />} refresh={false} footer={<BigButton label={`${t('common.save')}${entered.length ? ` (${entered.length})` : ''}`} disabled={!entered.length || missingReason} onPress={submit} />}>
       {!data.stock.length ? <EmptyState icon="📦" title={t('common.empty')} /> : null}
       {data.stock.map((s) => (
-        <View key={s.id} className="gap-2 rounded-card border border-border bg-card p-3">
+        <View key={s.id} className="gap-3 rounded-card bg-card p-4" style={CARD_SHADOW}>
           <Text className="font-semibold text-ink">
             {s.material?.name ?? '—'} <Text className="font-normal text-sm text-muted">· {t('maal.systemQty')} {qty(s.quantity)} {s.material?.unit}</Text>
           </Text>

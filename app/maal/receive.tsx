@@ -14,6 +14,7 @@ import type { DispatchRow, PurchaseRow, ReceiveItem } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { qty } from '@/lib/qty';
+import { CARD_SHADOW, COLORS } from '@/lib/theme';
 
 type Input = { received: string; damaged: string; note: string };
 
@@ -48,7 +49,7 @@ export default function ReceiveScreen() {
           const good = got !== null ? got - (i.damagedQty ?? 0) : null;
           const short = sent !== null && good !== null && good < sent;
           return (
-            <View key={i.id} className="gap-1 rounded-card border border-border bg-card p-3">
+            <View key={i.id} className="gap-1 rounded-card bg-card p-4" style={CARD_SHADOW}>
               <Text className="font-semibold text-ink">{data.mats.get(i.materialId)?.name ?? '—'}</Text>
               <Text className="text-sm text-muted">
                 {t('maal.sent')}: {qty(sent)} · {t('maal.counted')}: {qty(got)} · {t('maal.damaged')}: {qty(i.damagedQty)}
@@ -88,7 +89,7 @@ export default function ReceiveScreen() {
         const set = (patch: Partial<Input>) => setInputs((x) => ({ ...x, [i.materialId]: { ...v, ...patch } }));
         const exp = expected(i);
         return (
-          <View key={i.id} className="gap-2 rounded-card border border-border bg-card p-3">
+          <View key={i.id} className="gap-2 rounded-card bg-card p-4" style={CARD_SHADOW}>
             <Text className="font-semibold text-base text-ink">
               {m?.name ?? '—'}
               {exp !== null ? <Text className="font-normal text-sm text-muted"> · {t('maal.sent')} {qty(exp)}</Text> : null}
@@ -96,12 +97,12 @@ export default function ReceiveScreen() {
             <QuantityInput testID={`received-${m?.name ?? n}`} label={t('maal.counted')} value={v.received} unit={m?.unit} onChange={(received) => set({ received })} />
             <QuantityInput label={`${t('maal.damaged')} (${t('common.optional')})`} value={v.damaged} unit={m?.unit} onChange={(damaged) => set({ damaged })} />
             {lines[n]?.needsNote || v.note ? (
-              <TextInput value={v.note} onChangeText={(x) => set({ note: x })} placeholder={t('maal.shortNote')} placeholderTextColor="#94A3B8" className="min-h-12 rounded-card border border-warning bg-card px-3 text-base text-ink" />
+              <TextInput value={v.note} onChangeText={(x) => set({ note: x })} placeholder={t('maal.shortNote')} placeholderTextColor={COLORS.neutral} className="min-h-12 rounded-xl border border-warning bg-card px-3 text-base text-ink" />
             ) : null}
           </View>
         );
       })}
-      <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor="#94A3B8" className="min-h-14 rounded-card border border-border bg-card px-4 text-base text-ink" />
+      <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor={COLORS.neutral} className="min-h-14 rounded-xl border border-border bg-card px-4 text-base text-ink" />
     </Screen>
   );
 }

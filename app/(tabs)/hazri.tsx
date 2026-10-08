@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { EmptyState } from '@components/EmptyState';
 import { Header } from '@components/Header';
+import { Icon } from '@components/Icon';
 import { ProjectSwitcher } from '@components/ProjectSwitcher';
 import { Screen } from '@components/Screen';
 import { StatusChip } from '@components/StatusChip';
@@ -17,11 +18,16 @@ import type { AttendanceStatus } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { addDays, shortDate, todayPK, weekDayShort, weekOf, type WeekDay } from '@/lib/dates';
+import { CARD_SHADOW, COLORS } from '@/lib/theme';
 
 const STATUSES: AttendanceStatus[] = ['FULL', 'HALF', 'ABSENT'];
 const KEY: Record<AttendanceStatus, 'hazri.full' | 'hazri.half' | 'hazri.absent'> = { FULL: 'hazri.full', HALF: 'hazri.half', ABSENT: 'hazri.absent' };
 const ON: Record<AttendanceStatus, string> = { FULL: 'bg-success border-success', HALF: 'bg-accent border-accent', ABSENT: 'bg-danger border-danger' };
-const MARK: Record<AttendanceStatus, string> = { FULL: '✓', HALF: '½', ABSENT: '✗' };
+const MARK: Record<AttendanceStatus, { icon: string; color: string }> = {
+  FULL: { icon: 'check-circle', color: COLORS.success },
+  HALF: { icon: 'circle-half-full', color: COLORS.warning },
+  ABSENT: { icon: 'close-circle', color: COLORS.danger },
+};
 
 type Draft = Record<string, { status: AttendanceStatus; ot: number }>;
 
@@ -92,20 +98,31 @@ export default function HazriScreen() {
 
   const top = (
     <View className="gap-3 p-4">
-      <View className="flex-row gap-2">
+      <View className="flex-row rounded-xl bg-border p-1">
         {(['day', 'week'] as const).map((m) => (
-          <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: mode === m }} onPress={() => setMode(m)} className={`min-h-12 flex-1 items-center justify-center rounded-card border ${mode === m ? 'border-primary bg-primary-soft' : 'border-border bg-card'}`}>
-            <Text className={`font-semibold ${mode === m ? 'text-primary' : 'text-muted'}`}>{t(m === 'day' ? 'hazri.day' : 'hazri.week')}</Text>
+          <Pressable
+            key={m}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: mode === m }}
+            onPress={() => setMode(m)}
+            className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-lg ${mode === m ? 'bg-card' : ''}`}
+            style={mode === m ? CARD_SHADOW : undefined}
+          >
+            <Icon name={m === 'day' ? 'calendar-today' : 'calendar-week'} size={18} color={mode === m ? COLORS.primary : COLORS.muted} />
+            <Text className={mode === m ? 'font-semibold text-primary' : 'font-medium text-muted'}>{t(m === 'day' ? 'hazri.day' : 'hazri.week')}</Text>
           </Pressable>
         ))}
       </View>
-      <View className="flex-row items-center justify-between rounded-card border border-border bg-card px-1">
-        <Pressable accessibilityRole="button" accessibilityLabel="Previous day" disabled={day <= addDays(today, -6)} onPress={() => setDay(addDays(day, mode === 'week' ? -7 : -1))} className="h-12 w-12 items-center justify-center">
-          <Text className="text-2xl text-ink">‹</Text>
+      <View className="flex-row items-center justify-between rounded-card bg-card px-1" style={CARD_SHADOW}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Previous day" disabled={day <= addDays(today, -6)} onPress={() => setDay(addDays(day, mode === 'week' ? -7 : -1))} className="h-12 w-12 items-center justify-center rounded-full active:bg-bg">
+          <Icon name="chevron-left" size={26} color={day <= addDays(today, -6) ? COLORS.neutral : COLORS.ink} />
         </Pressable>
-        <Text className="font-semibold text-base text-ink">{mode === 'day' ? `${weekDayShort(day)} ${shortDate(day)}${day === today ? ` · ${t('common.today')}` : ''}` : `${shortDate(data.week.weekStart)} – ${shortDate(data.week.weekEnd)}`}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Next day" disabled={day >= today} onPress={() => setDay(addDays(day, mode === 'week' ? 7 : 1) > today ? today : addDays(day, mode === 'week' ? 7 : 1))} className="h-12 w-12 items-center justify-center">
-          <Text className={`text-2xl ${day >= today ? 'text-neutral' : 'text-ink'}`}>›</Text>
+        <View className="flex-row items-center gap-2">
+          <Icon name="calendar-blank-outline" size={18} color={COLORS.primary} />
+          <Text className="font-semibold text-base text-ink">{mode === 'day' ? `${weekDayShort(day)} ${shortDate(day)}${day === today ? ` · ${t('common.today')}` : ''}` : `${shortDate(data.week.weekStart)} – ${shortDate(data.week.weekEnd)}`}</Text>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Next day" disabled={day >= today} onPress={() => setDay(addDays(day, mode === 'week' ? 7 : 1) > today ? today : addDays(day, mode === 'week' ? 7 : 1))} className="h-12 w-12 items-center justify-center rounded-full active:bg-bg">
+          <Icon name="chevron-right" size={26} color={day >= today ? COLORS.neutral : COLORS.ink} />
         </Pressable>
       </View>
       {data.locked ? <StatusChip tone="warning" icon="🔒" label={t('hazri.locked')} /> : null}
@@ -153,16 +170,16 @@ export default function HazriScreen() {
             const marks = data.weekMarks.filter((m) => m.workerId === item.worker.id);
             const total = marks.reduce((s, m) => s + (m.status === 'FULL' ? 1 : m.status === 'HALF' ? 0.5 : 0), 0);
             return (
-              <View className="mx-4 mb-2 min-h-12 flex-row items-center rounded-card border border-border bg-card px-3">
-                <Text className="flex-1 font-medium text-ink" numberOfLines={1}>
+              <View className="mx-4 mb-2 min-h-14 flex-row items-center rounded-card bg-card px-3" style={CARD_SHADOW}>
+                <Text className="flex-1 font-semibold text-ink" numberOfLines={1}>
                   {item.worker.name}
                 </Text>
                 {days.map((d) => {
                   const m = marks.find((x) => x.date === d);
                   return (
-                    <Text key={d} className={`w-9 text-center font-semibold ${m ? (m.status === 'FULL' ? 'text-success' : m.status === 'HALF' ? 'text-warning' : 'text-danger') : 'text-neutral'}`}>
-                      {m ? MARK[m.status] : '·'}
-                    </Text>
+                    <View key={d} className="w-9 items-center">
+                      {m ? <Icon name={MARK[m.status].icon} size={18} color={MARK[m.status].color} /> : <Icon name="circle-small" size={18} color={COLORS.neutral} />}
+                    </View>
                   );
                 })}
                 <Text className="w-10 text-center font-bold text-ink">{total}</Text>
@@ -198,14 +215,23 @@ export default function HazriScreen() {
           const d = draft[item.worker.id];
           const mark = data.marks.find((m) => m.workerId === item.worker.id);
           return (
-            <View testID={`worker-${item.worker.name}`} className="mx-4 mb-2 gap-2 rounded-card border border-border bg-card p-3">
-              <View className="flex-row items-center justify-between">
+            <View testID={`worker-${item.worker.name}`} className="mx-4 mb-3 gap-3 rounded-card bg-card p-4" style={CARD_SHADOW}>
+              <View className="flex-row items-center gap-3">
+                <View className="h-10 w-10 items-center justify-center rounded-full bg-primary-soft">
+                  <Text className="font-bold text-base text-primary">{item.worker.name.charAt(0).toUpperCase()}</Text>
+                </View>
                 <View className="flex-1">
                   <Text className="font-semibold text-base text-ink">{item.worker.name}</Text>
-                  <Text className="text-xs text-muted">
-                    {t(`wtype.${item.worker.type}` as never)}
-                    {mark?.pendingSync ? ` · ⏳ ${t('kharcha.notSynced')}` : ''}
-                  </Text>
+                  <View className="flex-row items-center gap-1">
+                    <Text className="text-xs text-muted">{t(`wtype.${item.worker.type}` as never)}</Text>
+                    {mark?.pendingSync ? (
+                      <>
+                        <Text className="text-xs text-muted"> · </Text>
+                        <Icon name="timer-sand" size={12} color={COLORS.warning} />
+                        <Text className="text-xs text-warning">{t('kharcha.notSynced')}</Text>
+                      </>
+                    ) : null}
+                  </View>
                 </View>
                 {!d ? <StatusChip label={t('hazri.notMarked')} /> : null}
               </View>
@@ -218,7 +244,7 @@ export default function HazriScreen() {
                     accessibilityState={{ selected: d?.status === s, disabled: data.locked }}
                     disabled={data.locked}
                     onPress={() => set(item.worker.id, { status: s })}
-                    className={`min-h-12 flex-1 items-center justify-center rounded-card border ${d?.status === s ? ON[s] : 'border-border bg-bg'}`}
+                    className={`min-h-12 flex-1 items-center justify-center rounded-xl border ${d?.status === s ? ON[s] : 'border-border bg-bg'}`}
                   >
                     <Text className={`font-semibold ${d?.status === s ? 'text-white' : 'text-ink'}`}>{t(KEY[s])}</Text>
                   </Pressable>

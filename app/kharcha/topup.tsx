@@ -9,6 +9,7 @@ import { requestTopup } from '@/features/actions';
 import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { rupeesToPaisa } from '@/lib/money';
+import { COLORS } from '@/lib/theme';
 
 export default function TopupScreen() {
   const t = useT();
@@ -33,7 +34,7 @@ export default function TopupScreen() {
       }
     >
       <QuantityInput money label={t('common.amount')} value={amount} onChange={setAmount} />
-      <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor="#94A3B8" className="min-h-14 rounded-card border border-border bg-card px-4 text-base text-ink" />
+      <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor={COLORS.neutral} className="min-h-14 rounded-xl border border-border bg-card px-4 text-base text-ink" />
     </Screen>
   );
 }

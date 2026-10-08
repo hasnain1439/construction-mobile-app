@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { EmptyState } from '@components/EmptyState';
+import { Icon } from '@components/Icon';
+import { IconBadge } from '@components/IconBadge';
 import { Header } from '@components/Header';
 import { ListItem } from '@components/ListItem';
 import { ProjectSwitcher } from '@components/ProjectSwitcher';
@@ -15,6 +17,7 @@ import { useT } from '@/i18n';
 import { dateTime, shortDate } from '@/lib/dates';
 
 import { qty } from '@/lib/qty';
+import { CARD_SHADOW, COLORS } from '@/lib/theme';
 
 /** Material: deliveries on the way, quick entries, site stock. */
 export default function MaalScreen() {
@@ -38,12 +41,21 @@ export default function MaalScreen() {
         <BigButton small variant="secondary" icon="🛒" label={t('maal.purchase')} onPress={() => router.push('/maal/purchase')} />
         <BigButton small variant="secondary" icon="🔢" label={t('maal.count')} onPress={() => router.push('/maal/count')} />
       </ScrollView>
-      <Text className="font-semibold text-base text-ink">🚚 {t('maal.incoming')}</Text>
-      {!data.dispatches.length && !data.purchases.length ? <Text className="text-sm text-muted">{t('maal.noIncoming')}</Text> : null}
+      <View className="mt-1 flex-row items-center gap-2">
+        <Icon name="truck-delivery-outline" size={20} color={COLORS.info} />
+        <Text className="font-bold text-lg text-ink">{t('maal.incoming')}</Text>
+      </View>
+      {!data.dispatches.length && !data.purchases.length ? (
+        <View className="rounded-card border border-dashed border-border bg-card px-4 py-3">
+          <Text className="text-sm text-muted">{t('maal.noIncoming')}</Text>
+        </View>
+      ) : null}
       {data.dispatches.map((d) => (
         <ListItem
           key={d.id}
           testID={`incoming-${d.number}`}
+          icon="🚚"
+          iconTone="info"
           title={`${d.number} · ${d.from}`}
           subtitle={[d.vehicleNo, d.driverName, dateTime(d.dispatchedAt)].filter(Boolean).join(' · ')}
           right={<StatusChip tone="primary" label={t('maal.receive')} />}
@@ -53,13 +65,18 @@ export default function MaalScreen() {
       {data.purchases.map((p) => (
         <ListItem
           key={p.id}
+          icon="🛒"
+          iconTone="accent"
           title={`${p.challanNo} · ${p.supplier.name}`}
           subtitle={[p.vehicleNo, shortDate(p.purchaseDate)].filter(Boolean).join(' · ')}
           right={<StatusChip tone="primary" label={t('maal.receive')} />}
           onPress={() => router.push({ pathname: '/maal/receive', params: { kind: 'purchase', id: p.id } })}
         />
       ))}
-      <Text className="mt-2 font-semibold text-base text-ink">📊 {t('maal.stock')}</Text>
+      <View className="mt-3 flex-row items-center gap-2">
+        <Icon name="chart-box-outline" size={20} color={COLORS.primary} />
+        <Text className="font-bold text-lg text-ink">{t('maal.stock')}</Text>
+      </View>
     </View>
   );
 
@@ -75,12 +92,13 @@ export default function MaalScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <View className="mx-4 mb-2 min-h-14 flex-row items-center justify-between rounded-card border border-border bg-card px-4">
+          <View className="mx-4 mb-2 min-h-16 flex-row items-center gap-3 rounded-card bg-card px-4 py-3" style={CARD_SHADOW}>
+            <IconBadge name="🧱" tone="accent" size={40} />
             <View className="flex-1">
-              <Text className="font-medium text-ink">{item.material?.name ?? '—'}</Text>
+              <Text className="font-semibold text-ink">{item.material?.name ?? '—'}</Text>
               {item.ownerQuantity ? <Text className="text-xs text-muted">{t('maal.ownerQty', { qty: qty(item.ownerQuantity) })}</Text> : null}
             </View>
-            <Text className="font-semibold text-lg text-ink">
+            <Text className="font-bold text-lg text-ink">
               {qty(item.quantity)} <Text className="text-sm text-muted">{item.material?.unit}</Text>
             </Text>
           </View>

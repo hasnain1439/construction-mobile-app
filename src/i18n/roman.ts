@@ -40,6 +40,7 @@ export const roman: Record<TKey, string> = {
   'auth.invalidPhone': 'Pakistani mobile number likhein',
   'auth.otpTitle': '6 hindson wala code likhein',
   'auth.otpSent': 'Code {phone} par bheja gaya',
+  'auth.otpEmailed': 'Yehi code aap ki email par bhi bheja gaya hai.',
   'auth.resendIn': '{s} second baad dobara',
   'auth.resend': 'Code dobara bhejein',
   'auth.verify': 'Tasdeeq karein',

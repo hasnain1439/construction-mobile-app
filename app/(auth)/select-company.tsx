@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { Header } from '@components/Header';
+import { Icon } from '@components/Icon';
 import { ListItem } from '@components/ListItem';
 import { Screen } from '@components/Screen';
 import { passwordLogin, verifyOtp, type Company } from '@/api/auth';
@@ -9,6 +10,7 @@ import { ApiError } from '@/api/client';
 import { clearPendingLogin, takePendingLogin } from '@/features/pendingLogin';
 import { useSession } from '@/features/session';
 import { errorText, useI18n } from '@/i18n';
+import { COLORS } from '@/lib/theme';
 
 /** The phone number belongs to more than one company: the same code (or password) signs into the chosen one. */
 export default function SelectCompanyScreen() {
@@ -41,9 +43,14 @@ export default function SelectCompanyScreen() {
   return (
     <Screen banner={false} refresh={false} header={<Header back title={t('auth.chooseCompany')} />}>
       {list.map((c) => (
-        <ListItem key={c.tenantId} title={c.name} subtitle={busy === c.tenantId ? t('common.loading') : c.role} onPress={() => void choose(c)} right={<Text className="text-xl text-muted">›</Text>} />
+        <ListItem key={c.tenantId} title={c.name} subtitle={busy === c.tenantId ? t('common.loading') : c.role} onPress={() => void choose(c)} icon="office-building-outline" iconTone="primary" />
       ))}
-      {error ? <Text className="text-sm text-danger">{error}</Text> : null}
+      {error ? (
+        <View className="flex-row items-center gap-2 rounded-xl bg-danger-soft px-3 py-2">
+          <Icon name="alert-circle-outline" size={18} color={COLORS.danger} />
+          <Text className="flex-1 text-sm text-danger">{error}</Text>
+        </View>
+      ) : null}
     </Screen>
   );
 }

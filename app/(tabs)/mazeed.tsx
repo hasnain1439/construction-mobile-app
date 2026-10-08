@@ -9,6 +9,7 @@ import { ListItem } from '@components/ListItem';
 import { ProjectSwitcher } from '@components/ProjectSwitcher';
 import { Screen } from '@components/Screen';
 import { StatusChip } from '@components/StatusChip';
+import { Icon } from '@components/Icon';
 import { APP_VERSION } from '@/api/config';
 import { useQuery } from '@/db/live';
 import { listRows } from '@/db/store';
@@ -16,6 +17,7 @@ import { useSession, useUser } from '@/features/session';
 import type { NotificationRow } from '@/features/types';
 import { useI18n, type Language } from '@/i18n';
 import { displayPhone } from '@/lib/phone';
+import { CARD_SHADOW, COLORS } from '@/lib/theme';
 import { syncFromApp } from '@/sync/triggers';
 import { useSyncStatus } from '@/sync/useSyncStatus';
 
@@ -47,19 +49,35 @@ export default function MazeedScreen() {
 
   return (
     <Screen header={<Header title={t('mazeed.title')} right={<ProjectSwitcher />} />}>
-      <ListItem left={<Text className="text-2xl">📝</Text>} title={t('mazeed.dailyLog')} onPress={() => router.push('/log/today')} />
-      <ListItem left={<Text className="text-2xl">📚</Text>} title={t('mazeed.myLogs')} onPress={() => router.push('/log/history')} />
-      <ListItem left={<Text className="text-2xl">🔔</Text>} title={t('mazeed.notifications')} right={unread ? <StatusChip tone="danger" label={String(unread)} /> : undefined} onPress={() => router.push('/notifications')} />
+      <View className="flex-row items-center gap-4 rounded-card bg-brand-light p-4" style={CARD_SHADOW}>
+        <View className="h-14 w-14 items-center justify-center rounded-full bg-accent">
+          <Text className="font-bold text-xl text-brand">{user.name.charAt(0).toUpperCase()}</Text>
+        </View>
+        <View className="flex-1 gap-0.5">
+          <Text className="font-bold text-lg text-white">{user.name}</Text>
+          <Text className="text-sm text-brand-muted">
+            {displayPhone(user.phone)} · {user.role}
+          </Text>
+          <Text className="text-sm text-brand-muted">{user.tenantName}</Text>
+        </View>
+      </View>
+      <ListItem icon="📝" iconTone="violet" title={t('mazeed.dailyLog')} onPress={() => router.push('/log/today')} />
+      <ListItem icon="📚" iconTone="info" title={t('mazeed.myLogs')} onPress={() => router.push('/log/history')} />
+      <ListItem icon="🔔" iconTone="accent" title={t('mazeed.notifications')} right={unread ? <StatusChip tone="danger" label={String(unread)} /> : undefined} onPress={() => router.push('/notifications')} />
       <ListItem
         testID="open-problems"
-        left={<Text className="text-2xl">⚠️</Text>}
+        icon="⚠️"
+        iconTone={s.problems ? 'danger' : 'success'}
         title={t('sync.problemsTitle')}
         right={s.problems ? <StatusChip tone="danger" label={String(s.problems)} /> : <StatusChip tone="success" label="0" />}
         onPress={() => router.push('/sync-problems')}
       />
 
-      <View className="gap-2 rounded-card border border-border bg-card p-4">
-        <Text className="font-semibold text-base text-ink">{t('sync.statusTitle')}</Text>
+      <View className="gap-2 rounded-card bg-card p-4" style={CARD_SHADOW}>
+        <View className="flex-row items-center gap-2">
+          <Icon name="cloud-sync-outline" size={20} color={COLORS.primary} />
+          <Text className="font-bold text-base text-ink">{t('sync.statusTitle')}</Text>
+        </View>
         <Text className="text-sm text-muted">
           {t('sync.pendingUploads')}: {s.pending + s.pendingUploads}
         </Text>
@@ -68,28 +86,28 @@ export default function MazeedScreen() {
         <BigButton small variant="secondary" icon="⟳" label={t('sync.syncNow')} loading={s.phase === 'syncing'} onPress={() => void syncFromApp()} />
       </View>
 
-      <View className="gap-2 rounded-card border border-border bg-card p-4">
-        <Text className="font-semibold text-base text-ink">{t('mazeed.language')}</Text>
+      <View className="gap-2 rounded-card bg-card p-4" style={CARD_SHADOW}>
+        <View className="flex-row items-center gap-2">
+          <Icon name="translate" size={20} color={COLORS.primary} />
+          <Text className="font-bold text-base text-ink">{t('mazeed.language')}</Text>
+        </View>
         <View className="flex-row gap-2">
           {LANGS.map((l) => (
-            <Pressable key={l.id} accessibilityRole="radio" accessibilityState={{ selected: language === l.id }} onPress={() => void setLanguage(l.id)} className={`min-h-12 flex-1 items-center justify-center rounded-card border ${language === l.id ? 'border-primary bg-primary-soft' : 'border-border'}`}>
+            <Pressable
+              key={l.id}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: language === l.id }}
+              onPress={() => void setLanguage(l.id)}
+              className={`min-h-12 flex-1 items-center justify-center rounded-xl border ${language === l.id ? 'border-primary bg-primary-soft' : 'border-border'}`}
+            >
               <Text className={language === l.id ? 'font-semibold text-primary' : 'text-ink'}>{l.label}</Text>
             </Pressable>
           ))}
         </View>
       </View>
 
-      <View className="gap-1 rounded-card border border-border bg-card p-4">
-        <Text className="font-semibold text-base text-ink">{t('mazeed.profile')}</Text>
-        <Text className="text-ink">{user.name}</Text>
-        <Text className="text-sm text-muted">
-          {displayPhone(user.phone)} · {user.role}
-        </Text>
-        <Text className="text-sm text-muted">{user.tenantName}</Text>
-        <Text className="text-xs text-neutral">v{APP_VERSION}</Text>
-      </View>
-
       <BigButton testID="logout" variant="secondary" icon="🚪" label={t('auth.logout')} loading={busy} onPress={() => void doLogout(false)} />
+      <Text className="text-center text-xs text-neutral">v{APP_VERSION}</Text>
 
       <ConfirmSheet
         visible={!!confirm}

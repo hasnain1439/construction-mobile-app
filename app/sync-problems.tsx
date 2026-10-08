@@ -2,11 +2,13 @@ import { Text, View } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { EmptyState } from '@components/EmptyState';
 import { Header } from '@components/Header';
+import { IconBadge } from '@components/IconBadge';
 import { Screen } from '@components/Screen';
 import { getDb } from '@/db/client';
 import { notifyChange, useQuery } from '@/db/live';
 import { errorText, useI18n } from '@/i18n';
 import { dateTime } from '@/lib/dates';
+import { CARD_SHADOW } from '@/lib/theme';
 import { refreshStatus } from '@/sync/engine';
 import { dismissProblem, problems } from '@/sync/outbox';
 
@@ -20,12 +22,17 @@ export default function SyncProblemsScreen() {
       {list.map((p) => {
         const err = p.lastError ? (JSON.parse(p.lastError) as { code?: string }) : null;
         return (
-          <View key={p.clientId} testID="problem" className="gap-2 rounded-card border border-danger bg-card p-3">
-            <Text className="font-semibold text-ink">{p.label}</Text>
-            <Text className="text-sm text-danger">{errorText(language, err?.code)}</Text>
-            <Text className="text-xs text-muted">
-              {dateTime(p.deviceCreatedAt)} · {t('sync.undone')}
-            </Text>
+          <View key={p.clientId} testID="problem" className="gap-3 rounded-card bg-card p-4" style={CARD_SHADOW}>
+            <View className="flex-row gap-3">
+              <IconBadge name="alert-circle-outline" tone="danger" size={40} />
+              <View className="flex-1 gap-1">
+                <Text className="font-semibold text-ink">{p.label}</Text>
+                <Text className="text-sm text-danger">{errorText(language, err?.code)}</Text>
+                <Text className="text-xs text-muted">
+                  {dateTime(p.deviceCreatedAt)} · {t('sync.undone')}
+                </Text>
+              </View>
+            </View>
             <BigButton
               small
               variant="secondary"

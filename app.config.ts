@@ -35,7 +35,7 @@ const config: ExpoConfig = {
     ['expo-audio', { microphonePermission: 'Voice note record karne ke liye mic chahiye.' }],
     ['expo-image-picker', { cameraPermission: 'Challan, slip aur site ki photo ke liye camera chahiye.', photosPermission: 'Photo chunne ke liye gallery chahiye.' }],
     'expo-font',
-    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#2563EB', imageWidth: 160 }],
+    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#0F1E3D', imageWidth: 160 }],
   ],
   experiments: { typedRoutes: true },
   extra: {

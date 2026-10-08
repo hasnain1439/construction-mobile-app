@@ -1,6 +1,7 @@
 import { Linking, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@components/BigButton';
+import { IconBadge } from '@components/IconBadge';
 import { APP_VERSION } from '@/api/config';
 import { useSession } from '@/features/session';
 import { useT } from '@/i18n';
@@ -12,7 +13,7 @@ export default function UpdateScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <View className="flex-1 items-center justify-center gap-4 p-6">
-        <Text className="text-6xl">⬆️</Text>
+        <IconBadge name="arrow-up-circle-outline" tone="primary" size={88} />
         <Text className="text-center font-bold text-2xl text-ink">{t('auth.updateTitle')}</Text>
         <Text className="text-center text-base text-muted">{t('auth.updateBody', { current: APP_VERSION, min: config?.minimumAppVersion ?? '' })}</Text>
         <View className="w-full">
