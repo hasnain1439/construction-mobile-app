@@ -18,7 +18,7 @@ import type { AttendanceStatus } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { addDays, shortDate, todayPK, weekDayShort, weekOf, type WeekDay } from '@/lib/dates';
-import { CARD_SHADOW, COLORS } from '@/lib/theme';
+import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
 
 const STATUSES: AttendanceStatus[] = ['FULL', 'HALF', 'ABSENT'];
 const KEY: Record<AttendanceStatus, 'hazri.full' | 'hazri.half' | 'hazri.absent'> = { FULL: 'hazri.full', HALF: 'hazri.half', ABSENT: 'hazri.absent' };
@@ -98,18 +98,18 @@ export default function HazriScreen() {
 
   const top = (
     <View className="gap-3 p-4">
-      <View className="flex-row rounded-xl bg-border p-1">
+      <View className="flex-row rounded-full bg-stone p-1">
         {(['day', 'week'] as const).map((m) => (
           <Pressable
             key={m}
             accessibilityRole="tab"
             accessibilityState={{ selected: mode === m }}
             onPress={() => setMode(m)}
-            className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-lg ${mode === m ? 'bg-card' : ''}`}
-            style={mode === m ? CARD_SHADOW : undefined}
+            className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-full ${mode === m ? 'bg-primary' : ''}`}
+            style={mode === m ? RAISED_SHADOW : undefined}
           >
-            <Icon name={m === 'day' ? 'calendar-today' : 'calendar-week'} size={18} color={mode === m ? COLORS.primary : COLORS.muted} />
-            <Text className={mode === m ? 'font-semibold text-primary' : 'font-medium text-muted'}>{t(m === 'day' ? 'hazri.day' : 'hazri.week')}</Text>
+            <Icon name={m === 'day' ? 'calendar-today' : 'calendar-week'} size={18} color={mode === m ? COLORS.accent : COLORS.muted} />
+            <Text className={mode === m ? 'font-semibold text-white' : 'font-medium text-muted'}>{t(m === 'day' ? 'hazri.day' : 'hazri.week')}</Text>
           </Pressable>
         ))}
       </View>

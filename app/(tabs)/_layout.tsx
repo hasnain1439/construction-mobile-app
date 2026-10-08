@@ -8,8 +8,8 @@ import { useSyncStatus } from '@/sync/useSyncStatus';
 const icon = (active: string, idle: string) =>
   function TabIcon({ focused }: { focused: boolean }) {
     return (
-      <View className={`h-8 w-14 items-center justify-center rounded-full ${focused ? 'bg-primary-soft' : ''}`}>
-        <Icon name={focused ? active : idle} size={22} color={focused ? COLORS.primary : COLORS.muted} />
+      <View className={`h-8 w-14 items-center justify-center rounded-full ${focused ? 'bg-primary' : ''}`}>
+        <Icon name={focused ? active : idle} size={22} color={focused ? COLORS.accent : COLORS.muted} />
       </View>
     );
   };
@@ -21,10 +21,10 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: COLORS.ink,
         tabBarInactiveTintColor: COLORS.muted,
         tabBarStyle: { minHeight: 68, paddingTop: 8, borderTopColor: COLORS.border, backgroundColor: COLORS.card },
-        tabBarLabelStyle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 2 },
+        tabBarLabelStyle: { fontFamily: 'Cabin_600SemiBold', fontSize: 11, marginTop: 2 },
         tabBarBadgeStyle: { backgroundColor: COLORS.danger, fontSize: 10 },
       }}
     >

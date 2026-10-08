@@ -117,18 +117,18 @@ export default function AajScreen() {
   return (
     <Screen header={header} safeTop={false}>
       {data.account ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/kharcha')} className="overflow-hidden rounded-card bg-brand-light p-5 active:opacity-95" style={RAISED_SHADOW}>
-          <View className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/5" />
+        <Pressable accessibilityRole="button" onPress={() => router.push('/kharcha')} className="overflow-hidden rounded-card bg-accent p-5 active:opacity-95" style={RAISED_SHADOW}>
+          <View className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/30" />
           <View className="flex-row items-center justify-between">
-            <Text className="font-medium text-sm text-brand-muted">{t('aaj.myCash')}</Text>
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-accent">
-              <Icon name="wallet-outline" size={18} color={COLORS.brand} />
+            <Text className="font-medium text-sm text-ink">{t('aaj.myCash')}</Text>
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-brand">
+              <Icon name="wallet-outline" size={18} color={COLORS.accent} />
             </View>
           </View>
-          <MoneyText paisa={data.account.balancePaisa} className="mt-1 text-3xl !text-white" />
+          <MoneyText paisa={data.account.balancePaisa} className="mt-1 text-3xl !text-ink" />
           <View className="mt-3 flex-row items-center gap-1">
-            <Text className="font-semibold text-xs text-accent">{t('kharcha.title')}</Text>
-            <Icon name="arrow-right" size={14} color={COLORS.accent} />
+            <Text className="font-semibold text-xs text-ink">{t('kharcha.title')}</Text>
+            <Icon name="arrow-right" size={14} color={COLORS.ink} />
           </View>
         </Pressable>
       ) : null}

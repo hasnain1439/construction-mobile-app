@@ -1,9 +1,9 @@
 import '../global.css';
 // Only the four weights the app uses (the package index would bundle all of them).
-import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
-import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
-import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
-import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
+import { Cabin_400Regular } from '@expo-google-fonts/cabin/400Regular';
+import { Cabin_500Medium } from '@expo-google-fonts/cabin/500Medium';
+import { Cabin_600SemiBold } from '@expo-google-fonts/cabin/600SemiBold';
+import { Cabin_700Bold } from '@expo-google-fonts/cabin/700Bold';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -77,7 +77,7 @@ function Gate() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  const [fontsLoaded] = useFonts({ Cabin_400Regular, Cabin_500Medium, Cabin_600SemiBold, Cabin_700Bold });
   if (!fontsLoaded) return null;
   return (
     <SafeAreaProvider>

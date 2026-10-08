@@ -14,7 +14,7 @@ import { setPendingLogin } from '@/features/pendingLogin';
 import { useSession } from '@/features/session';
 import { errorText, useI18n, type Language } from '@/i18n';
 import { normalisePhone } from '@/lib/phone';
-import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
+import { COLORS, RAISED_SHADOW } from '@/lib/theme';
 
 const schema = z.object({
   phone: z.string().refine((v) => normalisePhone(v) !== null, 'auth.invalidPhone'),
@@ -87,7 +87,7 @@ export default function LoginScreen() {
           </View>
 
           <View className="flex-1 gap-5 rounded-t-[28px] bg-bg px-6 pb-8 pt-7">
-            <View className="flex-row rounded-xl bg-border p-1" accessibilityRole="tablist">
+            <View className="flex-row rounded-full bg-stone p-1" accessibilityRole="tablist">
               {(['code', 'password'] as const).map((m) => (
                 <Pressable
                   key={m}
@@ -98,11 +98,11 @@ export default function LoginScreen() {
                     setMode(m);
                     setError(null);
                   }}
-                  className={`min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-lg ${mode === m ? 'bg-card' : ''}`}
-                  style={mode === m ? CARD_SHADOW : undefined}
+                  className={`min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-full ${mode === m ? 'bg-primary' : ''}`}
+                  style={mode === m ? RAISED_SHADOW : undefined}
                 >
-                  <Icon name={m === 'code' ? 'message-text-outline' : 'lock-outline'} size={18} color={mode === m ? COLORS.primary : COLORS.muted} />
-                  <Text className={mode === m ? 'font-semibold text-primary' : 'font-medium text-muted'}>{t(m === 'code' ? 'auth.withCode' : 'auth.withPassword')}</Text>
+                  <Icon name={m === 'code' ? 'message-text-outline' : 'lock-outline'} size={18} color={mode === m ? COLORS.accent : COLORS.muted} />
+                  <Text className={mode === m ? 'font-semibold text-white' : 'font-medium text-muted'}>{t(m === 'code' ? 'auth.withCode' : 'auth.withPassword')}</Text>
                 </Pressable>
               ))}
             </View>

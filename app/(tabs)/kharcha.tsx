@@ -54,21 +54,21 @@ export default function KharchaScreen() {
 
   const top = (
     <View className="gap-3 p-4">
-      <View className="gap-2 overflow-hidden rounded-card bg-brand-light p-5" style={RAISED_SHADOW}>
-        <View className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/5" />
+      <View className="gap-2 overflow-hidden rounded-card bg-accent p-5" style={RAISED_SHADOW}>
+        <View className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/30" />
         <View className="flex-row items-center justify-between">
-          <Text className="font-medium text-sm text-brand-muted">{t('kharcha.balance')}</Text>
-          <View className="h-9 w-9 items-center justify-center rounded-full bg-accent">
-            <Icon name="wallet-outline" size={18} color={COLORS.brand} />
+          <Text className="font-medium text-sm text-ink">{t('kharcha.balance')}</Text>
+          <View className="h-9 w-9 items-center justify-center rounded-full bg-brand">
+            <Icon name="wallet-outline" size={18} color={COLORS.accent} />
           </View>
         </View>
-        <Text testID="cash-balance" className="font-bold text-3xl text-white">
+        <Text testID="cash-balance" className="font-bold text-3xl text-ink">
           {formatPKR(a.balancePaisa)}
         </Text>
         <View className="flex-row flex-wrap gap-x-4 gap-y-1">
-          {toPaisa(a.pendingAckPaisa) ? <Text className="text-sm text-brand-muted">{t('kharcha.pendingFloats')}: {formatPKR(a.pendingAckPaisa)}</Text> : null}
-          {toPaisa(a.pendingApprovalPaisa) ? <Text className="text-sm text-brand-muted">{t('kharcha.pendingApproval')}: {formatPKR(a.pendingApprovalPaisa)}</Text> : null}
-          {toPaisa(a.recoverablePaisa) ? <Text className="text-sm text-brand-muted">{t('kharcha.recoverable')}: {formatPKR(a.recoverablePaisa)}</Text> : null}
+          {toPaisa(a.pendingAckPaisa) ? <Text className="text-sm text-ink/70">{t('kharcha.pendingFloats')}: {formatPKR(a.pendingAckPaisa)}</Text> : null}
+          {toPaisa(a.pendingApprovalPaisa) ? <Text className="text-sm text-ink/70">{t('kharcha.pendingApproval')}: {formatPKR(a.pendingApprovalPaisa)}</Text> : null}
+          {toPaisa(a.recoverablePaisa) ? <Text className="text-sm text-ink/70">{t('kharcha.recoverable')}: {formatPKR(a.recoverablePaisa)}</Text> : null}
         </View>
       </View>
       <BigButton testID="add-kharcha" icon="➕" label={t('kharcha.add')} onPress={() => router.push('/kharcha/new')} />

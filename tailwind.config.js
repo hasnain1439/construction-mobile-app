@@ -1,6 +1,7 @@
 /**
- * Design tokens. Primary blue matches the web app (docs/design-brief.md); the deep navy
- * "brand" surface and amber accent give the app its construction-industry look.
+ * Design tokens — warm "cabin" palette shared with the web app: sand #B5A18B, sun #FFCF68,
+ * stone #E4E0E0, charcoal #201F1E. Charcoal is the primary (buttons, active pills, dark
+ * bands); sun highlights the one thing that matters on a screen.
  */
 module.exports = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
@@ -8,28 +9,30 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: { DEFAULT: '#2563EB', dark: '#1D4ED8', soft: '#EEF3FF' },
-        brand: { DEFAULT: '#0F1E3D', light: '#1B2D54', muted: '#94A3C4' },
-        accent: { DEFAULT: '#F59E0B', dark: '#B45309', soft: '#FFF7E6' },
-        success: { DEFAULT: '#059669', soft: '#E8F7F1' },
-        warning: { DEFAULT: '#B45309', soft: '#FFF7E6' },
-        danger: { DEFAULT: '#DC2626', soft: '#FDECEC' },
-        info: { DEFAULT: '#0891B2', soft: '#E6F6FA' },
-        violet: { DEFAULT: '#7C3AED', soft: '#F1EBFE' },
-        bg: '#F3F5F9',
-        card: '#FFFFFF',
-        border: '#E4E8EF',
-        ink: '#0F172A',
-        muted: '#64748B',
-        neutral: '#94A3B8',
+        primary: { DEFAULT: '#201F1E', dark: '#000000', soft: '#EFE9E1' },
+        brand: { DEFAULT: '#201F1E', light: '#2C2A28', muted: '#CFC4B6' },
+        accent: { DEFAULT: '#FFCF68', dark: '#B7791F', soft: '#FFF1CC' },
+        sand: { DEFAULT: '#B5A18B', soft: '#EFE8DF' },
+        stone: '#E4E0E0',
+        success: { DEFAULT: '#2F8A57', soft: '#E6F3EA' },
+        warning: { DEFAULT: '#B7791F', soft: '#FDF1D8' },
+        danger: { DEFAULT: '#C8402E', soft: '#FBE9E5' },
+        info: { DEFAULT: '#4A6DB8', soft: '#E9EEF8' },
+        violet: { DEFAULT: '#8E52A6', soft: '#F3EAF6' },
+        bg: '#ECE9E5',
+        card: '#F8F6F3',
+        border: '#E2DCD5',
+        ink: '#201F1E',
+        muted: '#77706A',
+        neutral: '#A39B93',
       },
       fontFamily: {
-        sans: ['Inter_400Regular'],
-        medium: ['Inter_500Medium'],
-        semibold: ['Inter_600SemiBold'],
-        bold: ['Inter_700Bold'],
+        sans: ['Cabin_400Regular'],
+        medium: ['Cabin_500Medium'],
+        semibold: ['Cabin_600SemiBold'],
+        bold: ['Cabin_700Bold'],
       },
-      borderRadius: { card: '16px' },
+      borderRadius: { card: '20px' },
     },
   },
   plugins: [],
