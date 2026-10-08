@@ -37,6 +37,20 @@ export const requestOtp = (phone: string) => request<{ sent: true; expiresIn: nu
 export async function verifyOtp(phone: string, code: string, tenantId?: string): Promise<SessionUser> {
   const device = await deviceInfo();
   const res = await request<AuthResult>(ENDPOINTS.otpVerify, { method: 'POST', auth: false, body: { phone, code, client: 'mobile', device, ...(tenantId ? { tenantId } : {}) } });
+  return keepSession(res);
+}
+
+/**
+ * Phone + password (set by the Thekedar, or when accepting the invite) — for when the SMS
+ * code doesn't arrive. Same MULTIPLE_COMPANIES answer as the code.
+ */
+export async function passwordLogin(phone: string, password: string, tenantId?: string): Promise<SessionUser> {
+  const device = await deviceInfo();
+  const res = await request<AuthResult>(ENDPOINTS.login, { method: 'POST', auth: false, body: { login: phone, password, client: 'mobile', device, ...(tenantId ? { tenantId } : {}) } });
+  return keepSession(res);
+}
+
+async function keepSession(res: AuthResult): Promise<SessionUser> {
   if (!res.accessToken || !res.refreshToken) throw new Error('No tokens in the sign-in response');
   await setTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
   const user: SessionUser = { id: res.user.id, name: res.user.name, phone: res.user.phone, role: res.user.role, tenantId: res.tenant.id, tenantName: res.tenant.name };

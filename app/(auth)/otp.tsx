@@ -6,6 +6,7 @@ import { BigButton } from '@components/BigButton';
 import { Header } from '@components/Header';
 import { requestOtp, verifyOtp, type Company } from '@/api/auth';
 import { ApiError } from '@/api/client';
+import { setPendingLogin } from '@/features/pendingLogin';
 import { useSession } from '@/features/session';
 import { errorText, useI18n } from '@/i18n';
 import { displayPhone } from '@/lib/phone';
@@ -37,7 +38,8 @@ export default function OtpScreen() {
     } catch (err) {
       if (err instanceof ApiError && err.code === 'MULTIPLE_COMPANIES') {
         const companies = (err.details as { companies?: Company[] } | undefined)?.companies ?? [];
-        router.push({ pathname: '/select-company', params: { phone, code: value, companies: JSON.stringify(companies) } });
+        setPendingLogin({ mode: 'code', phone, code: value });
+        router.push({ pathname: '/select-company', params: { companies: JSON.stringify(companies) } });
       } else {
         setError(err instanceof ApiError ? errorText(language, err.code) : t('err.network'));
         setCode('');
@@ -82,6 +84,7 @@ export default function OtpScreen() {
         <BigButton testID="verify" label={t('auth.verify')} loading={busy} disabled={code.length !== LENGTH} onPress={() => void verify(code)} />
         <View className="items-center">
           {wait > 0 ? <Text className="text-muted">{t('auth.resendIn', { s: wait })}</Text> : <BigButton variant="ghost" small label={t('auth.resend')} onPress={() => void resend()} />}
+          <Text className="mt-3 text-center text-sm text-muted">{t('auth.noCodeHint')}</Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -249,6 +249,16 @@ export const en = {
   'reason.THEFT_SUSPECTED': 'Theft suspected',
   'reason.MEASUREMENT': 'Measuring difference',
   'reason.OTHER': 'Other',
+  'auth.withCode': 'SMS code',
+  'auth.withPassword': 'Password',
+  'auth.password': 'Password',
+  'auth.signIn': 'Sign in',
+  'auth.passwordRequired': 'Enter your password',
+  'auth.noCodeHint': 'No code? Ask your Thekedar — they can give you a login code from the web app.',
+  'auth.passwordHint': 'No password yet? Your Thekedar can set one for you in the web app.',
+  'err.INVALID_CREDENTIALS': 'Wrong phone or password',
+  'err.USE_OTP_LOGIN': 'No password set — sign in with the SMS code',
+  'err.ACCOUNT_LOCKED': 'Too many tries — wait a few minutes',
 } as const;
 
 export type TKey = keyof typeof en;

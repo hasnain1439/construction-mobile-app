@@ -1,6 +1,7 @@
 /** Every backend path used by the app, defined once. Relative to API_BASE_URL (…/api/v1). */
 export const ENDPOINTS = {
   mobileConfig: '/auth/mobile-config',
+  login: '/auth/login',
   otpRequest: '/auth/otp/request',
   otpVerify: '/auth/otp/verify',
   refresh: '/auth/refresh',
