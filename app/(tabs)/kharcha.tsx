@@ -54,12 +54,14 @@ export default function KharchaScreen() {
 
   const top = (
     <View className="gap-3 p-4">
-      <View className="gap-2 overflow-hidden rounded-card bg-accent p-5" style={RAISED_SHADOW}>
-        <View className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/30" />
+      <View className="gap-2 overflow-hidden rounded-card bg-sand p-5" style={RAISED_SHADOW}>
+        <View className="absolute -bottom-6 -right-4 opacity-15">
+          <Icon name="wallet-outline" size={120} color={COLORS.ink} />
+        </View>
         <View className="flex-row items-center justify-between">
           <Text className="font-medium text-sm text-ink">{t('kharcha.balance')}</Text>
-          <View className="h-9 w-9 items-center justify-center rounded-full bg-brand">
-            <Icon name="wallet-outline" size={18} color={COLORS.accent} />
+          <View className="h-9 w-9 items-center justify-center rounded-full bg-white/45">
+            <Icon name="wallet-outline" size={18} color={COLORS.ink} />
           </View>
         </View>
         <Text testID="cash-balance" className="font-bold text-3xl text-ink">

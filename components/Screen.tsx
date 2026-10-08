@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/lib/theme';
 import { useRefresh } from '@/sync/triggers';
 import { SyncBanner } from './SyncBanner';
+import { WarmBackdrop } from './WarmBackdrop';
 
 const RAISED_FOOTER = { boxShadow: '0 -4px 16px rgba(15, 23, 42, 0.06)' };
 
@@ -24,6 +25,7 @@ export function Screen({ children, header, scroll = true, refresh = true, footer
   const { refreshing, onRefresh } = useRefresh();
   return (
     <SafeAreaView edges={safeTop ? ['top', 'left', 'right'] : ['left', 'right']} className="flex-1 bg-bg">
+      <WarmBackdrop />
       {header}
       {banner ? <SyncBanner /> : null}
       {scroll ? (

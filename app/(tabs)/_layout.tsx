@@ -9,7 +9,7 @@ const icon = (active: string, idle: string) =>
   function TabIcon({ focused }: { focused: boolean }) {
     return (
       <View className={`h-8 w-14 items-center justify-center rounded-full ${focused ? 'bg-primary' : ''}`}>
-        <Icon name={focused ? active : idle} size={22} color={focused ? COLORS.accent : COLORS.muted} />
+        <Icon name={focused ? active : idle} size={22} color={focused ? COLORS.white : COLORS.muted} />
       </View>
     );
   };

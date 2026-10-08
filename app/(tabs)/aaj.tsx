@@ -1,6 +1,4 @@
-import { router, useFocusEffect, type Href } from 'expo-router';
-import { setStatusBarStyle } from 'expo-status-bar';
-import { useCallback } from 'react';
+import { router, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@components/EmptyState';
@@ -17,31 +15,24 @@ import { attendanceOn, cashAccount, incomingDispatches, incomingPurchases, myLog
 import { useUser } from '@/features/session';
 import { useT } from '@/i18n';
 import { longDate, todayPK, weekOf, type WeekDay } from '@/lib/dates';
-import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
+import { CARD_SHADOW, COLORS, RAISED_SHADOW, TOPBAR_SHADOW } from '@/lib/theme';
 
-/** Navy greeting band: name, date and the current site. */
+/** Greeting bar (like the web top bar): avatar, name, date and the current site. */
 function HomeHeader({ name, date }: { name: string; date: string }) {
   const t = useT();
-  // Light status-bar icons over the navy band while this tab is in front.
-  useFocusEffect(
-    useCallback(() => {
-      setStatusBarStyle('light');
-      return () => setStatusBarStyle('dark');
-    }, []),
-  );
   return (
-    <SafeAreaView edges={['top']} className="bg-brand">
-      <View className="flex-row items-center gap-3 px-4 pb-5 pt-3">
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-accent">
-          <Text className="font-bold text-lg text-brand">{name.charAt(0).toUpperCase()}</Text>
+    <SafeAreaView edges={['top']} className="z-10 bg-card" style={TOPBAR_SHADOW}>
+      <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
+        <View className="h-11 w-11 items-center justify-center rounded-full bg-sand">
+          <Text className="font-bold text-lg text-ink">{name.charAt(0).toUpperCase()}</Text>
         </View>
         <View className="flex-1">
-          <Text className="font-bold text-lg text-white" numberOfLines={1}>
+          <Text className="font-bold text-lg text-ink" numberOfLines={1}>
             {t('aaj.greeting', { name })}
           </Text>
-          <Text className="text-xs text-brand-muted">{date}</Text>
+          <Text className="text-xs text-muted">{date}</Text>
         </View>
-        <ProjectSwitcher onDark />
+        <ProjectSwitcher />
       </View>
     </SafeAreaView>
   );
@@ -117,12 +108,15 @@ export default function AajScreen() {
   return (
     <Screen header={header} safeTop={false}>
       {data.account ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/kharcha')} className="overflow-hidden rounded-card bg-accent p-5 active:opacity-95" style={RAISED_SHADOW}>
-          <View className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/30" />
+        <Pressable accessibilityRole="button" onPress={() => router.push('/kharcha')} className="overflow-hidden rounded-card bg-sand p-5 active:opacity-95" style={RAISED_SHADOW}>
+          {/* Big faint icon in the corner, like the web KPI tiles. */}
+          <View className="absolute -bottom-6 -right-4 opacity-15">
+            <Icon name="wallet-outline" size={120} color={COLORS.ink} />
+          </View>
           <View className="flex-row items-center justify-between">
             <Text className="font-medium text-sm text-ink">{t('aaj.myCash')}</Text>
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-brand">
-              <Icon name="wallet-outline" size={18} color={COLORS.accent} />
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-white/45">
+              <Icon name="wallet-outline" size={18} color={COLORS.ink} />
             </View>
           </View>
           <MoneyText paisa={data.account.balancePaisa} className="mt-1 text-3xl !text-ink" />

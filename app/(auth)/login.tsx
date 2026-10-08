@@ -7,6 +7,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 import { BigButton } from '@components/BigButton';
+import { BuildingHero } from '@components/BuildingHero';
 import { Icon } from '@components/Icon';
 import { passwordLogin, requestOtp, type Company } from '@/api/auth';
 import { ApiError } from '@/api/client';
@@ -78,15 +79,17 @@ export default function LoginScreen() {
       <StatusBar style="light" />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
         <ScrollView className="flex-1" contentContainerClassName="flex-grow" keyboardShouldPersistTaps="handled">
-          <View className="items-center gap-3 px-6 pb-10 pt-12">
-            <View className="h-20 w-20 items-center justify-center rounded-3xl bg-accent" style={RAISED_SHADOW}>
-              <Icon name="crane" size={44} color={COLORS.brand} />
+          <BuildingHero>
+            <View className="items-center gap-3 px-6 pb-14 pt-14">
+              <View className="h-20 w-20 items-center justify-center rounded-3xl bg-sand" style={RAISED_SHADOW}>
+                <Icon name="crane" size={44} color={COLORS.ink} />
+              </View>
+              <Text className="font-bold text-3xl text-white">{t('app.name')}</Text>
+              <Text className="text-center text-base text-white/80">{t('auth.title')}</Text>
             </View>
-            <Text className="font-bold text-3xl text-white">{t('app.name')}</Text>
-            <Text className="text-center text-base text-brand-muted">{t('auth.title')}</Text>
-          </View>
+          </BuildingHero>
 
-          <View className="flex-1 gap-5 rounded-t-[28px] bg-bg px-6 pb-8 pt-7">
+          <View className="-mt-6 flex-1 gap-5 rounded-t-[28px] bg-bg px-6 pb-8 pt-7">
             <View className="flex-row rounded-full bg-stone p-1" accessibilityRole="tablist">
               {(['code', 'password'] as const).map((m) => (
                 <Pressable
@@ -101,7 +104,7 @@ export default function LoginScreen() {
                   className={`min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-full ${mode === m ? 'bg-primary' : ''}`}
                   style={mode === m ? RAISED_SHADOW : undefined}
                 >
-                  <Icon name={m === 'code' ? 'message-text-outline' : 'lock-outline'} size={18} color={mode === m ? COLORS.accent : COLORS.muted} />
+                  <Icon name={m === 'code' ? 'message-text-outline' : 'lock-outline'} size={18} color={mode === m ? COLORS.white : COLORS.muted} />
                   <Text className={mode === m ? 'font-semibold text-white' : 'font-medium text-muted'}>{t(m === 'code' ? 'auth.withCode' : 'auth.withPassword')}</Text>
                 </Pressable>
               ))}

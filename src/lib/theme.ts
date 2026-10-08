@@ -27,3 +27,5 @@ export const COLORS = {
 /** Soft elevation for cards (RN boxShadow works on iOS and Android). */
 export const CARD_SHADOW: ViewStyle = { boxShadow: '0 1px 2px rgba(32, 31, 30, 0.05), 0 4px 14px rgba(32, 31, 30, 0.05)' };
 export const RAISED_SHADOW: ViewStyle = { boxShadow: '0 8px 22px rgba(32, 31, 30, 0.16)' };
+/** Under the top bar (same as the web shell). */
+export const TOPBAR_SHADOW: ViewStyle = { boxShadow: '0 4px 16px rgba(32, 31, 30, 0.10)' };
