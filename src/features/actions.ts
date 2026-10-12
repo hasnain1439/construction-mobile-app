@@ -28,6 +28,7 @@ import type {
   SiteCondition,
   SiteStockRow,
   WorkerType,
+  WorkerTypeRow,
 } from './types';
 
 export interface Ctx {
@@ -93,18 +94,43 @@ export function markAttendance(db: Db, c: Ctx, input: { projectId: string; date:
   );
 }
 
-/** New worker + put him on this site (two mutations, the second depends on the first). */
-export function addWorker(db: Db, c: Ctx, input: { projectId: string; name: string; type: WorkerType; phone?: string; dailyRatePaisa?: string }) {
+/** WORKER_CREATE payload: `type` = an active worker_types key or 'OTHER'. */
+export type WorkerCreatePayload = { name: string; type: WorkerType; phone?: string; dailyRatePaisa?: string };
+
+/**
+ * New worker + put him on this site (two mutations, the second depends on the first).
+ * `type` is an ACTIVE worker_types key or 'OTHER' (else the server rejects it: INVALID_WORKER_TYPE);
+ * without `dailyRatePaisa` the server uses the type's rate.
+ */
+export function addWorker(db: Db, c: Ctx, input: { projectId: string } & WorkerCreatePayload) {
   const now = nowOf(c);
   const workerId = uuidv7(now.getTime());
+  const wt = listRows<WorkerTypeRow>(db, 'worker_types').find((r) => r.key === input.type);
+  const payload: WorkerCreatePayload = { name: input.name, type: input.type, ...(input.phone ? { phone: input.phone } : {}), ...(input.dailyRatePaisa ? { dailyRatePaisa: input.dailyRatePaisa } : {}) };
   enqueue(
     db,
     {
       clientId: workerId,
       type: 'WORKER_CREATE',
-      payload: { name: input.name, type: input.type, ...(input.phone ? { phone: input.phone } : {}), ...(input.dailyRatePaisa ? { dailyRatePaisa: input.dailyRatePaisa } : {}) },
+      payload,
       label: `Worker ${input.name}`,
-      writes: [{ table: 'workers', row: { id: workerId, name: input.name, type: input.type, phone: input.phone ?? null, dailyRatePaisa: input.dailyRatePaisa ?? null, isActive: true, pendingSync: true } }],
+      writes: [
+        {
+          table: 'workers',
+          row: {
+            id: workerId,
+            name: input.name,
+            type: input.type,
+            typeLabel: wt?.label ?? null,
+            typeLabelRoman: wt?.labelRoman ?? null,
+            typeLabelUrdu: wt?.labelUrdu ?? null,
+            phone: input.phone ?? null,
+            dailyRatePaisa: input.dailyRatePaisa ?? wt?.ratePaisa ?? null,
+            isActive: true,
+            pendingSync: true,
+          },
+        },
+      ],
     },
     now,
   );

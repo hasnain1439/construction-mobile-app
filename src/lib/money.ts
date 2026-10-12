@@ -37,3 +37,11 @@ export function rupeesToPaisa(input: string): string | null {
 }
 
 export const sumPaisa = (values: (string | null | undefined)[]) => values.reduce((s, v) => s + toPaisa(v), 0n).toString();
+
+/** Paisa → the rupees a user would type ("2800", "2800.5"); '' for nothing. */
+export function paisaToRupees(paisa: string | number | bigint | null | undefined): string {
+  const p = toPaisa(paisa);
+  if (p <= 0n) return '';
+  const frac = p % 100n;
+  return `${p / 100n}${frac ? `.${frac.toString().padStart(2, '0').replace(/0$/, '')}` : ''}`;
+}

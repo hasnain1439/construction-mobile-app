@@ -170,6 +170,20 @@ describe('pull', () => {
     expect(getRow(db, 'cash_entries', 'exp-30')).not.toBeNull();
   });
 
+  it('stores the company worker types (active and inactive) and applies their changes', async () => {
+    const db = testDb();
+    const mistri = { id: 'wt-1', key: 'MISTRI', label: 'Mason', labelRoman: 'Mistri', labelUrdu: 'مستری', ratePaisa: '280000', overtimeMultiplier: 1.5, isActive: true, updatedAt: '2026-10-01T09:00:00.000Z' };
+    const chowkidar = { id: 'wt-2', key: 'CHOWKIDAR', label: 'Watchman', labelRoman: null, labelUrdu: null, ratePaisa: '150000', overtimeMultiplier: null, isActive: false, updatedAt: '2026-10-01T09:00:00.000Z' };
+    const api = new FakeApi()
+      .page({ worker_types: { upserts: [mistri, chowkidar], deletes: [] } })
+      .page({ worker_types: { upserts: [{ ...mistri, ratePaisa: '300000' }], deletes: ['wt-2'] } });
+    await pullAll(db, api);
+    expect(listRows(db, 'worker_types')).toEqual(expect.arrayContaining([mistri, chowkidar]));
+    await pullAll(db, api);
+    expect(listRows(db, 'worker_types')).toEqual([{ ...mistri, ratePaisa: '300000' }]);
+    expect(api.pullCursors).toEqual([undefined, '1']);
+  });
+
   it('a snapshot replaces server rows but keeps rows made on the phone', async () => {
     const db = testDb();
     putRow(db, 'materials', { id: 'stale' });

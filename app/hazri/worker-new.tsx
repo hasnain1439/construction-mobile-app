@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
+import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { z } from 'zod';
@@ -8,20 +9,21 @@ import { Header } from '@components/Header';
 import { Icon } from '@components/Icon';
 import { QuantityInput } from '@components/QuantityInput';
 import { Screen } from '@components/Screen';
+import { useQuery } from '@/db/live';
 import { addWorker } from '@/features/actions';
 import { useProject } from '@/features/project';
 import { useUser } from '@/features/session';
-import { WORKER_TYPES, type WorkerType } from '@/features/types';
 import { useSave } from '@/features/useSave';
-import { useT } from '@/i18n';
-import { rupeesToPaisa } from '@/lib/money';
+import { workerTypeOptions, workerTypes, type WorkerTypeOption } from '@/features/workerTypes';
+import { useI18n } from '@/i18n';
+import { paisaToRupees, rupeesToPaisa } from '@/lib/money';
 import { can } from '@/lib/permissions';
 import { normalisePhone } from '@/lib/phone';
 import { COLORS } from '@/lib/theme';
 
 const schema = z.object({
   name: z.string().trim().min(2),
-  type: z.enum(['MISTRI', 'MISTRI_TILES', 'MAZDOOR', 'STEEL_FIXER_HELPER', 'CHOWKIDAR', 'OTHER']),
+  type: z.string().min(1),
   phone: z.string().refine((v) => !v.trim() || normalisePhone(v) !== null),
   rate: z.string().refine((v) => !v || rupeesToPaisa(v) !== null),
 });
@@ -29,22 +31,37 @@ type Form = z.infer<typeof schema>;
 
 /** New worker, added to this site at once (works offline; hazri can be marked straight away). */
 export default function NewWorkerScreen() {
-  const t = useT();
+  const { t, language } = useI18n();
   const save = useSave();
   const user = useUser();
   const { projectId } = useProject();
   const canRate = can.setWorkerRate(user.role);
+  const options = useQuery((db) => workerTypeOptions(workerTypes(db), language), [language]);
   const {
     control,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors },
-  } = useForm<Form>({ resolver: zodResolver(schema), defaultValues: { name: '', type: 'MAZDOOR', phone: '', rate: '' } });
+  } = useForm<Form>({ resolver: zodResolver(schema), defaultValues: { name: '', type: (options.find((o) => o.key === 'MAZDOOR') ?? options[0])!.key, phone: '', rate: '' } });
+  // The rate this screen filled in from a type; it may be replaced when another type is chosen,
+  // a rate the munshi typed is never touched. Left empty, the server uses the type's rate.
+  const filledRate = useRef('');
+
+  const chooseType = (o: WorkerTypeOption) => {
+    setValue('type', o.key);
+    if (!canRate) return;
+    const current = getValues('rate');
+    if (current && current !== filledRate.current) return;
+    filledRate.current = paisaToRupees(o.ratePaisa);
+    setValue('rate', filledRate.current, { shouldValidate: !!errors.rate });
+  };
 
   const submit = handleSubmit((f) => {
     if (!projectId) return;
     const phone = f.phone.trim() ? normalisePhone(f.phone)! : undefined;
     const rate = canRate && f.rate ? rupeesToPaisa(f.rate)! : undefined;
-    save((db, c) => addWorker(db, c, { projectId, name: f.name.trim(), type: f.type as WorkerType, phone, dailyRatePaisa: rate }));
+    save((db, c) => addWorker(db, c, { projectId, name: f.name.trim(), type: f.type, phone, dailyRatePaisa: rate }));
     router.back();
   });
 
@@ -68,9 +85,9 @@ export default function NewWorkerScreen() {
           name="type"
           render={({ field }) => (
             <View className="flex-row flex-wrap gap-2">
-              {WORKER_TYPES.map((wt) => (
-                <Pressable key={wt} accessibilityRole="radio" accessibilityState={{ selected: field.value === wt }} onPress={() => field.onChange(wt)} className={`min-h-12 justify-center rounded-full border px-4 ${field.value === wt ? 'border-primary bg-primary-soft' : 'border-border bg-card'}`}>
-                  <Text className={field.value === wt ? 'font-semibold text-primary' : 'text-ink'}>{t(`wtype.${wt}` as never)}</Text>
+              {options.map((o) => (
+                <Pressable key={o.key} testID={`worker-type-${o.key}`} accessibilityRole="radio" accessibilityState={{ selected: field.value === o.key }} onPress={() => chooseType(o)} className={`min-h-12 justify-center rounded-full border px-4 ${field.value === o.key ? 'border-primary bg-primary-soft' : 'border-border bg-card'}`}>
+                  <Text className={field.value === o.key ? 'font-semibold text-primary' : 'text-ink'}>{o.name}</Text>
                 </Pressable>
               ))}
             </View>
@@ -91,7 +108,7 @@ export default function NewWorkerScreen() {
         {errors.phone ? <Text className="text-sm text-danger">{t('auth.invalidPhone')}</Text> : null}
       </View>
       {canRate ? (
-        <Controller control={control} name="rate" render={({ field }) => <QuantityInput money label={`${t('hazri.dailyRate')} (${t('common.optional')})`} value={field.value} onChange={field.onChange} error={errors.rate ? t('common.required') : null} />} />
+        <Controller control={control} name="rate" render={({ field }) => <QuantityInput money testID="worker-rate" label={`${t('hazri.dailyRate')} (${t('common.optional')})`} value={field.value} onChange={field.onChange} error={errors.rate ? t('common.required') : null} />} />
       ) : (
         <View className="flex-row items-start gap-2 rounded-xl bg-info-soft px-3 py-2">
           <Icon name="information-outline" size={18} color={COLORS.info} />

@@ -16,7 +16,8 @@ import { useProject } from '@/features/project';
 import { attendanceBetween, attendanceOn, settings, siteWorkers, weekLocked } from '@/features/queries';
 import type { AttendanceStatus } from '@/features/types';
 import { useSave } from '@/features/useSave';
-import { useT } from '@/i18n';
+import { workerTypeMap, workerTypeName } from '@/features/workerTypes';
+import { useI18n } from '@/i18n';
 import { addDays, shortDate, todayPK, weekDayShort, weekOf, type WeekDay } from '@/lib/dates';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
 
@@ -32,7 +33,7 @@ const MARK: Record<AttendanceStatus, { icon: string; color: string }> = {
 type Draft = Record<string, { status: AttendanceStatus; ot: number }>;
 
 export default function HazriScreen() {
-  const t = useT();
+  const { t, language } = useI18n();
   const save = useSave();
   const { projectId } = useProject();
   const today = todayPK();
@@ -48,6 +49,7 @@ export default function HazriScreen() {
       const week = weekOf(day, s.settlementWeekStart as WeekDay);
       return {
         workers: siteWorkers(db, projectId),
+        types: workerTypeMap(db),
         marks: attendanceOn(db, projectId, day),
         week,
         weekMarks: attendanceBetween(db, projectId, week.weekStart, week.weekEnd),
@@ -223,7 +225,7 @@ export default function HazriScreen() {
                 <View className="flex-1">
                   <Text className="font-semibold text-base text-ink">{item.worker.name}</Text>
                   <View className="flex-row items-center gap-1">
-                    <Text className="text-xs text-muted">{t(`wtype.${item.worker.type}` as never)}</Text>
+                    <Text className="text-xs text-muted">{workerTypeName(item.worker, data.types, language)}</Text>
                     {mark?.pendingSync ? (
                       <>
                         <Text className="text-xs text-muted"> · </Text>

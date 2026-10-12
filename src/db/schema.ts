@@ -25,6 +25,7 @@ export const materials = record('materials');
 export const materialGroups = record('material_groups');
 export const suppliers = record('suppliers');
 export const workers = record('workers');
+export const workerTypes = record('worker_types');
 export const projectWorkers = record('project_workers');
 export const subcontractAssignments = record('subcontract_assignments');
 export const attendance = record('attendance');
@@ -53,6 +54,7 @@ export const SYNC_TABLES = {
   material_groups: materialGroups,
   suppliers,
   workers,
+  worker_types: workerTypes,
   project_workers: projectWorkers,
   subcontract_assignments: subcontractAssignments,
   attendance,

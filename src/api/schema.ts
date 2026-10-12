@@ -239,6 +239,8 @@ export interface paths {
                          */
                         client?: "web" | "mobile";
                         device?: components["schemas"]["Device"];
+                        /** @description Web only. false = sign-in cookies last until the browser closes (default true: kept for REFRESH_TOKEN_TTL_DAYS). */
+                        rememberMe?: boolean;
                     };
                 };
             };
@@ -490,7 +492,8 @@ export interface paths {
                          *       "data": {
                          *         "sent": true,
                          *         "expiresIn": 300,
-                         *         "resendAfter": 60
+                         *         "resendAfter": 60,
+                         *         "emailed": false
                          *       }
                          *     }
                          */
@@ -502,6 +505,8 @@ export interface paths {
                                 sent: true;
                                 expiresIn: number;
                                 resendAfter: number;
+                                /** @description The code was also emailed to the account email */
+                                emailed: boolean;
                             };
                         };
                     };
@@ -1481,6 +1486,8 @@ export interface paths {
                          * @enum {string}
                          */
                         client?: "web" | "mobile";
+                        /** @description Web only. false = sign-in cookies last until the browser closes (default true: kept for REFRESH_TOKEN_TTL_DAYS). */
+                        rememberMe?: boolean;
                     };
                 };
             };
@@ -2783,6 +2790,204 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/login-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A munshi's sign-in code (when SMS doesn't arrive)
+         * @description THEKEDAR only, for an active MUNSHI. Issues the same one-time LOGIN code the munshi app asks for (10 minutes, one use) and returns it, so the owner can pass it on by voice or WhatsApp. The code is never stored or logged. Same resend wait / hourly limit as SMS codes.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Code issued */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                phone: string;
+                                /** @example 482913 */
+                                code: string;
+                                /** @example 600 */
+                                expiresIn: number;
+                            };
+                        };
+                    };
+                };
+                /** @description LOGIN_CODE_MUNSHI_ONLY */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description USER_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description USER_INACTIVE */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description OTP_RESEND_WAIT | OTP_LIMIT_REACHED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set a munshi's password
+         * @description THEKEDAR only, for a MUNSHI. The munshi can then sign in with phone + password (no code needed). Clears a lockout.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description User id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @example Thekedar#2026 */
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Password set */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: {
+                                /** @enum {boolean} */
+                                passwordSet: true;
+                            };
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR | PASSWORD_MUNSHI_ONLY */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description USER_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5858,7 +6063,7 @@ export interface paths {
         };
         /**
          * Labour rates
-         * @description All roles. DAILY wages (per day, with overtime multiplier) and SUBCONTRACT piece rates.
+         * @description All roles. DAILY wages (per day, with overtime multiplier) — the company’s worker types, see /worker-types — and SUBCONTRACT piece rates.
          */
         get: {
             parameters: {
@@ -5883,10 +6088,13 @@ export interface paths {
                          *           "id": "0199a8c0-0000-7000-8000-000000000a51",
                          *           "kind": "DAILY",
                          *           "key": "MISTRI",
-                         *           "label": "Mistri",
+                         *           "label": "Mason",
+                         *           "labelRoman": "Mistri",
+                         *           "labelUrdu": "مستری",
                          *           "unit": "DAY",
                          *           "ratePaisa": "280000",
                          *           "overtimeMultiplier": 1.5,
+                         *           "isActive": true,
                          *           "updatedAt": "2026-10-01T09:00:00.000Z"
                          *         },
                          *         {
@@ -5894,9 +6102,12 @@ export interface paths {
                          *           "kind": "SUBCONTRACT",
                          *           "key": "SHUTTERING",
                          *           "label": "Shuttering",
+                         *           "labelRoman": null,
+                         *           "labelUrdu": null,
                          *           "unit": "SQFT",
                          *           "ratePaisa": "4500",
                          *           "overtimeMultiplier": null,
+                         *           "isActive": true,
                          *           "updatedAt": "2026-10-01T09:00:00.000Z"
                          *         }
                          *       ]
@@ -5931,7 +6142,7 @@ export interface paths {
         };
         /**
          * Set labour rates
-         * @description THEKEDAR. Upsert by kind + key. DAILY keys: MISTRI, MISTRI_TILES, MAZDOOR, STEEL_FIXER_HELPER, CHOWKIDAR (unit DAY). SUBCONTRACT keys: SHUTTERING, STEEL_FIXING, BRICK_MASONRY, PLASTER, TILE_LAYING, ELECTRICAL_CONDUIT, PLUMBING_ROUGH_IN, WATERPROOFING, PAINT.
+         * @description THEKEDAR. Upsert by kind + key. DAILY keys: MISTRI, MISTRI_TILES, MAZDOOR, STEEL_FIXER_HELPER, CHOWKIDAR or a worker type the company created (POST /worker-types) (unit DAY). SUBCONTRACT keys: SHUTTERING, STEEL_FIXING, BRICK_MASONRY, PLASTER, TILE_LAYING, ELECTRICAL_CONDUIT, PLUMBING_ROUGH_IN, WATERPROOFING, PAINT.
          */
         put: {
             parameters: {
@@ -6010,6 +6221,333 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/worker-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Worker types
+         * @description All roles. The company’s worker types = its DAILY labour rates: names in English (`label`), Roman Urdu and Urdu, default daily wage (`ratePaisa`), overtime multiplier, `isActive`, and `workerCount` (workers — active or not — with this type). Active first, then by name; deactivated ones only with `includeInactive=true`. `Worker.type` holds the `key`; OTHER is always allowed and is not listed (it has no rate).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Also list deactivated types (default false) */
+                    includeInactive?: "true" | "false";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Worker types */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": [
+                         *         {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000a51",
+                         *           "key": "MISTRI",
+                         *           "label": "Mason",
+                         *           "labelRoman": "Mistri",
+                         *           "labelUrdu": "مستری",
+                         *           "ratePaisa": "280000",
+                         *           "overtimeMultiplier": 1.5,
+                         *           "isActive": true,
+                         *           "workerCount": 3
+                         *         },
+                         *         {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000a61",
+                         *           "key": "ELECTRICIAN",
+                         *           "label": "Electrician",
+                         *           "labelRoman": "Bijli wala",
+                         *           "labelUrdu": "بجلی والا",
+                         *           "ratePaisa": "300000",
+                         *           "overtimeMultiplier": 1.5,
+                         *           "isActive": false,
+                         *           "workerCount": 0
+                         *         }
+                         *       ]
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Add a worker type
+         * @description THEKEDAR (same as editing labour rates). The `key` is generated from the English name (UPPER_SNAKE, `_2`, `_3` … on a clash, never OTHER) and never changes. `overtimeMultiplier` defaults to 1.5. 409 WORKER_TYPE_EXISTS when an active type already has this name (case-insensitive).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description English name; the key is generated from it
+                         * @example Electrician
+                         */
+                        label: string;
+                        /** @example Bijli wala */
+                        labelRoman?: string;
+                        /** @example بجلی والا */
+                        labelUrdu?: string;
+                        /**
+                         * @description Default daily wage in paisa
+                         * @example 300000
+                         */
+                        ratePaisa: string | number;
+                        /**
+                         * @description Default 1.5
+                         * @example 1.5
+                         */
+                        overtimeMultiplier?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "id": "0199a8c0-0000-7000-8000-000000000a61",
+                         *         "key": "ELECTRICIAN",
+                         *         "label": "Electrician",
+                         *         "labelRoman": "Bijli wala",
+                         *         "labelUrdu": "بجلی والا",
+                         *         "ratePaisa": "300000",
+                         *         "overtimeMultiplier": 1.5,
+                         *         "isActive": true,
+                         *         "workerCount": 0
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description WORKER_TYPE_EXISTS */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/worker-types/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit / deactivate a worker type
+         * @description THEKEDAR. Names (`labelRoman` / `labelUrdu`: null clears), rate, overtime multiplier, `isActive`. No hard delete: a deactivated type cannot be given to new workers, existing workers keep it. Renaming or reactivating onto the name of another active type → 409 WORKER_TYPE_EXISTS. The key never changes.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Worker type id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        label?: string;
+                        labelRoman?: string | null;
+                        labelUrdu?: string | null;
+                        /**
+                         * @description Paisa as a string (2500000 = Rs 25,000)
+                         * @example 2500000
+                         */
+                        ratePaisa?: string | number;
+                        overtimeMultiplier?: number | null;
+                        isActive?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "id": "0199a8c0-0000-7000-8000-000000000a61",
+                         *         "key": "ELECTRICIAN",
+                         *         "label": "Electrician",
+                         *         "labelRoman": "Bijli wala",
+                         *         "labelUrdu": "بجلی والا",
+                         *         "ratePaisa": "320000",
+                         *         "overtimeMultiplier": 1.5,
+                         *         "isActive": true,
+                         *         "workerCount": 0
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description WORKER_TYPE_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description WORKER_TYPE_EXISTS */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/api/v1/payment-templates": {
@@ -7264,7 +7802,7 @@ export interface paths {
         };
         /**
          * List workers
-         * @description All roles. Search matches name or phone.
+         * @description All roles. Search matches name or phone; `type` = a worker type key. Each worker has its type’s names: `typeLabel`, `typeLabelRoman`, `typeLabelUrdu`.
          */
         get: {
             parameters: {
@@ -7273,7 +7811,8 @@ export interface paths {
                     limit?: number;
                     /** @description Name or phone contains */
                     search?: string;
-                    type?: "MISTRI" | "MISTRI_TILES" | "MAZDOOR" | "STEEL_FIXER_HELPER" | "CHOWKIDAR" | "OTHER";
+                    /** @description A worker type `key` of the company (GET /worker-types) or OTHER */
+                    type?: string;
                     isActive?: "true" | "false";
                 };
                 header?: never;
@@ -7296,6 +7835,9 @@ export interface paths {
                          *           "id": "0199a8c0-0000-7000-8000-0000000000a1",
                          *           "name": "Ustad Akram",
                          *           "type": "MISTRI",
+                         *           "typeLabel": "Mason",
+                         *           "typeLabelRoman": "Mistri",
+                         *           "typeLabelUrdu": "مستری",
                          *           "phone": "+923001110001",
                          *           "dailyRatePaisa": "300000",
                          *           "isActive": true,
@@ -7350,7 +7892,7 @@ export interface paths {
         put?: never;
         /**
          * Add a worker
-         * @description THEKEDAR, PM, MUNSHI. `dailyRatePaisa` defaults to the company's DAILY labour rate for the type (type OTHER needs one: 400 DAILY_RATE_REQUIRED). Phone is unique within the company.
+         * @description THEKEDAR, PM, MUNSHI. `type` = an ACTIVE worker type key of the company (GET /worker-types) or OTHER, else 400 INVALID_WORKER_TYPE. `dailyRatePaisa` defaults to the type's daily rate (type OTHER needs one: 400 DAILY_RATE_REQUIRED). Phone is unique within the company.
          */
         post: {
             parameters: {
@@ -7364,8 +7906,11 @@ export interface paths {
                     "application/json": {
                         /** @example Ustad Akram */
                         name: string;
-                        /** @enum {string} */
-                        type: "MISTRI" | "MISTRI_TILES" | "MAZDOOR" | "STEEL_FIXER_HELPER" | "CHOWKIDAR" | "OTHER";
+                        /**
+                         * @description A worker type `key` of the company (GET /worker-types) or OTHER
+                         * @example MAZDOOR
+                         */
+                        type: string;
                         /**
                          * @description Pakistani mobile; normalised to +923001234567
                          * @example 03001234567
@@ -7394,6 +7939,9 @@ export interface paths {
                          *         "id": "0199a8c0-0000-7000-8000-0000000000a1",
                          *         "name": "Ustad Akram",
                          *         "type": "MISTRI",
+                         *         "typeLabel": "Mason",
+                         *         "typeLabelRoman": "Mistri",
+                         *         "typeLabelUrdu": "مستری",
                          *         "phone": "+923001110001",
                          *         "dailyRatePaisa": "300000",
                          *         "isActive": true,
@@ -7409,7 +7957,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description VALIDATION_ERROR | DAILY_RATE_REQUIRED */
+                /** @description VALIDATION_ERROR | INVALID_WORKER_TYPE | DAILY_RATE_REQUIRED */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -7468,7 +8016,7 @@ export interface paths {
         head?: never;
         /**
          * Edit a worker
-         * @description THEKEDAR, PM.
+         * @description THEKEDAR, PM. A new `type` must be an active worker type or OTHER (400 INVALID_WORKER_TYPE); a worker may keep a type that was deactivated since.
          */
         patch: {
             parameters: {
@@ -7484,8 +8032,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         name?: string;
-                        /** @enum {string} */
-                        type?: "MISTRI" | "MISTRI_TILES" | "MAZDOOR" | "STEEL_FIXER_HELPER" | "CHOWKIDAR" | "OTHER";
+                        /**
+                         * @description A worker type `key` of the company (GET /worker-types) or OTHER
+                         * @example MAZDOOR
+                         */
+                        type?: string;
                         /**
                          * @description Pakistani mobile; normalised to +923001234567
                          * @example 03001234567
@@ -7514,6 +8065,9 @@ export interface paths {
                          *         "id": "0199a8c0-0000-7000-8000-0000000000a1",
                          *         "name": "Ustad Akram",
                          *         "type": "MISTRI",
+                         *         "typeLabel": "Mason",
+                         *         "typeLabelRoman": "Mistri",
+                         *         "typeLabelUrdu": "مستری",
                          *         "phone": "+923001110001",
                          *         "dailyRatePaisa": "300000",
                          *         "isActive": true,
@@ -7529,7 +8083,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description VALIDATION_ERROR */
+                /** @description VALIDATION_ERROR | INVALID_WORKER_TYPE */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -7616,6 +8170,9 @@ export interface paths {
                          *         "id": "0199a8c0-0000-7000-8000-0000000000a1",
                          *         "name": "Ustad Akram",
                          *         "type": "MISTRI",
+                         *         "typeLabel": "Mason",
+                         *         "typeLabelRoman": "Mistri",
+                         *         "typeLabelUrdu": "مستری",
                          *         "phone": "+923001110001",
                          *         "dailyRatePaisa": "300000",
                          *         "isActive": false,
@@ -7704,6 +8261,9 @@ export interface paths {
                          *         "id": "0199a8c0-0000-7000-8000-0000000000a1",
                          *         "name": "Ustad Akram",
                          *         "type": "MISTRI",
+                         *         "typeLabel": "Mason",
+                         *         "typeLabelRoman": "Mistri",
+                         *         "typeLabelUrdu": "مستری",
                          *         "phone": "+923001110001",
                          *         "dailyRatePaisa": "300000",
                          *         "isActive": true,
@@ -28009,6 +28569,9 @@ export interface paths {
                          *           "byWorkerType": [
                          *             {
                          *               "type": "MAZDOOR",
+                         *               "label": "Labourer",
+                         *               "labelRoman": "Mazdoor",
+                         *               "labelUrdu": "مزدور",
                          *               "days": 64.5,
                          *               "wagesPaisa": "6200000"
                          *             }
@@ -30283,7 +30846,7 @@ export interface paths {
         };
         /**
          * Pull changes (mobile read model)
-         * @description Company bearer token of a device that is not revoked (else `401 DEVICE_REVOKED`). No `cursor` → full snapshot of the caller’s scope; with a cursor → rows changed after it (paged by `limit`, `hasMore`), and tombstones (`deletes`) for deleted rows. `resetRequired: true` when the cursor is older than the 30-day retention or the caller’s project access changed — wipe the local DB and pull without a cursor. Scope: assigned ACTIVE / CLOSEOUT projects (every running project for THEKEDAR), their site stock locations, materials, workers, attendance (3 weeks), settlements (8 weeks), advances, measurements, incoming dispatches / purchases, owner deliveries, usage, site stock (quantities), counts, daily logs (30 days), the caller’s OWN cash account / entries / top-ups, settings subset, holidays and own notifications. Never material rates, purchase amounts, supplier balances, contract values or other people’s cash; a MUNSHI gets no sub-contract rates or measured values, and with blind count on no sent / challan quantities until counted. A change is handed out once it is 30 s old (transactions commit out of order), so the cursor never skips one.
+         * @description Company bearer token of a device that is not revoked (else `401 DEVICE_REVOKED`). No `cursor` → full snapshot of the caller’s scope; with a cursor → rows changed after it (paged by `limit`, `hasMore`), and tombstones (`deletes`) for deleted rows. `resetRequired: true` when the cursor is older than the 30-day retention or the caller’s project access changed — wipe the local DB and pull without a cursor. Scope: assigned ACTIVE / CLOSEOUT projects (every running project for THEKEDAR), their site stock locations, materials, workers, the company’s worker types (`worker_types`: id, key, label, labelRoman, labelUrdu, ratePaisa, overtimeMultiplier, isActive, updatedAt — active and inactive), attendance (3 weeks), settlements (8 weeks), advances, measurements, incoming dispatches / purchases, owner deliveries, usage, site stock (quantities), counts, daily logs (30 days), the caller’s OWN cash account / entries / top-ups, settings subset, holidays and own notifications. Never material rates, purchase amounts, supplier balances, contract values or other people’s cash; a MUNSHI gets no sub-contract rates or measured values, and with blind count on no sent / challan quantities until counted. A change is handed out once it is 30 s old (transactions commit out of order), so the cursor never skips one.
          */
         get: {
             parameters: {
@@ -30349,6 +30912,22 @@ export interface paths {
                          *                     "note": null
                          *                   }
                          *                 ]
+                         *               }
+                         *             ],
+                         *             "deletes": []
+                         *           },
+                         *           "worker_types": {
+                         *             "upserts": [
+                         *               {
+                         *                 "id": "0199a8c0-0000-7000-8000-000000000a51",
+                         *                 "key": "MISTRI",
+                         *                 "label": "Mason",
+                         *                 "labelRoman": "Mistri",
+                         *                 "labelUrdu": "مستری",
+                         *                 "ratePaisa": "280000",
+                         *                 "overtimeMultiplier": 1.5,
+                         *                 "isActive": true,
+                         *                 "updatedAt": "2026-10-01T09:00:00.000Z"
                          *               }
                          *             ],
                          *             "deletes": []
@@ -30426,7 +31005,7 @@ export interface paths {
         put?: never;
         /**
          * Push queued mutations
-         * @description Up to 100 mutations, applied in order, each through the same service and permission checks as its REST endpoint, each in its own transaction. Result per mutation: **APPLIED** (serverId) · **DUPLICATE** (clientId seen before — same serverId, nothing done again) · **REJECTED** (permanent: code, message, details — e.g. WEEK_LOCKED, INSUFFICIENT_CASH, ALREADY_RECEIVED, INSUFFICIENT_STOCK, VALIDATION_ERROR, DEPENDENCY_REJECTED) · **RETRY** (transient; everything after it is RETRY too). Payload = the REST body plus its path ids (projectId, settlementId, dispatchId, purchaseId, entryId); any id may be the clientId of an earlier mutation or of an attachment uploaded with a clientId. Header `X-Pending-Mutations` = items still queued on the phone (shown to the office). Entries reaching the server more than 48 h after `deviceCreatedAt` are flagged `lateSync`.
+         * @description Up to 100 mutations, applied in order, each through the same service and permission checks as its REST endpoint, each in its own transaction. Result per mutation: **APPLIED** (serverId) · **DUPLICATE** (clientId seen before — same serverId, nothing done again) · **REJECTED** (permanent: code, message, details — e.g. WEEK_LOCKED, INVALID_WORKER_TYPE, INSUFFICIENT_CASH, ALREADY_RECEIVED, INSUFFICIENT_STOCK, VALIDATION_ERROR, DEPENDENCY_REJECTED) · **RETRY** (transient; everything after it is RETRY too). Payload = the REST body plus its path ids (projectId, settlementId, dispatchId, purchaseId, entryId); any id may be the clientId of an earlier mutation or of an attachment uploaded with a clientId. Header `X-Pending-Mutations` = items still queued on the phone (shown to the office). Entries reaching the server more than 48 h after `deviceCreatedAt` are flagged `lateSync`.
          */
         post: {
             parameters: {
@@ -31047,6 +31626,225 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Company */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description TENANT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/tenants/{id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company's projects
+         * @description Every project with client, status, dates, contract value, billed / received / outstanding (issued invoices, cleared payments), team members, active workers and the last daily log. Read-only. Each look is written to the company audit log (`admin.company_data_viewed`, at most once per admin and section every 10 minutes).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Company id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Company projects */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description TENANT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/tenants/{id}/team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company's team and phones
+         * @description Users (role, contact, status, projects, last login), devices (platform, last sync, entries waiting on the phone, revoked) and pending invitations. Read-only. Each look is written to the company audit log (`admin.company_data_viewed`, at most once per admin and section every 10 minutes).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Company id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Company team */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description TENANT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/tenants/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company's activity and money
+         * @description Projects by status, active workers, last activity / login, the last 30 days (hazri, purchases, dispatches, kharcha, usage, daily logs, invoices, payments) and money now (billed, received, receivables, supplier udhaar, cash with site staff). Read-only. Each look is written to the company audit log (`admin.company_data_viewed`, at most once per admin and section every 10 minutes).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Company id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Company activity */
                 200: {
                     headers: {
                         [name: string]: unknown;

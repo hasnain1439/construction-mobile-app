@@ -12,9 +12,11 @@ export type LocationRow = Base & { type: string; name: string; projectId: string
 export type MaterialRow = Base & { name: string; unit: string; groupId: string; supplyCategory: string; isHidden: boolean };
 export type MaterialGroupRow = Base & { code: string; name: string; sortOrder: number };
 export type SupplierRow = Base & { name: string };
-export type WorkerType = 'MISTRI' | 'MISTRI_TILES' | 'MAZDOOR' | 'STEEL_FIXER_HELPER' | 'CHOWKIDAR' | 'OTHER';
-export const WORKER_TYPES: WorkerType[] = ['MISTRI', 'MAZDOOR', 'MISTRI_TILES', 'STEEL_FIXER_HELPER', 'CHOWKIDAR', 'OTHER'];
-export type WorkerRow = Base & { name: string; type: WorkerType; phone: string | null; dailyRatePaisa: string | null; isActive: boolean };
+/** A company worker type (a DAILY labour rate); `key` is what `WorkerRow.type` holds. */
+export type WorkerTypeRow = Base & { key: string; label: string; labelRoman: string | null; labelUrdu: string | null; ratePaisa: string; overtimeMultiplier: number | null; isActive: boolean; updatedAt: string };
+/** A worker_types `key`, or 'OTHER'. */
+export type WorkerType = string;
+export type WorkerRow = Base & { name: string; type: WorkerType; typeLabel?: string | null; typeLabelRoman?: string | null; typeLabelUrdu?: string | null; phone: string | null; dailyRatePaisa: string | null; isActive: boolean };
 export type ProjectWorkerRow = Base & { projectId: string; workerId: string; dailyRatePaisa: string | null; startDate: string | null; endDate: string | null; isActive: boolean };
 export type AssignmentRow = Base & { projectId: string; subcontractor: { id: string; name: string; trade: string }; scope: string; rateType: string; unit: string; progressPercent: number | null; isActive: boolean };
 export type AttendanceStatus = 'FULL' | 'HALF' | 'ABSENT';
