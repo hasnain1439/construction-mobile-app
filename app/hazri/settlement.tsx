@@ -10,12 +10,14 @@ import { Screen } from '@components/Screen';
 import { StatusChip, type Tone } from '@components/StatusChip';
 import { useQuery } from '@/db/live';
 import { generateSettlement, paySettlement, submitSettlement } from '@/features/actions';
+import { usePermissions } from '@/features/access';
 import { useProject } from '@/features/project';
 import { cashAccount, settings, settlementFor, siteWorkers } from '@/features/queries';
 import { useSave } from '@/features/useSave';
 import { useT } from '@/i18n';
 import { addDays, shortDate, todayPK, weekOf, type WeekDay } from '@/lib/dates';
 import { formatPKR, toPaisa } from '@/lib/money';
+import { PERM, rules } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
 
 const TONE: Record<string, Tone> = { DRAFT: 'neutral', SUBMITTED: 'primary', APPROVED: 'success', RETURNED: 'danger' };
@@ -25,6 +27,9 @@ export default function SettlementScreen() {
   const t = useT();
   const save = useSave();
   const { projectId } = useProject();
+  const perms = usePermissions();
+  const canCreate = perms.can(PERM.settlementCreate);
+  const canPay = rules.payWages(perms.access, perms.role);
   const [day, setDay] = useState(todayPK());
   const [selected, setSelected] = useState<string[]>([]);
   const [confirm, setConfirm] = useState<'submit' | 'pay' | null>(null);
@@ -39,7 +44,7 @@ export default function SettlementScreen() {
   );
   if (!projectId || !data) return null;
   const s = data.settlement;
-  const payable = s?.status === 'APPROVED' ? s.lines.filter((l) => l.paymentStatus !== 'PAID' && toPaisa(l.netPaisa) > 0n) : [];
+  const payable = s?.status === 'APPROVED' && canPay ? s.lines.filter((l) => l.paymentStatus !== 'PAID' && toPaisa(l.netPaisa) > 0n) : [];
   const payTotal = payable.filter((l) => selected.includes(l.id)).reduce((sum, l) => sum + toPaisa(l.netPaisa), 0n);
   const enough = !data.account || toPaisa(data.account.balancePaisa) >= payTotal;
 
@@ -55,7 +60,7 @@ export default function SettlementScreen() {
       </View>
 
       {!s ? (
-        <EmptyState icon="🗓️" title={t('hazri.noSettlement')} action={{ label: t('hazri.generate'), onPress: () => save((db, c) => generateSettlement(db, c, { projectId, day })) }} />
+        <EmptyState icon="🗓️" title={t('hazri.noSettlement')} action={canCreate ? { label: t('hazri.generate'), onPress: () => save((db, c) => generateSettlement(db, c, { projectId, day })) } : undefined} />
       ) : (
         <>
           <View className="gap-3 overflow-hidden rounded-card bg-brand-light p-5" style={RAISED_SHADOW}>
@@ -64,7 +69,7 @@ export default function SettlementScreen() {
               <StatusChip tone={TONE[s.status] ?? 'neutral'} label={t(`settlement.${s.status}` as never)} />
               {s.pendingSync ? <StatusChip tone="accent" label={`⏳ ${t('maal.waitingSync')}`} /> : null}
             </View>
-            {s.netPaisa !== null ? (
+            {s.netPaisa != null ? (
               <View>
                 <Text className="font-medium text-sm text-brand-muted">{t('hazri.net')}</Text>
                 <MoneyText paisa={s.netPaisa} className="mt-1 text-3xl !text-white" />
@@ -109,7 +114,7 @@ export default function SettlementScreen() {
             );
           })}
 
-          {s.status === 'DRAFT' || s.status === 'RETURNED' ? <BigButton label={t('hazri.submit')} onPress={() => setConfirm('submit')} /> : null}
+          {canCreate && (s.status === 'DRAFT' || s.status === 'RETURNED') ? <BigButton label={t('hazri.submit')} onPress={() => setConfirm('submit')} /> : null}
           {payable.length ? (
             <>
               {!enough ? <Text className="text-sm text-danger">{t('hazri.notEnoughCash')}</Text> : null}

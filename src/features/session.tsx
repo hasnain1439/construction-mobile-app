@@ -4,10 +4,10 @@
  * Logout first tries to send the outbox; if entries remain, the caller must confirm ("force").
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getMobileConfig, serverLogout, versionLess, type MobileConfig } from '../api/auth';
+import { getMe, getMobileConfig, serverLogout, versionLess, type MobileConfig, type SignedIn } from '../api/auth';
 import { onSignedOut } from '../api/client';
 import { APP_VERSION } from '../api/config';
-import { clearSession, getDeviceId, getUser, type SessionUser } from '../api/session';
+import { clearSession, getDeviceId, getUser, setUser, type SessionUser } from '../api/session';
 import { openDb } from '../db/client';
 import { wipeAll } from '../db/kv';
 import { notifyChange } from '../db/live';
@@ -17,6 +17,8 @@ import { syncNow } from '../sync/engine';
 import { pendingCount } from '../sync/outbox';
 import { getSyncState, pullAll } from '../sync/pull';
 import { stopBackgroundSync } from '../sync/triggers';
+import { saveAccess } from '../db/access';
+import { clearUser, identifyUser, trackLogin } from '../lib/observability';
 
 export type SessionStatus = 'booting' | 'update' | 'signedOut' | 'firstSync' | 'ready';
 
@@ -25,7 +27,8 @@ interface Session {
   user: SessionUser | null;
   config: MobileConfig | null;
   bootError: string | null;
-  signedIn: (user: SessionUser) => void;
+  /** After login / OTP: the result's access block is stored for offline use. */
+  signedIn: (user: SignedIn | SessionUser, method?: 'otp' | 'password') => void;
   runFirstSync: () => Promise<void>;
   /** { pending } when entries could not be sent and `force` was not given. */
   logout: (force?: boolean) => Promise<{ done: boolean; pending: number }>;
@@ -52,7 +55,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const u = await getUser();
         setUserState(u);
         if (!u) return setStatus('signedOut');
+        void identifyUser(u); // hashed id + company only (Sentry / PostHog, when configured)
         setStatus(getSyncState(d).lastPullAt ? 'ready' : 'firstSync');
+        // Fresh permissions when online (offline: the last stored block is used).
+        void getMe()
+          .then(async (me) => {
+            if (saveAccess(d, me)) notifyChange();
+            if (me.user.role !== u.role) {
+              const next = { ...u, role: me.user.role };
+              await setUser(next);
+              setUserState(next);
+            }
+          })
+          .catch(() => undefined);
       } catch (err) {
         setBootError(err instanceof Error ? err.message : String(err));
       }
@@ -64,6 +79,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     notifyChange();
     await clearSession();
     await stopBackgroundSync().catch(() => undefined);
+    clearUser();
     setUserState(null);
     setStatus('signedOut');
   }, [db]);
@@ -72,11 +88,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => onSignedOut(() => void wipe()), [wipe]);
 
   const signedIn = useCallback(
-    (u: SessionUser) => {
+    (signed: SignedIn | SessionUser, method?: 'otp' | 'password') => {
+      const { access, ...u } = { access: undefined, ...signed };
       // Another person's data never stays on the phone.
       if (db && user && user.id !== u.id) wipeAll(db);
+      if (db && access) saveAccess(db, access);
+      notifyChange();
       setUserState(u);
       setStatus('firstSync');
+      // Hashed id + company group, then `login` (no-ops when PostHog / Sentry are not configured).
+      void trackLogin(u, method ?? 'otp');
     },
     [db, user],
   );

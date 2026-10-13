@@ -24,6 +24,20 @@ export function errorText(language: Language, code: string | null | undefined): 
   return key in en ? translate(language, key) : translate(language, 'err.generic');
 }
 
+/**
+ * Why the server refused a sync entry (the outbox keeps `{ code, message, details }` as JSON):
+ * PERMISSION_DENIED → "Aap ko is ki ijazat nahi", like a REST 403 with the same code.
+ */
+export function rejectedText(language: Language, lastError: string | null | undefined): string {
+  let code: string | undefined;
+  try {
+    code = lastError ? (JSON.parse(lastError) as { code?: string } | null)?.code : undefined;
+  } catch {
+    code = undefined;
+  }
+  return errorText(language, code);
+}
+
 interface I18n {
   language: Language;
   t: (key: TKey, vars?: Record<string, string | number>) => string;

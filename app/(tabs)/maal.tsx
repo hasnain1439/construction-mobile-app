@@ -11,11 +11,12 @@ import { ProjectSwitcher } from '@components/ProjectSwitcher';
 import { Screen } from '@components/Screen';
 import { StatusChip } from '@components/StatusChip';
 import { useQuery } from '@/db/live';
+import { usePermissions } from '@/features/access';
 import { useProject } from '@/features/project';
 import { incomingDispatches, incomingPurchases, siteStock } from '@/features/queries';
 import { useT } from '@/i18n';
 import { dateTime, shortDate } from '@/lib/dates';
-
+import { PERM } from '@/lib/permissions';
 import { qty } from '@/lib/qty';
 import { CARD_SHADOW, COLORS } from '@/lib/theme';
 
@@ -23,6 +24,8 @@ import { CARD_SHADOW, COLORS } from '@/lib/theme';
 export default function MaalScreen() {
   const t = useT();
   const { projectId } = useProject();
+  const perms = usePermissions();
+  const canReceive = perms.can(PERM.receive);
   const data = useQuery((db) => (projectId ? { dispatches: incomingDispatches(db, projectId), purchases: incomingPurchases(db, projectId), stock: siteStock(db, projectId) } : null), [projectId]);
   const header = <Header title={t('maal.title')} right={<ProjectSwitcher />} />;
   if (!projectId || !data) {
@@ -36,10 +39,10 @@ export default function MaalScreen() {
   const top = (
     <View className="gap-3 p-4">
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-        <BigButton small variant="secondary" icon="🧱" label={t('maal.usage')} onPress={() => router.push('/maal/usage')} />
-        <BigButton small variant="secondary" icon="📦" label={t('maal.ownerDelivery')} onPress={() => router.push('/maal/owner-delivery')} />
-        <BigButton small variant="secondary" icon="🛒" label={t('maal.purchase')} onPress={() => router.push('/maal/purchase')} />
-        <BigButton small variant="secondary" icon="🔢" label={t('maal.count')} onPress={() => router.push('/maal/count')} />
+        {perms.can(PERM.usageCreate) ? <BigButton small variant="secondary" icon="🧱" label={t('maal.usage')} onPress={() => router.push('/maal/usage')} /> : null}
+        {perms.can(PERM.ownerDeliveryCreate) ? <BigButton small variant="secondary" icon="📦" label={t('maal.ownerDelivery')} onPress={() => router.push('/maal/owner-delivery')} /> : null}
+        {perms.can(PERM.purchaseCreate) ? <BigButton small variant="secondary" icon="🛒" label={t('maal.purchase')} onPress={() => router.push('/maal/purchase')} /> : null}
+        {perms.can(PERM.countCreate) ? <BigButton small variant="secondary" icon="🔢" label={t('maal.count')} onPress={() => router.push('/maal/count')} /> : null}
       </ScrollView>
       <View className="mt-1 flex-row items-center gap-2">
         <Icon name="truck-delivery-outline" size={20} color={COLORS.info} />
@@ -58,8 +61,8 @@ export default function MaalScreen() {
           iconTone="info"
           title={`${d.number} · ${d.from}`}
           subtitle={[d.vehicleNo, d.driverName, dateTime(d.dispatchedAt)].filter(Boolean).join(' · ')}
-          right={<StatusChip tone="primary" label={t('maal.receive')} />}
-          onPress={() => router.push({ pathname: '/maal/receive', params: { kind: 'dispatch', id: d.id } })}
+          right={canReceive ? <StatusChip tone="primary" label={t('maal.receive')} /> : undefined}
+          onPress={canReceive ? () => router.push({ pathname: '/maal/receive', params: { kind: 'dispatch', id: d.id } }) : undefined}
         />
       ))}
       {data.purchases.map((p) => (
@@ -69,8 +72,8 @@ export default function MaalScreen() {
           iconTone="accent"
           title={`${p.challanNo} · ${p.supplier.name}`}
           subtitle={[p.vehicleNo, shortDate(p.purchaseDate)].filter(Boolean).join(' · ')}
-          right={<StatusChip tone="primary" label={t('maal.receive')} />}
-          onPress={() => router.push({ pathname: '/maal/receive', params: { kind: 'purchase', id: p.id } })}
+          right={canReceive ? <StatusChip tone="primary" label={t('maal.receive')} /> : undefined}
+          onPress={canReceive ? () => router.push({ pathname: '/maal/receive', params: { kind: 'purchase', id: p.id } }) : undefined}
         />
       ))}
       <View className="mt-3 flex-row items-center gap-2">

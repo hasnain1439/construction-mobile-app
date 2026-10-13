@@ -32,7 +32,7 @@ export default function SelectCompanyScreen() {
       }
       const user = pending.mode === 'code' ? await verifyOtp(pending.phone, pending.code, c.tenantId) : await passwordLogin(pending.phone, pending.password, c.tenantId);
       clearPendingLogin();
-      signedIn(user);
+      signedIn(user, pending.mode === 'code' ? 'otp' : 'password');
     } catch (err) {
       setError(err instanceof ApiError ? errorText(language, err.code) : t('err.network'));
     } finally {

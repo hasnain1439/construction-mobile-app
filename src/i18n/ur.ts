@@ -103,4 +103,7 @@ export const ur: Partial<Record<TKey, string>> = {
   'err.INVALID_CREDENTIALS': 'فون یا پاس ورڈ غلط ہے',
   'err.USE_OTP_LOGIN': 'پاس ورڈ نہیں بنا — ایس ایم ایس کوڈ سے لاگ ان کریں',
   'err.ACCOUNT_LOCKED': 'بہت کوششیں — کچھ منٹ بعد کوشش کریں',
+  'err.PERMISSION_DENIED': 'آپ کو اس کی اجازت نہیں',
+  'err.APPROVAL_LIMIT_EXCEEDED': 'یہ رقم آپ کی منظوری کی حد سے زیادہ ہے',
+  'err.SMS_UNAVAILABLE': 'کوڈ نہیں بھیجا جا سکا — ایک منٹ بعد دوبارہ منگوائیں',
 };

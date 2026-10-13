@@ -7,6 +7,7 @@ import { inArray, sql } from 'drizzle-orm';
 import { NetworkError } from '../api/client';
 import { outbox } from '../db/schema';
 import type { Db } from '../db/types';
+import { flushAnalytics, reportSyncFailure } from '../lib/observability';
 import type { SyncApi } from './api';
 import { pendingAttachments, uploadPending } from './attachments';
 import { pendingCount, problems } from './outbox';
@@ -78,19 +79,25 @@ async function run(db: Db, api: SyncApi, opts: SyncOptions): Promise<SyncStatus>
   const now = opts.now ?? Date.now;
   recoverInterrupted(db);
   emit(db, { phase: 'syncing' });
+  let stage: 'upload' | 'push' | 'pull' = 'upload';
   try {
     await uploadPending(db, api);
+    stage = 'push';
     await pushOutbox(db, api, { now: now(), deviceId: opts.deviceId });
     setSyncState(db, { lastPushAt: now() });
+    stage = 'pull';
     if (!opts.pushOnly) await pullAll(db, api, now());
     pruneApplied(db, now());
     setSyncState(db, { lastError: null });
     emit(db, { phase: 'idle', lastError: null });
+    void flushAnalytics(); // online again: send analytics events queued while offline (no-op without a key)
   } catch (err) {
     const offline = err instanceof NetworkError;
     const message = err instanceof Error ? err.message : String(err);
     setSyncState(db, { lastError: message });
     emit(db, { phase: offline ? 'offline' : 'error', lastError: message });
+    // Analytics `sync_error` (throttled) + Sentry for non-network failures; no-ops without keys.
+    reportSyncFailure(err, { stage, pending: current.pending });
   }
   return current;
 }

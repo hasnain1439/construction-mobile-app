@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import { request } from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
 import type { Row } from '../db/store';
+import type { Access } from '../lib/permissions';
 
 export interface PullResponse {
   cursor: string;
@@ -10,6 +11,8 @@ export interface PullResponse {
   resetRequired: boolean;
   serverTime: string;
   changes: Record<string, { upserts: Row[]; deletes: string[] }>;
+  /** The caller's permissions (same block as /auth/me), on every pull. */
+  access?: Access;
 }
 
 export interface PushMutation {

@@ -11,6 +11,7 @@ import { Screen } from '@components/Screen';
 import { StatusChip } from '@components/StatusChip';
 import { StepperInput } from '@components/StepperInput';
 import { useQuery } from '@/db/live';
+import { usePermissions } from '@/features/access';
 import { markAttendance, type HazriEntry } from '@/features/actions';
 import { useProject } from '@/features/project';
 import { attendanceBetween, attendanceOn, settings, siteWorkers, weekLocked } from '@/features/queries';
@@ -18,6 +19,7 @@ import type { AttendanceStatus } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { workerTypeMap, workerTypeName } from '@/features/workerTypes';
 import { useI18n } from '@/i18n';
+import { PERM } from '@/lib/permissions';
 import { addDays, shortDate, todayPK, weekDayShort, weekOf, type WeekDay } from '@/lib/dates';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
 
@@ -36,6 +38,9 @@ export default function HazriScreen() {
   const { t, language } = useI18n();
   const save = useSave();
   const { projectId } = useProject();
+  const perms = usePermissions();
+  const canMark = perms.can(PERM.hazriMark);
+  const canAddWorker = perms.can(PERM.workerCreate);
   const today = todayPK();
   const [day, setDay] = useState(today);
   const [mode, setMode] = useState<'day' | 'week'>('day');
@@ -129,12 +134,12 @@ export default function HazriScreen() {
       </View>
       {data.locked ? <StatusChip tone="warning" icon="🔒" label={t('hazri.locked')} /> : null}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-        <BigButton small variant="secondary" icon="➕" label={t('hazri.addWorker')} onPress={() => router.push('/hazri/worker-new')} />
-        <BigButton small variant="secondary" icon="🤝" label={t('hazri.peshgi')} onPress={() => router.push('/hazri/peshgi')} />
-        <BigButton small variant="secondary" icon="📏" label={t('hazri.measurement')} onPress={() => router.push('/hazri/measurement')} />
-        <BigButton small variant="secondary" icon="🗓️" label={t('hazri.settlement')} onPress={() => router.push('/hazri/settlement')} />
+        {canAddWorker ? <BigButton small variant="secondary" icon="➕" label={t('hazri.addWorker')} onPress={() => router.push('/hazri/worker-new')} /> : null}
+        {perms.can(PERM.peshgiCreate) ? <BigButton small variant="secondary" icon="🤝" label={t('hazri.peshgi')} onPress={() => router.push('/hazri/peshgi')} /> : null}
+        {perms.can(PERM.measurementCreate) ? <BigButton small variant="secondary" icon="📏" label={t('hazri.measurement')} onPress={() => router.push('/hazri/measurement')} /> : null}
+        {perms.can(PERM.settlementView) ? <BigButton small variant="secondary" icon="🗓️" label={t('hazri.settlement')} onPress={() => router.push('/hazri/settlement')} /> : null}
       </ScrollView>
-      {mode === 'day' && data.workers.length > 0 && !data.locked ? (
+      {mode === 'day' && data.workers.length > 0 && !data.locked && canMark ? (
         <BigButton
           testID="all-present"
           variant="secondary"
@@ -198,7 +203,7 @@ export default function HazriScreen() {
       header={header}
       scroll={false}
       footer={
-        data.workers.length && !data.locked ? (
+        data.workers.length && !data.locked && canMark ? (
           <BigButton testID="save-hazri" icon={saved ? '✓' : '💾'} label={saved ? t('hazri.saved') : `${t('hazri.save')}${changed.length ? ` (${changed.length})` : ''}`} disabled={!changed.length} onPress={submit} />
         ) : undefined
       }
@@ -210,7 +215,7 @@ export default function HazriScreen() {
         ListHeaderComponent={top}
         ListEmptyComponent={
           <View className="px-4">
-            <EmptyState icon="👷" title={t('hazri.noWorkers')} action={{ label: t('hazri.addWorker'), onPress: () => router.push('/hazri/worker-new') }} />
+            <EmptyState icon="👷" title={t('hazri.noWorkers')} action={canAddWorker ? { label: t('hazri.addWorker'), onPress: () => router.push('/hazri/worker-new') } : undefined} />
           </View>
         }
         renderItem={({ item }) => {
@@ -243,8 +248,8 @@ export default function HazriScreen() {
                     key={s}
                     testID={`mark-${item.worker.name}-${s}`}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: d?.status === s, disabled: data.locked }}
-                    disabled={data.locked}
+                    accessibilityState={{ selected: d?.status === s, disabled: data.locked || !canMark }}
+                    disabled={data.locked || !canMark}
                     onPress={() => set(item.worker.id, { status: s })}
                     className={`min-h-12 flex-1 items-center justify-center rounded-xl border ${d?.status === s ? ON[s] : 'border-border bg-bg'}`}
                   >
@@ -252,7 +257,7 @@ export default function HazriScreen() {
                   </Pressable>
                 ))}
               </View>
-              {d && d.status !== 'ABSENT' ? (
+              {d && d.status !== 'ABSENT' && canMark ? (
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm text-muted">{t('hazri.ot')}</Text>
                   <StepperInput label={t('hazri.ot')} value={d.ot} step={0.5} max={12} onChange={(v) => set(item.worker.id, { ot: v })} />

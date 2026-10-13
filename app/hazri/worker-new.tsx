@@ -12,12 +12,12 @@ import { Screen } from '@components/Screen';
 import { useQuery } from '@/db/live';
 import { addWorker } from '@/features/actions';
 import { useProject } from '@/features/project';
-import { useUser } from '@/features/session';
+import { usePermissions } from '@/features/access';
 import { useSave } from '@/features/useSave';
 import { workerTypeOptions, workerTypes, type WorkerTypeOption } from '@/features/workerTypes';
 import { useI18n } from '@/i18n';
 import { paisaToRupees, rupeesToPaisa } from '@/lib/money';
-import { can } from '@/lib/permissions';
+import { rules } from '@/lib/permissions';
 import { normalisePhone } from '@/lib/phone';
 import { COLORS } from '@/lib/theme';
 
@@ -33,9 +33,9 @@ type Form = z.infer<typeof schema>;
 export default function NewWorkerScreen() {
   const { t, language } = useI18n();
   const save = useSave();
-  const user = useUser();
+  const perms = usePermissions();
   const { projectId } = useProject();
-  const canRate = can.setWorkerRate(user.role);
+  const canRate = rules.setWorkerRate(perms.access, perms.role);
   const options = useQuery((db) => workerTypeOptions(workerTypes(db), language), [language]);
   const {
     control,

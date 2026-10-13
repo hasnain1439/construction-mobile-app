@@ -223,6 +223,7 @@ export const roman: Record<TKey, string> = {
   'err.PHONE_NOT_REGISTERED': 'Yeh number darj nahi — apne Thekedar se kahein',
   'err.DEVICE_REVOKED': 'Office ne is phone ko logout kar diya',
   'err.OTP_RESEND_WAIT': 'Thora ruk kar dobara mangein',
+  'err.SMS_UNAVAILABLE': 'Code nahi bheja ja saka — ek minute baad dobara mangein',
   'auth.updateOpen': 'Play Store kholein',
   'hazri.noWorkers': 'Is site par abhi koi worker nahi',
   'hazri.noSubcontracts': 'Is site par koi theka nahi',
@@ -257,4 +258,6 @@ export const roman: Record<TKey, string> = {
   'err.INVALID_CREDENTIALS': 'Phone ya password ghalat hai',
   'err.USE_OTP_LOGIN': 'Password nahi bana — SMS code se login karein',
   'err.ACCOUNT_LOCKED': 'Bohat koshishen — kuch minute baad try karein',
+  'err.PERMISSION_DENIED': 'Aap ko is ki ijazat nahi',
+  'err.APPROVAL_LIMIT_EXCEEDED': 'Ye raqam aap ki manzoori ki had se zyada hai',
 };

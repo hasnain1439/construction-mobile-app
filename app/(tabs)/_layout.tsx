@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { Icon } from '@components/Icon';
+import { usePermissions } from '@/features/access';
 import { useT } from '@/i18n';
+import { TAB_PERMS } from '@/lib/permissions';
 import { COLORS } from '@/lib/theme';
 import { useSyncStatus } from '@/sync/useSyncStatus';
 
@@ -17,6 +19,9 @@ const icon = (active: string, idle: string) =>
 export default function TabsLayout() {
   const t = useT();
   const s = useSyncStatus();
+  const p = usePermissions();
+  // href: null hides a tab the person can't use (the server refuses it anyway).
+  const tab = (keys: readonly string[]) => (p.canAny(...keys) ? {} : { href: null });
   return (
     <Tabs
       screenOptions={{
@@ -29,9 +34,9 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="aaj" options={{ title: t('tabs.aaj'), tabBarIcon: icon('home-variant', 'home-variant-outline') }} />
-      <Tabs.Screen name="hazri" options={{ title: t('tabs.hazri'), tabBarIcon: icon('account-hard-hat', 'account-hard-hat-outline') }} />
-      <Tabs.Screen name="maal" options={{ title: t('tabs.maal'), tabBarIcon: icon('wall', 'wall') }} />
-      <Tabs.Screen name="kharcha" options={{ title: t('tabs.kharcha'), tabBarIcon: icon('wallet', 'wallet-outline') }} />
+      <Tabs.Screen name="hazri" options={{ ...tab(TAB_PERMS.hazri), title: t('tabs.hazri'), tabBarIcon: icon('account-hard-hat', 'account-hard-hat-outline') }} />
+      <Tabs.Screen name="maal" options={{ ...tab(TAB_PERMS.maal), title: t('tabs.maal'), tabBarIcon: icon('wall', 'wall') }} />
+      <Tabs.Screen name="kharcha" options={{ ...tab(TAB_PERMS.kharcha), title: t('tabs.kharcha'), tabBarIcon: icon('wallet', 'wallet-outline') }} />
       <Tabs.Screen
         name="mazeed"
         options={{ title: t('tabs.mazeed'), tabBarIcon: icon('dots-horizontal-circle', 'dots-horizontal-circle-outline'), tabBarBadge: s.problems > 0 ? s.problems : undefined }}

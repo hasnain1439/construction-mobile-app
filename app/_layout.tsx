@@ -16,9 +16,13 @@ import { IconBadge } from '@components/IconBadge';
 import { ProjectProvider } from '@/features/project';
 import { SessionProvider, useSession } from '@/features/session';
 import { I18nProvider } from '@/i18n';
+import { initSentry, wrapRoot } from '@/lib/observability';
 import { COLORS } from '@/lib/theme';
 // Importing triggers also defines the background sync task at module scope (expo-task-manager needs that).
 import { startSyncTriggers } from '@/sync/triggers';
+
+// Crash reporting (no-op without EXPO_PUBLIC_SENTRY_DSN). Before anything else can throw.
+initSentry();
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -76,7 +80,7 @@ function Gate() {
   return status === 'ready' ? <ProjectProvider>{stack}</ProjectProvider> : stack;
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded] = useFonts({ Cabin_400Regular, Cabin_500Medium, Cabin_600SemiBold, Cabin_700Bold });
   if (!fontsLoaded) return null;
   return (
@@ -90,3 +94,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default wrapRoot(RootLayout);

@@ -7,6 +7,6 @@ module.exports = {
   },
   testMatch: ['**/tests/**/*.test.ts?(x)'],
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@shopify/flash-list|drizzle-orm|nativewind|react-native-css-interop)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@shopify/flash-list|@sentry/.*|drizzle-orm|nativewind|react-native-css-interop)',
   ],
 };

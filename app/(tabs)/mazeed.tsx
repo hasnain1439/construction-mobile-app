@@ -13,9 +13,11 @@ import { Icon } from '@components/Icon';
 import { APP_VERSION } from '@/api/config';
 import { useQuery } from '@/db/live';
 import { listRows } from '@/db/store';
+import { usePermissions } from '@/features/access';
 import { useSession, useUser } from '@/features/session';
 import type { NotificationRow } from '@/features/types';
 import { useI18n, type Language } from '@/i18n';
+import { PERM } from '@/lib/permissions';
 import { displayPhone } from '@/lib/phone';
 import { CARD_SHADOW, COLORS } from '@/lib/theme';
 import { syncFromApp } from '@/sync/triggers';
@@ -31,6 +33,7 @@ export default function MazeedScreen() {
   const { t, language, setLanguage } = useI18n();
   const user = useUser();
   const { logout } = useSession();
+  const perms = usePermissions();
   const s = useSyncStatus();
   const unread = useQuery((db) => listRows<NotificationRow>(db, 'notifications').filter((n) => !n.read).length, []);
   const [confirm, setConfirm] = useState<{ pending: number } | null>(null);
@@ -56,13 +59,13 @@ export default function MazeedScreen() {
         <View className="flex-1 gap-0.5">
           <Text className="font-bold text-lg text-white">{user.name}</Text>
           <Text className="text-sm text-brand-muted">
-            {displayPhone(user.phone)} · {user.role}
+            {displayPhone(user.phone)} · {perms.access?.permissionRole?.name ?? user.role}
           </Text>
           <Text className="text-sm text-brand-muted">{user.tenantName}</Text>
         </View>
       </View>
-      <ListItem icon="📝" iconTone="violet" title={t('mazeed.dailyLog')} onPress={() => router.push('/log/today')} />
-      <ListItem icon="📚" iconTone="info" title={t('mazeed.myLogs')} onPress={() => router.push('/log/history')} />
+      {perms.can(PERM.logCreate) ? <ListItem icon="📝" iconTone="violet" title={t('mazeed.dailyLog')} onPress={() => router.push('/log/today')} /> : null}
+      {perms.can(PERM.logView) ? <ListItem icon="📚" iconTone="info" title={t('mazeed.myLogs')} onPress={() => router.push('/log/history')} /> : null}
       <ListItem icon="🔔" iconTone="accent" title={t('mazeed.notifications')} right={unread ? <StatusChip tone="danger" label={String(unread)} /> : undefined} onPress={() => router.push('/notifications')} />
       <ListItem
         testID="open-problems"
