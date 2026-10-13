@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import NewWorkerScreen from '../app/hazri/worker-new';
+import { saveAccess } from '../src/db/access';
 import { putRow } from '../src/db/store';
 import type { Db } from '../src/db/types';
 import type { Ctx } from '../src/features/actions';
@@ -104,5 +105,21 @@ describe('Naya mazdoor', () => {
     await fireEvent.changeText(screen.getByTestId('worker-name'), 'Bashir');
     await fireEvent.press(screen.getByTestId('save-worker'));
     expect(JSON.parse(pendingItems(mockDb)[0]!.payload)).toEqual({ name: 'Bashir', type: 'MISTRI' });
+  });
+
+  it('follows fields.rates from the server: a PM without it sets no rate', async () => {
+    mockRole = 'PM';
+    seed();
+    saveAccess(mockDb, { permissions: ['masterdata.worker.create'], fieldAccess: { rates: false, amounts: false, profit: false, contract: false } });
+    await show('roman');
+    expect(screen.queryByTestId('worker-rate')).toBeNull();
+  });
+
+  it('a munshi given fields.rates by an override may set the rate', async () => {
+    mockRole = 'MUNSHI';
+    seed();
+    saveAccess(mockDb, { permissions: ['masterdata.worker.create', 'fields.rates'], fieldAccess: { rates: true, amounts: false, profit: false, contract: false } });
+    await show('roman');
+    expect(screen.getByTestId('worker-rate')).toBeTruthy();
   });
 });

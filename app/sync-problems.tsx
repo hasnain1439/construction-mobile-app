@@ -6,7 +6,7 @@ import { IconBadge } from '@components/IconBadge';
 import { Screen } from '@components/Screen';
 import { getDb } from '@/db/client';
 import { notifyChange, useQuery } from '@/db/live';
-import { errorText, useI18n } from '@/i18n';
+import { rejectedText, useI18n } from '@/i18n';
 import { dateTime } from '@/lib/dates';
 import { CARD_SHADOW } from '@/lib/theme';
 import { refreshStatus } from '@/sync/engine';
@@ -20,14 +20,13 @@ export default function SyncProblemsScreen() {
     <Screen header={<Header back title={t('sync.problemsTitle')} />}>
       {!list.length ? <EmptyState icon="✅" title={t('sync.noProblems')} /> : null}
       {list.map((p) => {
-        const err = p.lastError ? (JSON.parse(p.lastError) as { code?: string }) : null;
         return (
           <View key={p.clientId} testID="problem" className="gap-3 rounded-card bg-card p-4" style={CARD_SHADOW}>
             <View className="flex-row gap-3">
               <IconBadge name="alert-circle-outline" tone="danger" size={40} />
               <View className="flex-1 gap-1">
                 <Text className="font-semibold text-ink">{p.label}</Text>
-                <Text className="text-sm text-danger">{errorText(language, err?.code)}</Text>
+                <Text className="text-sm text-danger">{rejectedText(language, p.lastError)}</Text>
                 <Text className="text-xs text-muted">
                   {dateTime(p.deviceCreatedAt)} · {t('sync.undone')}
                 </Text>

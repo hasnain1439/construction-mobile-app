@@ -4,8 +4,10 @@
  * Rows still waiting in the outbox are left alone (the push decides them); optimistic copies
  * (same clientId, or for hazri the same worker + day) are dropped when the server row arrives.
  * `resetRequired` → wipe the mirrored tables and pull a fresh snapshot.
+ * `access` (permissions) is stored with the page so tabs and buttons follow the server.
  */
 import { and, eq, ne, notInArray } from 'drizzle-orm';
+import { saveAccess } from '../db/access';
 import { SYNC_TABLES, SYNC_TABLE_NAMES, syncState, type SyncTableName } from '../db/schema';
 import { deleteRows, dropLocalCopies, putRow, type Row } from '../db/store';
 import type { Db } from '../db/types';
@@ -63,6 +65,7 @@ export function applyPull(db: Db, res: PullResponse, snapshot: boolean, now = Da
         change.deletes.filter((id) => !keep.has(`${table}:${id}`)),
       );
     }
+    if (res.access) saveAccess(t, res.access);
     setSyncState(t, { cursor: res.cursor, lastPullAt: now });
   });
 }
@@ -77,6 +80,7 @@ export async function pullAll(db: Db, api: SyncApi, now = Date.now()): Promise<{
       if (reset) throw new Error('Server asked for a reset twice');
       reset = true;
       wipeMirror(db);
+      if (res.access) saveAccess(db, res.access);
       continue;
     }
     applyPull(db, res, cursor === undefined, now);

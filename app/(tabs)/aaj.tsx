@@ -10,11 +10,13 @@ import { ProjectSwitcher } from '@components/ProjectSwitcher';
 import { Screen } from '@components/Screen';
 import { StatusChip } from '@components/StatusChip';
 import { useQuery } from '@/db/live';
+import { usePermissions } from '@/features/access';
 import { useProject } from '@/features/project';
 import { attendanceOn, cashAccount, incomingDispatches, incomingPurchases, myLogOn, pendingFloats, settings, settlementFor, siteWorkers } from '@/features/queries';
 import { useUser } from '@/features/session';
 import { useT } from '@/i18n';
 import { longDate, todayPK, weekOf, type WeekDay } from '@/lib/dates';
+import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW, TOPBAR_SHADOW } from '@/lib/theme';
 
 /** Greeting bar (like the web top bar): avatar, name, date and the current site. */
@@ -42,6 +44,7 @@ function HomeHeader({ name, date }: { name: string; date: string }) {
 export default function AajScreen() {
   const t = useT();
   const user = useUser();
+  const perms = usePermissions();
   const { projectId, project } = useProject();
   const today = todayPK();
   const data = useQuery(
@@ -71,20 +74,21 @@ export default function AajScreen() {
     );
   }
 
-  const todo: { icon: string; tone: BadgeTone; title: string; done: boolean; href: Href; testID: string }[] = [
-    {
+  const todo: { icon: string; tone: BadgeTone; title: string; done: boolean; href: Href; testID: string }[] = [];
+  if (perms.can(PERM.hazriMark)) {
+    todo.push({
       icon: '👷',
       tone: 'primary',
       title: data.marked > 0 ? t('aaj.hazriDone', { n: `${data.marked}/${data.workers}` }) : t('aaj.markHazri'),
       done: data.marked > 0 && data.marked >= data.workers,
       href: '/hazri',
       testID: 'todo-hazri',
-    },
-    { icon: '📝', tone: 'violet', title: data.log ? t('aaj.logDone') : t('aaj.logMissing'), done: !!data.log, href: '/log/today', testID: 'todo-log' },
-  ];
-  if (data.incoming) todo.push({ icon: '🚚', tone: 'info', title: t('aaj.incoming', { n: data.incoming }), done: false, href: '/maal', testID: 'todo-incoming' });
-  if (data.floats) todo.push({ icon: '💵', tone: 'success', title: t('aaj.floats', { n: data.floats }), done: false, href: '/kharcha', testID: 'todo-floats' });
-  if (data.settlement) {
+    });
+  }
+  if (perms.can(PERM.logCreate)) todo.push({ icon: '📝', tone: 'violet', title: data.log ? t('aaj.logDone') : t('aaj.logMissing'), done: !!data.log, href: '/log/today', testID: 'todo-log' });
+  if (data.incoming && perms.can(PERM.receive)) todo.push({ icon: '🚚', tone: 'info', title: t('aaj.incoming', { n: data.incoming }), done: false, href: '/maal', testID: 'todo-incoming' });
+  if (data.floats && perms.can(PERM.cashView)) todo.push({ icon: '💵', tone: 'success', title: t('aaj.floats', { n: data.floats }), done: false, href: '/kharcha', testID: 'todo-floats' });
+  if (data.settlement && perms.can(PERM.settlementView)) {
     todo.push({
       icon: '🗓️',
       tone: 'accent',
@@ -96,18 +100,20 @@ export default function AajScreen() {
   }
   const doneCount = todo.filter((x) => x.done).length;
 
-  const quick: { icon: string; tone: BadgeTone; label: string; href: Href }[] = [
-    { icon: '👷', tone: 'primary', label: t('tabs.hazri'), href: '/hazri' },
-    { icon: '🧱', tone: 'accent', label: t('maal.usage'), href: '/maal/usage' },
-    { icon: '💵', tone: 'success', label: t('kharcha.add'), href: '/kharcha/new' },
-    { icon: '📝', tone: 'violet', label: t('mazeed.dailyLog'), href: '/log/today' },
-    { icon: '🤝', tone: 'info', label: t('hazri.peshgi'), href: '/hazri/peshgi' },
-    { icon: '📦', tone: 'danger', label: t('maal.ownerDelivery'), href: '/maal/owner-delivery' },
-  ];
+  const quick = (
+    [
+      { icon: '👷', tone: 'primary', label: t('tabs.hazri'), href: '/hazri', show: perms.canAny(...TAB_PERMS.hazri) },
+      { icon: '🧱', tone: 'accent', label: t('maal.usage'), href: '/maal/usage', show: perms.can(PERM.usageCreate) },
+      { icon: '💵', tone: 'success', label: t('kharcha.add'), href: '/kharcha/new', show: perms.can(PERM.expenseCreate) },
+      { icon: '📝', tone: 'violet', label: t('mazeed.dailyLog'), href: '/log/today', show: perms.can(PERM.logCreate) },
+      { icon: '🤝', tone: 'info', label: t('hazri.peshgi'), href: '/hazri/peshgi', show: perms.can(PERM.peshgiCreate) },
+      { icon: '📦', tone: 'danger', label: t('maal.ownerDelivery'), href: '/maal/owner-delivery', show: perms.can(PERM.ownerDeliveryCreate) },
+    ] satisfies { icon: string; tone: BadgeTone; label: string; href: Href; show: boolean }[]
+  ).filter((q) => q.show);
 
   return (
     <Screen header={header} safeTop={false}>
-      {data.account ? (
+      {data.account && perms.canAny(...TAB_PERMS.kharcha) ? (
         <Pressable accessibilityRole="button" onPress={() => router.push('/kharcha')} className="overflow-hidden rounded-card bg-sand p-5 active:opacity-95" style={RAISED_SHADOW}>
           {/* Big faint icon in the corner, like the web KPI tiles. */}
           <View className="absolute -bottom-6 -right-4 opacity-15">
@@ -146,7 +152,7 @@ export default function AajScreen() {
         />
       ))}
 
-      <Text className="mt-3 font-bold text-lg text-ink">{t('aaj.quick')}</Text>
+      {quick.length ? <Text className="mt-3 font-bold text-lg text-ink">{t('aaj.quick')}</Text> : null}
       <View className="flex-row flex-wrap gap-3">
         {quick.map((q) => (
           <Pressable

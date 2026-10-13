@@ -1,0 +1,77 @@
+# Manual EAS build: Actions → "EAS build" → Run workflow → profile + platform.
+# Needs the repository secret EXPO_TOKEN (expo.dev → Account settings → Access tokens) and the
+# project linked to an Expo account (`npx eas init` once). Build-time settings
+# (EXPO_PUBLIC_API_BASE_URL, Sentry / PostHog keys) come from the profile's `env` in eas.json or from
+# EAS environment variables (expo.dev → project → Environment variables); SENTRY_AUTH_TOKEN for
+# source maps belongs there as a secret, not in this repository.
+name: EAS build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "eas.json build profile"
+        required: true
+        type: choice
+        default: preview
+        options: [development, preview, production]
+      platform:
+        description: "Platform"
+        required: true
+        type: choice
+        default: android
+        options: [android, ios, all]
+      wait:
+        description: "Wait for the build to finish (uses Actions minutes)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eas-build-${{ inputs.profile }}-${{ inputs.platform }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: EAS build (${{ inputs.profile }}, ${{ inputs.platform }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "Set the EXPO_TOKEN repository secret first (see the header of this workflow)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck and tests before spending a build
+        run: |
+          npm run typecheck
+          npm test -- --ci
+
+      - name: Build
+        env:
+          PROFILE: ${{ inputs.profile }}
+          PLATFORM: ${{ inputs.platform }}
+          WAIT_FLAG: ${{ inputs.wait && '--wait' || '--no-wait' }}
+        run: eas build --non-interactive --profile "$PROFILE" --platform "$PLATFORM" $WAIT_FLAG

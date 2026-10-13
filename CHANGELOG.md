@@ -6,7 +6,25 @@ All notable changes to the Munshi site app. Format: [Keep a Changelog](https://k
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **GitHub Actions**: CI on pull requests and `main` (typecheck, lint, jest) and a manual **EAS build** workflow (choose profile and platform; needs the `EXPO_TOKEN` secret). See README → Building with EAS.
+
+- **Permissions from the server.** The app reads the person's permission keys, field access, scopes and approval limits from login, `/auth/me` (on app start, when online) and every sync pull (`access`), and keeps them in the encrypted local database for offline use (wiped on logout). `useCan(key)` / `can()` in `src/features/access.ts` / `src/lib/permissions.ts`; the old legacy names (`rates.view`, `site.entry`, …) map to the new keys.
+- Tabs, buttons and actions the person can't use are hidden: Hazri / Maal / Kharcha tabs, hazri marking, *Naya mazdoor*, peshgi, measurement, settlement (make / send / pay wages), receiving dispatches and purchases, usage, owner delivery, purchase, stock count, kharcha, top-up, float confirm, daily log, and the matching *Aaj* to-dos and quick actions. Opening a hidden screen anyway shows "Aap ko is ki ijazat nahi".
+- Server `PERMISSION_DENIED` (REST 403 or a refused sync entry under *Sync problems*) shows **"Aap ko is ki ijazat nahi"** (English "You don't have permission for this", Urdu "آپ کو اس کی اجازت نہیں"); `APPROVAL_LIMIT_EXCEEDED` has its own message.
+- **Observability (optional, off by default).** Crash reporting with `@sentry/react-native` when `EXPO_PUBLIC_SENTRY_DSN` is set (no PII: `sendDefaultPii` off, no screenshots / replay, request bodies, auth headers, phones, emails, tokens and amounts scrubbed from every event and breadcrumb). Product analytics through a small offline-tolerant PostHog fetch client when `EXPO_PUBLIC_POSTHOG_KEY` is set: `login` and `sync_error` (`error_code` + `count`, throttled) with allow-listed props only; the user is a hashed id and the company a group keyed by tenant id. Sentry source maps upload during EAS builds only when `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` are set. See README → Observability and `.env.example`.
+
+### Changed
+
+- The worker daily rate on *Naya mazdoor* follows `fields.rates` instead of the account type; money the server leaves out (hidden by field access) is not shown as Rs 0.
+- `src/api/schema.ts` regenerated from the API (permission fields in login, `/auth/me` and `/sync/pull`; `503 SMS_UNAVAILABLE` on the login-code request).
+- When the login code could not be sent (`SMS_UNAVAILABLE`) the sign-in screen says so in English / Roman Urdu / Urdu and the code can be asked for again at once.
+
+### Security
+
+- `npm audit fix` (no breaking changes): Expo CLI tooling patch updates. Remaining audit items are build / test tooling only (see the API's `docs/SECURITY.md`).
+- `POST /sync/push` can now answer `429 RATE_LIMITED` (60 pushes a minute per user); the app already treats it as "try again later".
 
 ## 2026-10-12
 

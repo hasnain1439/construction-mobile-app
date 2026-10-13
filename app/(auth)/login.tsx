@@ -62,7 +62,7 @@ export default function LoginScreen() {
       return;
     }
     try {
-      signedIn(await passwordLogin(e164, password));
+      signedIn(await passwordLogin(e164, password), 'password');
     } catch (err) {
       if (err instanceof ApiError && err.code === 'MULTIPLE_COMPANIES') {
         const companies = (err.details as { companies?: Company[] } | undefined)?.companies ?? [];

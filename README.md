@@ -5,7 +5,8 @@ and the daily log, **offline first**. Every save lands on the phone at once and 
 when there is signal. Roman Urdu is the default language (English and Urdu RTL too).
 
 The app never shows material rates, purchase amounts, supplier details (beyond the name) or
-contract values, only wages, peshgi and the user's own cash.
+contract values, only wages, peshgi and the user's own cash. Tabs and actions follow the user's
+permissions from the server (see *Permissions*).
 
 What changed and when: [CHANGELOG.md](CHANGELOG.md).
 
@@ -96,6 +97,24 @@ the rate empty lets the server use the type's rate. Before the first sync it fal
 Mistri / Mazdoor. Type names on the Hazri list come from the same table
 (`src/features/workerTypes.ts`).
 
+## Permissions
+
+What a person may do comes from the server, not from the account type: login results, `GET /auth/me`
+(on app start, when online) and every `/sync/pull` (`access`) carry `permissions` (catalogue keys
+such as `labor.attendance.create`), `fieldAccess`, `scopes`, `approvalLimits` and `permissionRole`
+(contract: `PERMISSIONS_API.md` in the parent folder). The block is stored in the encrypted local
+database (`src/db/access.ts`, kv `auth.access`) so the app works offline, and wiped on logout.
+
+* `useCan(key)` / `usePermissions()` (`src/features/access.ts`) and `can(access, role, key)`
+  (`src/lib/permissions.ts`). THEKEDAR may do everything; old legacy names (`rates.view`,
+  `site.entry`, …) map to the new keys; without a stored block (before the first pull on an older
+  build) the old behaviour applies.
+* Tabs (`TAB_PERMS`), buttons and the Aaj to-dos / quick actions are hidden without their key;
+  `components/RouteGuard.tsx` blocks a stack screen (`ROUTE_PERMS`) opened anyway.
+* Values the server leaves out (`fieldAccess`) are not shown; the worker rate needs `fields.rates`.
+* A server `PERMISSION_DENIED` (REST 403, or a sync entry `REJECTED` → *Sync problems*) shows
+  "Aap ko is ki ijazat nahi" (`err.PERMISSION_DENIED`).
+
 ## Offline-first sync
 
 * **Local SQLite** (`src/db`): every pulled table is mirrored as
@@ -105,6 +124,8 @@ Mistri / Mazdoor. Type names on the Hazri list come from the same table
   materials, dispatches, purchases, site_stock, daily_logs, cash accounts / entries, settings,
   holidays and notifications.
 * **Outbox:** mutations in order with `depends_on`, back-off and the optimistic row snapshots.
+  A `429 RATE_LIMITED` from `/sync/push` (60 pushes / min per user, see
+  [../construction-platform/docs/SECURITY.md](../construction-platform/docs/SECURITY.md)) is treated like a network error: retried later.
   `attachments_queue` holds photos and voice notes waiting to upload.
 * **One run at a time** (`src/sync/engine.ts`): upload files → push the outbox → pull until
   `hasMore = false`. Runs on start / foreground, network back, after every save, pull-to-refresh,
@@ -161,9 +182,44 @@ src/
   sync/       outbox, push, pull, attachments queue, engine, triggers (incl. background task)
   features/   row types, read queries, write actions (optimistic rows + mutation), worker types, session
   i18n/       en, roman, ur
-  lib/        money (paisa, Rs 27,75,000), dates (Asia/Karachi), phone, uuid v7, permissions, theme
-tests/                   jest tests (sync engine, actions, worker types, api, upload, components)
+  lib/        money (paisa, Rs 27,75,000), dates (Asia/Karachi), phone, uuid v7, permissions (can, keys), theme
+  lib/observability/  Sentry (off without DSN) + PII scrubber, PostHog fetch client, hashed user id
+tests/                   jest tests (sync engine, actions, worker types, permissions, api, upload, components, observability)
 ```
+
+## Observability
+
+Optional and **off by default**: with the env keys empty Sentry is never initialised and PostHog gets no request. Code: `src/lib/observability/` (`sentry.ts`, `scrub.ts`, `analytics.ts`, `hash.ts`, `index.ts`). Same rules as the API and web app (see the API README → Observability).
+
+| Key (`.env`, see `.env.example`) | Default | Effect |
+|---|---|---|
+| `EXPO_PUBLIC_SENTRY_DSN` | empty = off | crash reporting (`@sentry/react-native`) |
+| `EXPO_PUBLIC_SENTRY_ENVIRONMENT` | `development` in dev, else `production` | |
+| `EXPO_PUBLIC_SENTRY_RELEASE` | native `<bundle id>@<version>+<build>` | |
+| `EXPO_PUBLIC_SENTRY_TRACES_SAMPLE_RATE` | `0.1` | performance sampling (0..1) |
+| `EXPO_PUBLIC_POSTHOG_KEY` | empty = off | product analytics |
+| `EXPO_PUBLIC_POSTHOG_HOST` | `https://us.i.posthog.com` | EU: `https://eu.i.posthog.com` |
+
+`EXPO_PUBLIC_*` values are baked into the JS bundle — a DSN and a PostHog project key are public by design; never put an auth token there.
+
+### Sentry (crashes)
+
+- `initSentry()` runs at module scope in `app/_layout.tsx`; the root is `wrapRoot(RootLayout)` (`Sentry.wrap` only when on). Every helper is a no-op without a DSN.
+- `sendDefaultPii: false`, no screenshots, view hierarchy or session replay.
+- `beforeSend` / `beforeSendTransaction` / `beforeBreadcrumb` run `scrub.ts`: request bodies and cookies dropped, only harmless headers kept (no `Authorization` / `Cookie`), user reduced to the hashed id, touch breadcrumbs lose their on-screen labels, console arguments / fetch bodies dropped, and in every string: emails, Pakistani / E.164 phones, CNICs, JWTs, `Bearer` values, long tokens, cookies, `token= / code= / sig= / otp=` URL params and `Rs 1,200` amounts → `[Filtered]`.
+- User = `{ id: <hashed user id> }`, tag `tenantId`. Sync failures other than "no network" are captured with tags `sync_kind`, `error_code`.
+- **Source maps**: `metro.config.js` uses `getSentryExpoConfig` (debug ids; harmless when Sentry is off). The `@sentry/react-native/expo` config plugin (upload during native builds) is added in `app.config.ts` **only** when `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` are set — put them as EAS secrets (`eas env:create`), never in `.env` or git. Without them builds work as before, just without uploaded maps.
+
+### PostHog (product analytics)
+
+A small fetch client (`analytics.ts`, no native SDK, works in Expo Go): events are queued in memory (max 200, oldest dropped) and posted to `<host>/batch/`; offline / 429 / 5xx keeps them queued and retries with backoff (5 s → 5 min) and right after every successful sync. Other 4xx drops the batch. It never throws and nothing waits on it. Nothing is recorded before sign-in (no anonymous ids) or after logout.
+
+| Event | When | Props |
+|---|---|---|
+| `login` | after a successful sign-in | `client: "mobile"`, `method` (`otp` / `password`), `role` |
+| `sync_error` | a sync run failed (at most once per `error_code` per 10 min) | `kind` (`upload` / `push` / `pull` / `network`), `error_code`, `count` (unsent entries), `offline` |
+
+Every event also carries `client`, `platform`, `app_version`. The other shared events (`project_activated`, `hazri_marked`, `purchase_saved`, `invoice_issued`) are sent by the API. Rules: only the props `client, platform, method, source, role, status, kind, count, error_code, app_version, offline, duration_ms`; numbers only for `count` / `duration_ms`; strings ≤ 64 chars that don't look like an email, phone, token or amount; **no money, names, phones or free text**. Person = `distinct_id` = first 32 hex of SHA-256(`"user:" + userId`) (`hash.ts`, via `expo-crypto`; same value as API / web); company = PostHog group `company` = tenant id.
 
 ## Testing
 
@@ -205,6 +261,12 @@ Profiles in `eas.json`:
 ```bash
 npx eas build -p android --profile preview
 ```
+
+### From GitHub Actions
+
+- `.github/workflows/eas-build.yml` — **manual**: Actions → *EAS build* → Run workflow → `profile` (development / preview / production), `platform` (android / ios / all), `wait`. Runs typecheck + tests, then `eas build --non-interactive`. Needs the repository secret **`EXPO_TOKEN`** (expo.dev → Account settings → Access tokens) and the project linked once with `npx eas init`. Build-time keys (`EXPO_PUBLIC_API_BASE_URL`, Sentry, PostHog) come from `eas.json` or EAS environment variables, never from the repository.
+- `.github/workflows/ci.yml` — pull requests and `main`: typecheck, lint, jest.
+- Server side (API + web on a VPS, HTTPS, backups): [construction-platform/docs/DEPLOYMENT.md](../construction-platform/docs/DEPLOYMENT.md).
 
 ## Known limitations
 

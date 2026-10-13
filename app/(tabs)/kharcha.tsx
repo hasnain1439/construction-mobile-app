@@ -15,13 +15,13 @@ import { StatusChip, type Tone } from '@components/StatusChip';
 import { useQuery } from '@/db/live';
 import { acknowledgeFloat } from '@/features/actions';
 import { cashAccount, cashEntries, pendingFloats, topups } from '@/features/queries';
-import { useUser } from '@/features/session';
+import { usePermissions } from '@/features/access';
 import type { CashEntryRow } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { useT, type TKey } from '@/i18n';
 import { dateTime } from '@/lib/dates';
 import { formatPKR, toPaisa } from '@/lib/money';
-import { can } from '@/lib/permissions';
+import { PERM, rules } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
 
 const STATUS: Record<string, { key: TKey; tone: Tone }> = {
@@ -36,7 +36,7 @@ const STATUS: Record<string, { key: TKey; tone: Tone }> = {
 export default function KharchaScreen() {
   const t = useT();
   const save = useSave();
-  const user = useUser();
+  const perms = usePermissions();
   const [ack, setAck] = useState<CashEntryRow | null>(null);
   const data = useQuery((db) => {
     const account = cashAccount(db);
@@ -73,8 +73,8 @@ export default function KharchaScreen() {
           {toPaisa(a.recoverablePaisa) ? <Text className="text-sm text-ink/70">{t('kharcha.recoverable')}: {formatPKR(a.recoverablePaisa)}</Text> : null}
         </View>
       </View>
-      <BigButton testID="add-kharcha" icon="➕" label={t('kharcha.add')} onPress={() => router.push('/kharcha/new')} />
-      {can.requestTopup(user.role) ? (
+      {perms.can(PERM.expenseCreate) ? <BigButton testID="add-kharcha" icon="➕" label={t('kharcha.add')} onPress={() => router.push('/kharcha/new')} /> : null}
+      {rules.requestTopup(perms.access, perms.role) ? (
         data.topup ? (
           <StatusChip tone="primary" icon="⏳" label={t('kharcha.topupPending', { amount: formatPKR(data.topup.amountPaisa) })} />
         ) : (
@@ -89,7 +89,7 @@ export default function KharchaScreen() {
             <MoneyText paisa={f.amountPaisa} className="text-lg" />
             <Text className="text-xs text-muted">{[f.method, f.description, dateTime(f.occurredAt)].filter(Boolean).join(' · ')}</Text>
           </View>
-          <BigButton small label={t('kharcha.acknowledge')} onPress={() => setAck(f)} />
+          {perms.can(PERM.cashView) ? <BigButton small label={t('kharcha.acknowledge')} onPress={() => setAck(f)} /> : null}
         </View>
       ))}
       <Text className="mt-2 font-bold text-lg text-ink">{t('kharcha.entries')}</Text>

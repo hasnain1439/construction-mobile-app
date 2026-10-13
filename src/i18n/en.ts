@@ -221,6 +221,7 @@ export const en = {
   'err.PHONE_NOT_REGISTERED': 'This number is not registered — ask your Thekedar',
   'err.DEVICE_REVOKED': 'This phone was signed out by the office',
   'err.OTP_RESEND_WAIT': 'Wait a little before asking again',
+  'err.SMS_UNAVAILABLE': 'The code could not be sent — try again in a minute',
   'auth.updateOpen': 'Open Play Store',
   'hazri.noWorkers': 'No workers on this site yet',
   'hazri.noSubcontracts': 'No sub-contracts on this site',
@@ -255,6 +256,8 @@ export const en = {
   'err.INVALID_CREDENTIALS': 'Wrong phone or password',
   'err.USE_OTP_LOGIN': 'No password set — sign in with the SMS code',
   'err.ACCOUNT_LOCKED': 'Too many tries — wait a few minutes',
+  'err.PERMISSION_DENIED': 'You don’t have permission for this',
+  'err.APPROVAL_LIMIT_EXCEEDED': 'This amount is above your approval limit',
 } as const;
 
 export type TKey = keyof typeof en;

@@ -37,7 +37,7 @@ export default function OtpScreen() {
     setBusy(true);
     setError(null);
     try {
-      signedIn(await verifyOtp(phone, value));
+      signedIn(await verifyOtp(phone, value), 'otp');
     } catch (err) {
       if (err instanceof ApiError && err.code === 'MULTIPLE_COMPANIES') {
         const companies = (err.details as { companies?: Company[] } | undefined)?.companies ?? [];
