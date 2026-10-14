@@ -8,7 +8,7 @@ The app never shows material rates, purchase amounts, supplier details (beyond t
 contract values, only wages, peshgi and the user's own cash. Tabs and actions follow the user's
 permissions from the server (see *Permissions*).
 
-What changed and when: [CHANGELOG.md](CHANGELOG.md).
+What changed and when: [CHANGELOG.md](CHANGELOG.md). Building, installing and updating the app: [docs/RELEASE.md](docs/RELEASE.md).
 
 | | |
 |---|---|
@@ -18,7 +18,8 @@ What changed and when: [CHANGELOG.md](CHANGELOG.md).
 | UI | NativeWind 4 (Tailwind 3), Cabin font, MaterialCommunityIcons, expo-linear-gradient, FlashList, 48 dp touch targets |
 | Forms | react-hook-form + zod |
 | Media | expo-image-picker + expo-image-manipulator (≤ 1280 px, JPEG 0.6), expo-audio (voice notes ≤ 30 s) |
-| Background | expo-background-task (every ~15 min, dev/production builds only), NetInfo, AppState |
+| Background | expo-background-task (every ~15 min, dev/production builds only), NetInfo, AppState; optional "photos on Wi-Fi only" |
+| Release | EAS Build (development / preview APK / production AAB, side-by-side variants), expo-updates OTA (channels per profile) |
 | Tests | jest-expo, @testing-library/react-native, better-sqlite3 (the real migrations, in memory) |
 
 ## Setup
@@ -141,6 +142,9 @@ database (`src/db/access.ts`, kv `auth.access`) so the app works offline, and wi
 * Offline records have `id = clientId` (UUID v7); later entries list it in `dependsOn`.
 * Each pull page is one SQLite transaction; rows waiting in the outbox are not overwritten;
   `deletes` are tombstones; `resetRequired` wipes the mirror (unsent work stays) and pulls a snapshot.
+* **Photos on Wi-Fi only** (Mazeed toggle, off by default): on mobile data photos / voice notes
+  and the entries that need them (plus the ones after, to keep the order) wait; the rest syncs; joining
+  Wi-Fi starts a sync. Logout sends everything regardless.
 * Logout first tries to send everything and warns if entries would be lost. Logout and a revoked
   phone wipe every table.
 
@@ -150,9 +154,49 @@ existing phones pull one fresh snapshot.
 
 ## Languages
 
-English, **Roman Urdu** (default) and **Urdu** (RTL), chosen under Mazeed. Dictionaries are in
-`src/i18n/`: `en.ts` (source of keys), `roman.ts` (complete), `ur.ts` (falls back to Roman, then
-English). Server error codes map to `err.*` keys; the server's own text is never shown.
+English, **Roman Urdu** (default) and **Urdu** (RTL), chosen under Mazeed or on the login screen.
+Every screen is fully translated in all three; there are no fallbacks.
+
+* **Dictionaries** in `src/i18n/`: `en.ts` is the source of every key; `roman.ts` and `ur.ts` are
+  `Record<TKey, string>`, so TypeScript refuses a missing key. Screens use `useT()` /
+  `useI18n()` (`t`, `language`, `rtl`, `f`); never write text in JSX.
+* **Adding text:** add the key to `en.ts`, then the same key to `roman.ts` (the app's tone:
+  *Hazri, Maal, Kharcha, Peshgi, Wasool karein*) and `ur.ts` (Urdu script), then use `t('key')`.
+* **Server values → text:** enum-like values from the server are keys too: kharcha categories
+  `cat.*`, site conditions `cond.*`, settlement `settlement.*`, count reasons `reason.*`, payment
+  methods `method.*`, cash entry types `cashType.*`, roles `role.*` (account types and the built-in
+  permission roles; a company's own role shows its name), notification types `notif.*` (the server
+  title is the fallback), sync entry types `outbox.*` (Sync problems: type as title, the entry's
+  detail below) and units `unit.*` (`unitLabel()`; a unit the app doesn't know shows as the office
+  wrote it). Names typed by people (workers, materials, suppliers, sites) are shown as written.
+* **Errors:** server error codes map to `err.*` keys (`errorText()` / `rejectedText()`); the
+  server's own text is never shown and an unknown code shows `err.generic`.
+* **Dates:** `useFormat()` / `f.shortDate`, `f.longDate`, `f.dateTime` (Pakistan time),
+  `f.weekDayShort`, `f.timeAgo` take month / weekday / am-pm names from the dictionaries
+  (`date.*`, `time.*`). Digits stay Western (0-9) in every language, and money is `Rs 1,500` as on
+  receipts and bank SMS.
+* **RTL (Urdu):** switching to or from Urdu reloads the app with `I18nManager.forceRTL`. Rows,
+  margins and paddings mirror by themselves (React Native swaps left / right in RTL); arrows and
+  chevrons that mean "back / next" flip with `rtl` (header back, list chevrons, sync banner,
+  Hazri previous / next day, previous week, Aaj → Kharcha). Values put into an Urdu sentence (`{n}`,
+  `{amount}`, names) are wrapped in Unicode isolates so "Rs 1,500" or a Latin name keeps its own
+  direction.
+* **Tests** (`tests/i18n.test.ts`, `tests/i18nLiterals.test.ts`) fail when a key is missing or
+  extra in `roman` / `ur`, a text is empty, `{placeholders}` differ from English, Urdu text is
+  English (copied, or Latin words other than `Rs`, `kg`, `OTP`, `PDF`, `SMS`, `OT`, `PKR`), an
+  error code the app can receive (read from `src/api/schema.ts` for the endpoints in
+  `src/api/endpoints.ts`, plus codes named in the code) has no `err.*` text, or a `.tsx` file in
+  `app/` or `components/` shows a literal word (JSX text, text props such as `label` / `title` /
+  `placeholder` / `accessibilityLabel`, or `Alert.alert`).
+* The language names in the picker (`LANGUAGE_NAMES`: "Roman Urdu", "اردو", "English") stay in
+  their own script on purpose, so anyone can find their language.
+* **Server language** (`src/i18n/languageSync.ts`): the server sends SMS, notifications and PDFs
+  in the person's `language` (`en` / `roman` / `ur`). `setLanguage` stores the choice
+  (`app.language`), marks it unsynced and sends `PATCH /auth/me/preferences` when signed in;
+  `retryLanguageSync()` sends a pending choice on app start (with `/auth/me`) and after sign-in.
+  After a sign-in `adoptServerLanguage(user.language)` switches the app to the server's language
+  only when nobody chose one on this phone; a choice made on the phone wins and is sent instead.
+  Notification titles come from the server already in the person's language.
 
 ## Design
 
@@ -179,12 +223,14 @@ components/              Screen, Header, Icon, IconBadge, BigButton, ListItem, S
 src/
   api/        fetch client (refresh mutex), session (SecureStore), auth calls, OpenAPI types
   db/         drizzle schema + migrations, encrypted open, live queries, generic row store
-  sync/       outbox, push, pull, attachments queue, engine, triggers (incl. background task)
+  sync/       outbox, push, pull, attachments queue, engine, triggers (incl. background task), Wi-Fi-only upload policy
   features/   row types, read queries, write actions (optimistic rows + mutation), worker types, session
   i18n/       en, roman, ur
-  lib/        money (paisa, Rs 27,75,000), dates (Asia/Karachi), phone, uuid v7, permissions (can, keys), theme
+  lib/        money (paisa, Rs 27,75,000), dates (Asia/Karachi), phone, uuid v7, permissions (can, keys), theme, OTA update check
   lib/observability/  Sentry (off without DSN) + PII scrubber, PostHog fetch client, hashed user id
-tests/                   jest tests (sync engine, actions, worker types, permissions, api, upload, components, observability)
+tests/                   jest tests (sync engine, triggers, Wi-Fi-only, actions, worker types, permissions, api, upload, media, updates, components, observability)
+scripts/                 api-types (OpenAPI → TS), generate-icons (placeholder icons / splash from the brand colours)
+docs/RELEASE.md          pilot APK, OTA updates, Play Store, rollback, background-sync and low-end checks
 ```
 
 ## Observability
@@ -250,17 +296,25 @@ Backend running + seeded; signed in as Rafaqat.
 
 ## Building with EAS
 
-Profiles in `eas.json`:
+Full guide (set-up, install, OTA, rollback, versioning): **[docs/RELEASE.md](docs/RELEASE.md)**.
 
-| Profile | Output |
-|---|---|
-| `development` | dev client APK (internal) |
-| `preview` | internal APK, channel `preview`; set the real `EXPO_PUBLIC_API_BASE_URL` in its `env` first |
-| `production` | Android app bundle, channel `production` |
+| Profile | Output | App / package | OTA channel |
+|---|---|---|---|
+| `development` | dev client APK (internal) | Munshi Dev · `pk.construction.munshi.dev` | `development` |
+| `preview` | **pilot APK**, internal distribution | Munshi Pilot · `pk.construction.munshi.preview` | `preview` |
+| `production` | Android app bundle (Play Store) | Munshi · `pk.construction.munshi` | `production` |
+
+The three install side by side (`APP_VARIANT` in each profile). Set the real `EXPO_PUBLIC_API_BASE_URL`
+(HTTPS) per profile in `eas.json` and the EAS project id (`eas init`) in `app.config.ts` first.
 
 ```bash
-npx eas build -p android --profile preview
+npx eas build -p android --profile preview                                   # pilot APK (QR / link on the build page)
+APP_VARIANT=preview npx eas update --channel preview --message "…"           # OTA, same app version only
 ```
+
+Versions: `VERSION` in `app.config.ts` (semver) = runtime version for OTA; bump it for native changes.
+versionCode is kept by EAS (remote, auto-increment). Icons / splash are placeholders from
+`node scripts/generate-icons.mjs` (brand charcoal, sun, sand).
 
 ### From GitHub Actions
 
@@ -270,7 +324,7 @@ npx eas build -p android --profile preview
 
 ## Known limitations
 
-* Background sync is best effort (Android Doze / battery saver may delay it) and absent in Expo Go.
+* Background sync is best effort (Android Doze / battery saver may delay it) and absent in Expo Go; how to check it on a device: [docs/RELEASE.md](docs/RELEASE.md#8-background-sync-check-dev-build).
 * Photos already on the server are listed but not shown on the phone; photos taken on this phone are.
 * Notifications are read-only (no push notifications yet).
 * Two pending entries changing the same row (e.g. two kharcha on the cash balance) restore the

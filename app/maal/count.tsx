@@ -11,7 +11,7 @@ import { stockCount, type CountReason } from '@/features/actions';
 import { useProject } from '@/features/project';
 import { siteLocation, siteStock } from '@/features/queries';
 import { useSave } from '@/features/useSave';
-import { useT } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { qty } from '@/lib/qty';
 import { CARD_SHADOW } from '@/lib/theme';
 
@@ -19,7 +19,7 @@ const REASONS: CountReason[] = ['HARDENED_IN_RAIN', 'BREAKAGE', 'THEFT_SUSPECTED
 
 /** Physical stock count: the system quantity is shown; a difference needs a reason. */
 export default function CountScreen() {
-  const t = useT();
+  const { t, f } = useI18n();
   const save = useSave();
   const { projectId } = useProject();
   const data = useQuery((db) => (projectId ? { loc: siteLocation(db, projectId), stock: siteStock(db, projectId) } : null), [projectId]);
@@ -44,7 +44,7 @@ export default function CountScreen() {
       {data.stock.map((s) => (
         <View key={s.id} className="gap-3 rounded-card bg-card p-4" style={CARD_SHADOW}>
           <Text className="font-semibold text-ink">
-            {s.material?.name ?? '—'} <Text className="font-normal text-sm text-muted">· {t('maal.systemQty')} {qty(s.quantity)} {s.material?.unit}</Text>
+            {s.material?.name ?? '—'} <Text className="font-normal text-sm text-muted">· {t('maal.systemQty')} {qty(s.quantity)} {f.unit(s.material?.unit)}</Text>
           </Text>
           <QuantityInput label={t('maal.counted')} value={counts[s.materialId] ?? ''} unit={s.material?.unit} onChange={(v) => setCounts((x) => ({ ...x, [s.materialId]: v }))} />
           {counts[s.materialId] && diff(s.materialId, s.quantity) ? (

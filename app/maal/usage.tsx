@@ -10,14 +10,14 @@ import { recordUsage } from '@/features/actions';
 import { useProject } from '@/features/project';
 import { materialMap, siteLocation, stockOf } from '@/features/queries';
 import { useSave } from '@/features/useSave';
-import { useT } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { todayPK } from '@/lib/dates';
 import { qty } from '@/lib/qty';
 import { COLORS } from '@/lib/theme';
 
 /** "Maal lag gaya" — material used today; stock drops at once. */
 export default function UsageScreen() {
-  const t = useT();
+  const { t, f } = useI18n();
   const save = useSave();
   const { projectId } = useProject();
   const [lines, setLines] = useState<Line[]>([]);
@@ -41,7 +41,7 @@ export default function UsageScreen() {
       <MaterialLines
         value={lines}
         onChange={setLines}
-        hint={(id) => t('maal.inStock', { qty: `${qty(inStock(id))} ${mats.get(id)?.unit ?? ''}` })}
+        hint={(id) => t('maal.inStock', { qty: `${qty(inStock(id))} ${f.unit(mats.get(id)?.unit)}` })}
         error={(l) => (Number(l.qty) > inStock(l.materialId) ? t('err.INSUFFICIENT_STOCK') : null)}
       />
       <TextInput value={note} onChangeText={setNote} placeholder={`${t('common.note')} (${t('common.optional')})`} placeholderTextColor={COLORS.neutral} className="min-h-14 rounded-xl border border-border bg-card px-4 text-base text-ink" />

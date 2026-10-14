@@ -16,13 +16,13 @@ import { useProject } from '@/features/project';
 import { assignments } from '@/features/queries';
 import type { AssignmentRow } from '@/features/types';
 import { useSave } from '@/features/useSave';
-import { useT } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { todayPK } from '@/lib/dates';
 import { COLORS } from '@/lib/theme';
 
 /** Sub-contract work measured on site — quantity only; the office values it (no rates here). */
 export default function MeasurementScreen() {
-  const t = useT();
+  const { t, f } = useI18n();
   const save = useSave();
   const { projectId } = useProject();
   const subs = useQuery((db) => (projectId ? assignments(db, projectId) : []), [projectId]);
@@ -53,7 +53,7 @@ export default function MeasurementScreen() {
           <ListItem
             key={s.id}
             title={s.subcontractor.name}
-            subtitle={`${s.scope} · ${s.unit}`}
+            subtitle={`${s.scope} · ${f.unit(s.unit)}`}
             icon="🤝"
             iconTone="info"
             onPress={() => {

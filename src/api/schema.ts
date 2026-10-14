@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Liveness check */
+        /**
+         * Liveness check
+         * @description Answers as long as the process is up. Touches no database or other dependency — use it for restart (liveness) probes.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -33,6 +36,67 @@ export interface paths {
                             data: {
                                 /** @enum {string} */
                                 status: "ok";
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness check
+         * @description Database (`SELECT 1`), file storage (local folder writable / S3 HeadBucket / Cloudinary ping, cached 30 s) and the job scheduler (job status table reachable). Use it for load-balancer / rollout (readiness) probes. Each check has a 3 s budget. Not rate limited, not logged, not traced.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Ready */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["Readiness"];
+                        };
+                    };
+                };
+                /** @description NOT_READY — `error.details` has the same per-check object */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: false;
+                            error: {
+                                /** @enum {string} */
+                                code: "NOT_READY";
+                                message: string;
+                                details: components["schemas"]["Readiness"];
                             };
                         };
                     };
@@ -89,6 +153,12 @@ export interface paths {
                         /** @description Square feet per marla. Defaults to 225. */
                         marlaStandard?: 225 | 272.25;
                         /**
+                         * @description The owner's language (messages, PDFs). Default roman.
+                         * @example ur
+                         * @enum {string}
+                         */
+                        language?: "en" | "roman" | "ur";
+                        /**
                          * @description "web" → httpOnly cookies; "mobile" → tokens in the response body
                          * @default web
                          * @enum {string}
@@ -115,7 +185,7 @@ export interface paths {
                          *           "phone": "+923001234567",
                          *           "email": "khalid@maliksons.pk",
                          *           "role": "THEKEDAR",
-                         *           "language": "ROMAN_URDU",
+                         *           "language": "roman",
                          *           "photoUrl": null,
                          *           "canSeeFinancials": false
                          *         },
@@ -287,7 +357,7 @@ export interface paths {
                          *           "phone": "+923001234567",
                          *           "email": "khalid@maliksons.pk",
                          *           "role": "THEKEDAR",
-                         *           "language": "ROMAN_URDU",
+                         *           "language": "roman",
                          *           "photoUrl": null,
                          *           "canSeeFinancials": false
                          *         },
@@ -671,7 +741,7 @@ export interface paths {
                          *           "phone": "+923001234567",
                          *           "email": "khalid@maliksons.pk",
                          *           "role": "THEKEDAR",
-                         *           "language": "ROMAN_URDU",
+                         *           "language": "roman",
                          *           "photoUrl": null,
                          *           "canSeeFinancials": false
                          *         },
@@ -1249,8 +1319,8 @@ export interface paths {
                         name?: string;
                         /** Format: uuid */
                         photoAttachmentId?: string | null;
-                        /** @enum {string} */
-                        language?: "ENGLISH" | "ROMAN_URDU" | "URDU";
+                        /** @description en | roman | ur (preferred) or the old ENGLISH | ROMAN_URDU | URDU */
+                        language?: ("en" | "roman" | "ur") | ("ENGLISH" | "ROMAN_URDU" | "URDU");
                         currentPassword?: string;
                         /** @example Thekedar#2026 */
                         newPassword?: string;
@@ -1300,6 +1370,80 @@ export interface paths {
                 };
                 /** @description ATTACHMENT_NOT_FOUND */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/auth/me/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set my language (en / roman / ur)
+         * @description The signed-in user's language: SMS, emails, in-app notifications (also old ones — they are re-rendered), invoice / receipt / statement PDFs and report files the user makes (`?lang=` overrides per document). Any company user, also in a read-only company. Apps call it when the user switches language. Not audited (a personal display setting).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PreferencesInput"];
+                };
+            };
+            responses: {
+                /** @description Saved */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["Preferences"];
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description COMPANY_SUSPENDED */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1421,7 +1565,7 @@ export interface paths {
                          *           "phone": "+923001234567",
                          *           "email": "khalid@maliksons.pk",
                          *           "role": "THEKEDAR",
-                         *           "language": "ROMAN_URDU",
+                         *           "language": "roman",
                          *           "photoUrl": null,
                          *           "canSeeFinancials": false
                          *         },
@@ -3437,6 +3581,12 @@ export interface paths {
                          * @description Permission role given on accept (GET /roles). Default: the system template of  (Project Manager / Munshi).
                          */
                         roleId?: string;
+                        /**
+                         * @description Language of the invite SMS / email (en | roman | ur); becomes the person's language on accept. Default: the company's default language.
+                         * @example ur
+                         * @enum {string}
+                         */
+                        language?: "en" | "roman" | "ur";
                     };
                 };
             };
@@ -10314,6 +10464,2397 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/onboarding/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Setup checklist
+         * @description Owner (`company.settings.manage`). Computed from the company’s data, demo data excluded: LOGO (company logo), RATES (a rate / worker type changed, or confirmed with rates-reviewed), TEAM (a PM / munshi or an invitation), WORKERS, SUPPLIERS, PROJECT. `demo` = the demo project when there is one.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Checklist */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "steps": [
+                         *           {
+                         *             "key": "LOGO",
+                         *             "done": true
+                         *           },
+                         *           {
+                         *             "key": "RATES",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "TEAM",
+                         *             "done": true
+                         *           },
+                         *           {
+                         *             "key": "WORKERS",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "SUPPLIERS",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "PROJECT",
+                         *             "done": false
+                         *           }
+                         *         ],
+                         *         "completed": 2,
+                         *         "total": 6,
+                         *         "percent": 33,
+                         *         "allDone": false,
+                         *         "dismissed": false,
+                         *         "dismissedAt": null,
+                         *         "ratesReviewedAt": null,
+                         *         "counts": {
+                         *           "workers": 0,
+                         *           "suppliers": 0,
+                         *           "projects": 0,
+                         *           "teamUsers": 1,
+                         *           "pendingOrSentInvites": 1
+                         *         },
+                         *         "demo": null
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/checklist/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hide (or show again) the checklist
+         * @description Owner. Stored per company (`TenantSettings.onboardingDismissedAt`), audited `onboarding.dismiss` / `onboarding.restore`. Returns the checklist.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description false shows the checklist again
+                         * @default true
+                         */
+                        dismissed?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Checklist */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "steps": [
+                         *           {
+                         *             "key": "LOGO",
+                         *             "done": true
+                         *           },
+                         *           {
+                         *             "key": "RATES",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "TEAM",
+                         *             "done": true
+                         *           },
+                         *           {
+                         *             "key": "WORKERS",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "SUPPLIERS",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "PROJECT",
+                         *             "done": false
+                         *           }
+                         *         ],
+                         *         "completed": 2,
+                         *         "total": 6,
+                         *         "percent": 33,
+                         *         "allDone": false,
+                         *         "dismissed": true,
+                         *         "dismissedAt": "2026-10-13T09:00:00.000Z",
+                         *         "ratesReviewedAt": null,
+                         *         "counts": {
+                         *           "workers": 0,
+                         *           "suppliers": 0,
+                         *           "projects": 0,
+                         *           "teamUsers": 1,
+                         *           "pendingOrSentInvites": 1
+                         *         },
+                         *         "demo": null
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/checklist/rates-reviewed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the rates are fine
+         * @description Owner. Marks the RATES step done without changing a rate (audited `onboarding.rates_reviewed`).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Checklist */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "steps": [
+                         *           {
+                         *             "key": "LOGO",
+                         *             "done": true
+                         *           },
+                         *           {
+                         *             "key": "RATES",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "TEAM",
+                         *             "done": true
+                         *           },
+                         *           {
+                         *             "key": "WORKERS",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "SUPPLIERS",
+                         *             "done": false
+                         *           },
+                         *           {
+                         *             "key": "PROJECT",
+                         *             "done": false
+                         *           }
+                         *         ],
+                         *         "completed": 2,
+                         *         "total": 6,
+                         *         "percent": 33,
+                         *         "allDone": false,
+                         *         "dismissed": false,
+                         *         "dismissedAt": null,
+                         *         "ratesReviewedAt": "2026-10-13T09:00:00.000Z",
+                         *         "counts": {
+                         *           "workers": 0,
+                         *           "suppliers": 0,
+                         *           "projects": 0,
+                         *           "teamUsers": 1,
+                         *           "pendingOrSentInvites": 1
+                         *         },
+                         *         "demo": null
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/workers/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workers: download the import template
+         * @description `masterdata.worker.create`. An .xlsx file: sheet **Data** with the headers (English + Roman Urdu, notes in English / Roman Urdu / Urdu on each header) and one example row (rows containing "(example" are skipped), sheet **Instructions** with every column in three languages and the allowed values of this company. Columns: `name` (required), `type` (required), `phone`, `dailyRate`, `notes`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Excel template */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/workers/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Workers: preview an import
+         * @description `masterdata.worker.create`. Parses the file and checks every row with the create endpoint’s own rules (Zod schema + phone must be new — in the company and in the file). **Writes nothing.** Headers are matched by key or by any of the three labels; unknown columns are listed in `unknownColumns`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Rows with their errors */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "workers",
+                         *         "fileName": "workers.xlsx",
+                         *         "columns": [
+                         *           {
+                         *             "key": "name",
+                         *             "label": "Name",
+                         *             "labelRoman": "Naam",
+                         *             "labelUrdu": "نام",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "type",
+                         *             "label": "Worker type",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "phone",
+                         *             "label": "Phone",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "dailyRate",
+                         *             "label": "Daily rate (Rs)",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "notes",
+                         *             "label": "Notes",
+                         *             "required": false
+                         *           }
+                         *         ],
+                         *         "unknownColumns": [],
+                         *         "skippedExampleRows": 1,
+                         *         "totalRows": 2,
+                         *         "validRows": 1,
+                         *         "invalidRows": 1,
+                         *         "rows": [
+                         *           {
+                         *             "rowNumber": 3,
+                         *             "values": {
+                         *               "name": "Riaz",
+                         *               "type": "MAZDOOR",
+                         *               "phone": "03001112233",
+                         *               "dailyRate": "",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [],
+                         *             "valid": true
+                         *           },
+                         *           {
+                         *             "rowNumber": 4,
+                         *             "values": {
+                         *               "name": "A",
+                         *               "type": "PLUMBER",
+                         *               "phone": "12345",
+                         *               "dailyRate": "abc",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [
+                         *               {
+                         *                 "column": "dailyRate",
+                         *                 "message": "Enter the amount in rupees, e.g. 1600"
+                         *               },
+                         *               {
+                         *                 "column": "name",
+                         *                 "message": "Name is too short"
+                         *               }
+                         *             ],
+                         *             "valid": false
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/workers/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Workers: import
+         * @description `masterdata.worker.create`. Send the SAME file again (stateless: nothing is kept between preview and commit, and the rows are checked again). **All-or-nothing** by default: any row with an error → 400 IMPORT_HAS_ERRORS (`details.rows`) and nothing is written; `?skipInvalid=true` imports only the valid rows. One transaction, one audit row `import.workers`. Master data has no plan limits.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description true = import only the valid rows (default: all-or-nothing) */
+                    skipInvalid?: "true" | "false";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Imported */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "workers",
+                         *         "fileName": "workers.xlsx",
+                         *         "created": 12,
+                         *         "skipped": 0,
+                         *         "ids": [
+                         *           "0199a8c0-0000-7000-8000-0000000000c1"
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD | IMPORT_HAS_ERRORS | NOTHING_TO_IMPORT | VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description IMPORT_CONFLICT */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/subcontractors/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sub-contractors: download the import template
+         * @description `masterdata.subcontractor.create`. An .xlsx file: sheet **Data** with the headers (English + Roman Urdu, notes in English / Roman Urdu / Urdu on each header) and one example row (rows containing "(example" are skipped), sheet **Instructions** with every column in three languages and the allowed values of this company. Columns: `name` (required), `trade` (required), `phone`, `notes`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Excel template */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/subcontractors/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sub-contractors: preview an import
+         * @description `masterdata.subcontractor.create`. Parses the file and checks every row with the create endpoint’s own rules (Zod schema + name must be new — in the company and in the file). **Writes nothing.** Headers are matched by key or by any of the three labels; unknown columns are listed in `unknownColumns`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Rows with their errors */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "workers",
+                         *         "fileName": "workers.xlsx",
+                         *         "columns": [
+                         *           {
+                         *             "key": "name",
+                         *             "label": "Name",
+                         *             "labelRoman": "Naam",
+                         *             "labelUrdu": "نام",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "type",
+                         *             "label": "Worker type",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "phone",
+                         *             "label": "Phone",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "dailyRate",
+                         *             "label": "Daily rate (Rs)",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "notes",
+                         *             "label": "Notes",
+                         *             "required": false
+                         *           }
+                         *         ],
+                         *         "unknownColumns": [],
+                         *         "skippedExampleRows": 1,
+                         *         "totalRows": 2,
+                         *         "validRows": 1,
+                         *         "invalidRows": 1,
+                         *         "rows": [
+                         *           {
+                         *             "rowNumber": 3,
+                         *             "values": {
+                         *               "name": "Riaz",
+                         *               "type": "MAZDOOR",
+                         *               "phone": "03001112233",
+                         *               "dailyRate": "",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [],
+                         *             "valid": true
+                         *           },
+                         *           {
+                         *             "rowNumber": 4,
+                         *             "values": {
+                         *               "name": "A",
+                         *               "type": "PLUMBER",
+                         *               "phone": "12345",
+                         *               "dailyRate": "abc",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [
+                         *               {
+                         *                 "column": "dailyRate",
+                         *                 "message": "Enter the amount in rupees, e.g. 1600"
+                         *               },
+                         *               {
+                         *                 "column": "name",
+                         *                 "message": "Name is too short"
+                         *               }
+                         *             ],
+                         *             "valid": false
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/subcontractors/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sub-contractors: import
+         * @description `masterdata.subcontractor.create`. Send the SAME file again (stateless: nothing is kept between preview and commit, and the rows are checked again). **All-or-nothing** by default: any row with an error → 400 IMPORT_HAS_ERRORS (`details.rows`) and nothing is written; `?skipInvalid=true` imports only the valid rows. One transaction, one audit row `import.subcontractors`. Master data has no plan limits.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description true = import only the valid rows (default: all-or-nothing) */
+                    skipInvalid?: "true" | "false";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Imported */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "subcontractors",
+                         *         "fileName": "subcontractors.xlsx",
+                         *         "created": 12,
+                         *         "skipped": 0,
+                         *         "ids": [
+                         *           "0199a8c0-0000-7000-8000-0000000000c1"
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD | IMPORT_HAS_ERRORS | NOTHING_TO_IMPORT | VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description IMPORT_CONFLICT */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/suppliers/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suppliers: download the import template
+         * @description `masterdata.supplier.create`. An .xlsx file: sheet **Data** with the headers (English + Roman Urdu, notes in English / Roman Urdu / Urdu on each header) and one example row (rows containing "(example" are skipped), sheet **Instructions** with every column in three languages and the allowed values of this company. Columns: `name` (required), `category` (required), `phone`, `city`, `address`, `ntn`, `notes`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Excel template */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/suppliers/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suppliers: preview an import
+         * @description `masterdata.supplier.create`. Parses the file and checks every row with the create endpoint’s own rules (Zod schema + name must be new — in the company and in the file). **Writes nothing.** Headers are matched by key or by any of the three labels; unknown columns are listed in `unknownColumns`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Rows with their errors */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "workers",
+                         *         "fileName": "workers.xlsx",
+                         *         "columns": [
+                         *           {
+                         *             "key": "name",
+                         *             "label": "Name",
+                         *             "labelRoman": "Naam",
+                         *             "labelUrdu": "نام",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "type",
+                         *             "label": "Worker type",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "phone",
+                         *             "label": "Phone",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "dailyRate",
+                         *             "label": "Daily rate (Rs)",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "notes",
+                         *             "label": "Notes",
+                         *             "required": false
+                         *           }
+                         *         ],
+                         *         "unknownColumns": [],
+                         *         "skippedExampleRows": 1,
+                         *         "totalRows": 2,
+                         *         "validRows": 1,
+                         *         "invalidRows": 1,
+                         *         "rows": [
+                         *           {
+                         *             "rowNumber": 3,
+                         *             "values": {
+                         *               "name": "Riaz",
+                         *               "type": "MAZDOOR",
+                         *               "phone": "03001112233",
+                         *               "dailyRate": "",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [],
+                         *             "valid": true
+                         *           },
+                         *           {
+                         *             "rowNumber": 4,
+                         *             "values": {
+                         *               "name": "A",
+                         *               "type": "PLUMBER",
+                         *               "phone": "12345",
+                         *               "dailyRate": "abc",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [
+                         *               {
+                         *                 "column": "dailyRate",
+                         *                 "message": "Enter the amount in rupees, e.g. 1600"
+                         *               },
+                         *               {
+                         *                 "column": "name",
+                         *                 "message": "Name is too short"
+                         *               }
+                         *             ],
+                         *             "valid": false
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/suppliers/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suppliers: import
+         * @description `masterdata.supplier.create`. Send the SAME file again (stateless: nothing is kept between preview and commit, and the rows are checked again). **All-or-nothing** by default: any row with an error → 400 IMPORT_HAS_ERRORS (`details.rows`) and nothing is written; `?skipInvalid=true` imports only the valid rows. One transaction, one audit row `import.suppliers`. Master data has no plan limits.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description true = import only the valid rows (default: all-or-nothing) */
+                    skipInvalid?: "true" | "false";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Imported */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "suppliers",
+                         *         "fileName": "suppliers.xlsx",
+                         *         "created": 12,
+                         *         "skipped": 0,
+                         *         "ids": [
+                         *           "0199a8c0-0000-7000-8000-0000000000c1"
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD | IMPORT_HAS_ERRORS | NOTHING_TO_IMPORT | VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description IMPORT_CONFLICT */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/materials/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Materials: download the import template
+         * @description `masterdata.material.create`. An .xlsx file: sheet **Data** with the headers (English + Roman Urdu, notes in English / Roman Urdu / Urdu on each header) and one example row (rows containing "(example" are skipped), sheet **Instructions** with every column in three languages and the allowed values of this company. Columns: `name` (required), `group` (required), `unit` (required), `unitDetail`, `supplyCategory`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Excel template */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/materials/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Materials: preview an import
+         * @description `masterdata.material.create`. Parses the file and checks every row with the create endpoint’s own rules (Zod schema + name must be new — in the company and in the file). **Writes nothing.** Headers are matched by key or by any of the three labels; unknown columns are listed in `unknownColumns`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Rows with their errors */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "workers",
+                         *         "fileName": "workers.xlsx",
+                         *         "columns": [
+                         *           {
+                         *             "key": "name",
+                         *             "label": "Name",
+                         *             "labelRoman": "Naam",
+                         *             "labelUrdu": "نام",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "type",
+                         *             "label": "Worker type",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "phone",
+                         *             "label": "Phone",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "dailyRate",
+                         *             "label": "Daily rate (Rs)",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "notes",
+                         *             "label": "Notes",
+                         *             "required": false
+                         *           }
+                         *         ],
+                         *         "unknownColumns": [],
+                         *         "skippedExampleRows": 1,
+                         *         "totalRows": 2,
+                         *         "validRows": 1,
+                         *         "invalidRows": 1,
+                         *         "rows": [
+                         *           {
+                         *             "rowNumber": 3,
+                         *             "values": {
+                         *               "name": "Riaz",
+                         *               "type": "MAZDOOR",
+                         *               "phone": "03001112233",
+                         *               "dailyRate": "",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [],
+                         *             "valid": true
+                         *           },
+                         *           {
+                         *             "rowNumber": 4,
+                         *             "values": {
+                         *               "name": "A",
+                         *               "type": "PLUMBER",
+                         *               "phone": "12345",
+                         *               "dailyRate": "abc",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [
+                         *               {
+                         *                 "column": "dailyRate",
+                         *                 "message": "Enter the amount in rupees, e.g. 1600"
+                         *               },
+                         *               {
+                         *                 "column": "name",
+                         *                 "message": "Name is too short"
+                         *               }
+                         *             ],
+                         *             "valid": false
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/materials/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Materials: import
+         * @description `masterdata.material.create`. Send the SAME file again (stateless: nothing is kept between preview and commit, and the rows are checked again). **All-or-nothing** by default: any row with an error → 400 IMPORT_HAS_ERRORS (`details.rows`) and nothing is written; `?skipInvalid=true` imports only the valid rows. One transaction, one audit row `import.materials`. Master data has no plan limits.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description true = import only the valid rows (default: all-or-nothing) */
+                    skipInvalid?: "true" | "false";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Imported */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "materials",
+                         *         "fileName": "materials.xlsx",
+                         *         "created": 12,
+                         *         "skipped": 0,
+                         *         "ids": [
+                         *           "0199a8c0-0000-7000-8000-0000000000c1"
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD | IMPORT_HAS_ERRORS | NOTHING_TO_IMPORT | VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description IMPORT_CONFLICT */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/clients/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Clients: download the import template
+         * @description `clients.client.create`. An .xlsx file: sheet **Data** with the headers (English + Roman Urdu, notes in English / Roman Urdu / Urdu on each header) and one example row (rows containing "(example" are skipped), sheet **Instructions** with every column in three languages and the allowed values of this company. Columns: `name` (required), `phone` (required), `email`, `address`, `notes`.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Excel template */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/clients/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clients: preview an import
+         * @description `clients.client.create`. Parses the file and checks every row with the create endpoint’s own rules (Zod schema + phone must be new — in the company and in the file). **Writes nothing.** Headers are matched by key or by any of the three labels; unknown columns are listed in `unknownColumns`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Rows with their errors */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "workers",
+                         *         "fileName": "workers.xlsx",
+                         *         "columns": [
+                         *           {
+                         *             "key": "name",
+                         *             "label": "Name",
+                         *             "labelRoman": "Naam",
+                         *             "labelUrdu": "نام",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "type",
+                         *             "label": "Worker type",
+                         *             "required": true
+                         *           },
+                         *           {
+                         *             "key": "phone",
+                         *             "label": "Phone",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "dailyRate",
+                         *             "label": "Daily rate (Rs)",
+                         *             "required": false
+                         *           },
+                         *           {
+                         *             "key": "notes",
+                         *             "label": "Notes",
+                         *             "required": false
+                         *           }
+                         *         ],
+                         *         "unknownColumns": [],
+                         *         "skippedExampleRows": 1,
+                         *         "totalRows": 2,
+                         *         "validRows": 1,
+                         *         "invalidRows": 1,
+                         *         "rows": [
+                         *           {
+                         *             "rowNumber": 3,
+                         *             "values": {
+                         *               "name": "Riaz",
+                         *               "type": "MAZDOOR",
+                         *               "phone": "03001112233",
+                         *               "dailyRate": "",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [],
+                         *             "valid": true
+                         *           },
+                         *           {
+                         *             "rowNumber": 4,
+                         *             "values": {
+                         *               "name": "A",
+                         *               "type": "PLUMBER",
+                         *               "phone": "12345",
+                         *               "dailyRate": "abc",
+                         *               "notes": ""
+                         *             },
+                         *             "errors": [
+                         *               {
+                         *                 "column": "dailyRate",
+                         *                 "message": "Enter the amount in rupees, e.g. 1600"
+                         *               },
+                         *               {
+                         *                 "column": "name",
+                         *                 "message": "Name is too short"
+                         *               }
+                         *             ],
+                         *             "valid": false
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/clients/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clients: import
+         * @description `clients.client.create`. Send the SAME file again (stateless: nothing is kept between preview and commit, and the rows are checked again). **All-or-nothing** by default: any row with an error → 400 IMPORT_HAS_ERRORS (`details.rows`) and nothing is written; `?skipInvalid=true` imports only the valid rows. One transaction, one audit row `import.clients`. Master data has no plan limits.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    /** @description true = import only the valid rows (default: all-or-nothing) */
+                    skipInvalid?: "true" | "false";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description The filled template: .xlsx (sheet "Data" or the first sheet) or UTF-8 .csv, ≤ 2 MB, ≤ 1000 rows
+                         */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Imported */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "entity": "clients",
+                         *         "fileName": "clients.xlsx",
+                         *         "created": 12,
+                         *         "skipped": 0,
+                         *         "ids": [
+                         *           "0199a8c0-0000-7000-8000-0000000000c1"
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description FILE_REQUIRED | FILE_TOO_LARGE | INVALID_FILE | INVALID_FILE_TYPE | EMPTY_FILE | TOO_MANY_ROWS | MISSING_COLUMNS | INVALID_UPLOAD | IMPORT_HAS_ERRORS | NOTHING_TO_IMPORT | VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description IMPORT_CONFLICT */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/opening-balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Opening balances
+         * @description `company.opening.manage` (owner; can be granted). Every saved (locked) opening balance with its item, who entered it and when.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    kind?: "SUPPLIER_UDHAAR" | "CASH_IN_HAND" | "STORE_STOCK" | "WORKER_PESHGI";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Opening balances */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": [
+                         *         {
+                         *           "id": "0199a8c0-0000-7000-8000-0000000000b1",
+                         *           "kind": "SUPPLIER_UDHAAR",
+                         *           "entity": {
+                         *             "id": "0199a8c0-0000-7000-8000-0000000000a1",
+                         *             "name": "Al-Madina Cement Agency"
+                         *           },
+                         *           "project": null,
+                         *           "amountPaisa": "74000000",
+                         *           "quantity": null,
+                         *           "ratePaisa": null,
+                         *           "date": "2026-10-01",
+                         *           "note": null,
+                         *           "refType": "OPENING_BALANCE",
+                         *           "refId": "0199a8c0-0000-7000-8000-0000000000b1",
+                         *           "locked": true,
+                         *           "createdBy": {
+                         *             "id": "0199a8c0-0000-7000-8000-000000000001",
+                         *             "name": "Khalid Malik"
+                         *           },
+                         *           "createdAt": "2026-10-13T09:00:00.000Z"
+                         *         }
+                         *       ]
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Enter an opening balance
+         * @description `company.opening.manage`. Once per item, then **locked** (409 OPENING_LOCKED); audited `opening_balance.create`. Posted to the normal ledgers so balances and reports include it: SUPPLIER_UDHAAR → supplier ledger OPENING; CASH_IN_HAND → cash entry OPENING in the munshi / PM’s cash account; STORE_STOCK → stock movement OPENING_IN at the Central Store (value = quantity × rate); WORKER_PESHGI → an office-cash peshgi on the worker’s project, cut from their next wages (the worker must be on that project’s team).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        kind: "SUPPLIER_UDHAAR";
+                        /** Format: uuid */
+                        supplierId: string;
+                        /**
+                         * @description What you owe the supplier (paisa)
+                         * @example 2500000
+                         */
+                        amountPaisa: string | number;
+                        /**
+                         * @description The day the balance stood (not in the future)
+                         * @example 2026-10-01
+                         */
+                        date: string;
+                        note?: string;
+                    } | {
+                        /** @enum {string} */
+                        kind: "CASH_IN_HAND";
+                        /**
+                         * Format: uuid
+                         * @description A munshi or project manager
+                         */
+                        holderUserId: string;
+                        /**
+                         * @description Paisa as a string (2500000 = Rs 25,000)
+                         * @example 2500000
+                         */
+                        amountPaisa: string | number;
+                        /**
+                         * @description The day the balance stood (not in the future)
+                         * @example 2026-10-01
+                         */
+                        date: string;
+                        note?: string;
+                    } | {
+                        /** @enum {string} */
+                        kind: "STORE_STOCK";
+                        /** Format: uuid */
+                        materialId: string;
+                        quantity: number;
+                        /**
+                         * @description Rate per unit (paisa) — the stock value is quantity × rate
+                         * @example 2500000
+                         */
+                        ratePaisa: string | number;
+                        /**
+                         * @description The day the balance stood (not in the future)
+                         * @example 2026-10-01
+                         */
+                        date: string;
+                        note?: string;
+                    } | {
+                        /** @enum {string} */
+                        kind: "WORKER_PESHGI";
+                        /** Format: uuid */
+                        workerId: string;
+                        /**
+                         * Format: uuid
+                         * @description The project the worker is on — the peshgi is cut from their wages there
+                         */
+                        projectId: string;
+                        /**
+                         * @description Paisa as a string (2500000 = Rs 25,000)
+                         * @example 2500000
+                         */
+                        amountPaisa: string | number;
+                        /**
+                         * @description The day the balance stood (not in the future)
+                         * @example 2026-10-01
+                         */
+                        date: string;
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Saved and locked */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "id": "0199a8c0-0000-7000-8000-0000000000b1",
+                         *         "kind": "SUPPLIER_UDHAAR",
+                         *         "entity": {
+                         *           "id": "0199a8c0-0000-7000-8000-0000000000a1",
+                         *           "name": "Al-Madina Cement Agency"
+                         *         },
+                         *         "project": null,
+                         *         "amountPaisa": "74000000",
+                         *         "quantity": null,
+                         *         "ratePaisa": null,
+                         *         "date": "2026-10-01",
+                         *         "note": null,
+                         *         "refType": "OPENING_BALANCE",
+                         *         "refId": "0199a8c0-0000-7000-8000-0000000000b1",
+                         *         "locked": true,
+                         *         "createdBy": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000001",
+                         *           "name": "Khalid Malik"
+                         *         },
+                         *         "createdAt": "2026-10-13T09:00:00.000Z"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR | DATE_IN_FUTURE | FUTURE_DATE | INVALID_HOLDER | WORKER_NOT_ASSIGNED */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description SUPPLIER_NOT_FOUND | MATERIAL_NOT_FOUND | WORKER_NOT_FOUND | PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description OPENING_LOCKED | PROJECT_LOCKED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Try with demo data
+         * @description Owner (`company.settings.manage`). Creates ONE demo project tagged DEMO (`isDemo`, code `DEMO-001`, names start with "DEMO ·") with a client, a supplier, 4 workers on site, 6 days of hazri, a site purchase on udhaar (received), a small site cash book with kharcha and a draft invoice. The demo project never counts against the plan’s active-project limit; it uses no real document numbers (purchase `DEMO-PUR-1`, invoice left as a draft).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000999",
+                         *           "code": "DEMO-001",
+                         *           "name": "DEMO · Sample house (10 Marla)",
+                         *           "isDemo": true
+                         *         },
+                         *         "counts": {
+                         *           "workers": 4,
+                         *           "hazri": 24,
+                         *           "purchases": 1,
+                         *           "kharcha": 4,
+                         *           "invoices": 1
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description DEMO_EXISTS */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Remove the demo data
+         * @description Owner. Removes the demo project and everything on it (hazri, purchases, supplier ledger, stock movements, cash entries, invoices, …) plus the demo client, supplier, workers and cash book, in one transaction — no leftovers in ledgers or stock. Refused with 409 DEMO_IN_USE (`details.uses`) when real data uses demo records (a dispatch to / from the demo site, real cash entries on the demo project, demo workers / supplier / client on real projects or stock). Audit rows are kept.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Removed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "removed": true,
+                         *         "projectId": "0199a8c0-0000-7000-8000-000000000999",
+                         *         "code": "DEMO-001"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PERMISSION_DENIED | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description DEMO_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description DEMO_IN_USE */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects": {
         parameters: {
             query?: never;
@@ -14299,7 +16840,7 @@ export interface paths {
                     locationId?: string;
                     projectId?: string;
                     materialId?: string;
-                    type?: "PURCHASE_IN" | "PURCHASE_RETURN_OUT" | "DISPATCH_OUT" | "TRANSIT_IN" | "TRANSIT_OUT" | "RECEIPT_IN" | "OWNER_DELIVERY_IN" | "USAGE_OUT" | "COUNT_ADJUSTMENT" | "CORRECTION";
+                    type?: "PURCHASE_IN" | "PURCHASE_RETURN_OUT" | "DISPATCH_OUT" | "TRANSIT_IN" | "TRANSIT_OUT" | "RECEIPT_IN" | "OWNER_DELIVERY_IN" | "USAGE_OUT" | "COUNT_ADJUSTMENT" | "CORRECTION" | "OPENING_IN";
                     from?: string;
                     to?: string;
                 };
@@ -23841,7 +26382,7 @@ export interface paths {
                     limit?: number;
                     from?: string;
                     to?: string;
-                    type?: "FLOAT_IN" | "EXPENSE" | "PESHGI" | "WAGE_PAYMENT" | "SUBCONTRACT_PAYMENT" | "PURCHASE" | "HANDOVER_OUT" | "HANDOVER_IN" | "COUNT_ADJUSTMENT" | "REFUND_IN";
+                    type?: "FLOAT_IN" | "EXPENSE" | "PESHGI" | "WAGE_PAYMENT" | "SUBCONTRACT_PAYMENT" | "PURCHASE" | "HANDOVER_OUT" | "HANDOVER_IN" | "COUNT_ADJUSTMENT" | "REFUND_IN" | "OPENING";
                 };
                 header?: never;
                 path: {
@@ -27681,11 +30222,14 @@ export interface paths {
         };
         /**
          * Invoice PDF + share text
-         * @description Signed URL of the stored PDF (made again if missing), and a ready WhatsApp message. 503 PDF_UNAVAILABLE when PDFs cannot be made.
+         * @description Signed URL of the stored PDF (made again if missing), and a ready WhatsApp message. 503 PDF_UNAVAILABLE when PDFs cannot be made. Language: `?lang=en|roman|ur`, default the signed-in user's language (Urdu = right-to-left with an embedded Nastaliq font); the WhatsApp text is in the same language. A stored PDF in another language is made again.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description en = English, roman = Roman Urdu, ur = Urdu (right-to-left) */
+                    lang?: "en" | "roman" | "ur";
+                };
                 header?: never;
                 path: {
                     /** @description Invoice id */
@@ -28341,10 +30885,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Receipt PDF + share text */
+        /**
+         * Receipt PDF + share text
+         * @description Language: `?lang=en|roman|ur`, default the signed-in user's language (Urdu = right-to-left with an embedded Nastaliq font); the WhatsApp text is in the same language. A stored PDF in another language is made again.
+         */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description en = English, roman = Roman Urdu, ur = Urdu (right-to-left) */
+                    lang?: "en" | "roman" | "ur";
+                };
                 header?: never;
                 path: {
                     /** @description ClientPayment id */
@@ -28796,6 +31346,8 @@ export interface paths {
                 query?: {
                     from?: string;
                     to?: string;
+                    /** @description PDF language (default: your language) */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path: {
@@ -28920,12 +31472,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Owner statement PDF + share text */
+        /**
+         * Owner statement PDF + share text
+         * @description Language: `?lang=en|roman|ur`, default the signed-in user's language (Urdu = right-to-left with an embedded Nastaliq font); the WhatsApp text is in the same language. A stored PDF in another language is made again.
+         */
         get: {
             parameters: {
                 query?: {
                     from?: string;
                     to?: string;
+                    /** @description PDF language (default: your language) */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path: {
@@ -30519,7 +33076,7 @@ export interface paths {
         };
         /**
          * Project summary
-         * @description THEKEDAR, PM with billing.view (own projects). Per project: contract, billed, received, outstanding, cost by bucket, cost to date, own money invested. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files.
+         * @description THEKEDAR, PM with billing.view (own projects). Per project: contract, billed, received, outstanding, cost by bucket, cost to date, own money invested. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -30529,6 +33086,8 @@ export interface paths {
                     projectId?: string;
                     from?: string;
                     to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path?: never;
@@ -30651,7 +33210,7 @@ export interface paths {
         };
         /**
          * Material audit
-         * @description THEKEDAR, PM (own projects); the value column needs rates.view. Per project × material: delivered (contractor / owner), used, sent away, count adjustments, losses written off, in stock and value. The period limits the movement columns; stock and value are as of `to`. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files.
+         * @description THEKEDAR, PM (own projects); the value column needs rates.view. Per project × material: delivered (contractor / owner), used, sent away, count adjustments, losses written off, in stock and value. The period limits the movement columns; stock and value are as of `to`. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -30661,6 +33220,8 @@ export interface paths {
                     projectId?: string;
                     from?: string;
                     to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path?: never;
@@ -30783,7 +33344,7 @@ export interface paths {
         };
         /**
          * Labour & peshgi
-         * @description THEKEDAR, PM (own projects). Per worker / sub-contractor and project: days, wages (or work value), peshgi given / adjusted / outstanding, paid, retention and balance due. The period limits days and wages. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files.
+         * @description THEKEDAR, PM (own projects). Per worker / sub-contractor and project: days, wages (or work value), peshgi given / adjusted / outstanding, paid, retention and balance due. The period limits days and wages. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -30793,6 +33354,8 @@ export interface paths {
                     projectId?: string;
                     from?: string;
                     to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path?: never;
@@ -30915,7 +33478,7 @@ export interface paths {
         };
         /**
          * Cash book
-         * @description THEKEDAR, PM (own projects). Per holder and project: floats, kharcha by category, other payments, waiting approval, owed back, count differences and net. Without a period, net adds up to cash in hand. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files.
+         * @description THEKEDAR, PM (own projects). Per holder and project: floats, kharcha by category, other payments, waiting approval, owed back, count differences and net. Without a period, net adds up to cash in hand. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -30925,6 +33488,8 @@ export interface paths {
                     projectId?: string;
                     from?: string;
                     to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path?: never;
@@ -31047,7 +33612,7 @@ export interface paths {
         };
         /**
          * Supplier ageing
-         * @description THEKEDAR. Udhaar per supplier in 0–15 / 16–30 / 31–60 / 60+ day buckets (FIFO), oldest unpaid days and the last payment. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files.
+         * @description THEKEDAR. Udhaar per supplier in 0–15 / 16–30 / 31–60 / 60+ day buckets (FIFO), oldest unpaid days and the last payment. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -31057,6 +33622,8 @@ export interface paths {
                     projectId?: string;
                     from?: string;
                     to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path?: never;
@@ -31155,7 +33722,7 @@ export interface paths {
         };
         /**
          * Receivables ageing
-         * @description THEKEDAR. Outstanding per project / client in the same buckets (days since the invoice was issued), overdue and pending cheques. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files.
+         * @description THEKEDAR. Outstanding per project / client in the same buckets (days since the invoice was issued), overdue and pending cheques. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -31165,6 +33732,8 @@ export interface paths {
                     projectId?: string;
                     from?: string;
                     to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path?: never;
@@ -31287,7 +33856,7 @@ export interface paths {
         };
         /**
          * Stock valuation
-         * @description THEKEDAR. Store, sites and transit: quantity × weighted-average cost; owner-supplied stock shown without value. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files.
+         * @description THEKEDAR. Store, sites and transit: quantity × weighted-average cost; owner-supplied stock shown without value. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -31297,6 +33866,8 @@ export interface paths {
                     projectId?: string;
                     from?: string;
                     to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
                 };
                 header?: never;
                 path?: never;
@@ -35284,6 +37855,47 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Readiness: {
+            /** @enum {string} */
+            status: "ok" | "fail";
+            checks: {
+                database: {
+                    ok: boolean;
+                    /** @example 2.4 */
+                    latencyMs: number;
+                    /** @description Error code only (e.g. P1001, TIMEOUT, NoSuchBucket (404)) — never connection details. */
+                    error?: string;
+                };
+                storage: {
+                    ok: boolean;
+                    /** @example 2.4 */
+                    latencyMs: number;
+                    /** @description Error code only (e.g. P1001, TIMEOUT, NoSuchBucket (404)) — never connection details. */
+                    error?: string;
+                    provider: ("local" | "cloudinary" | "s3") | string;
+                    /** @description Result reused from the last 30 s (S3 / Cloudinary probes are not free). */
+                    cached?: boolean;
+                    skipped?: boolean;
+                };
+                scheduler: {
+                    ok: boolean;
+                    /** @example 2.4 */
+                    latencyMs: number;
+                    /** @description Error code only (e.g. P1001, TIMEOUT, NoSuchBucket (404)) — never connection details. */
+                    error?: string;
+                    /** @description false only under NODE_ENV=test */
+                    enabled: boolean;
+                    /** @description This process has scheduled its background jobs. */
+                    running: boolean;
+                    /** @description Last run of each tracked job (informational; a FAILED job does not make the API unready). */
+                    jobs?: {
+                        name: string;
+                        lastStatus: string;
+                        lastFinishedAt: string | null;
+                    }[];
+                };
+            };
+        };
         AuthResult: {
             user: components["schemas"]["User"];
             tenant: components["schemas"]["Tenant"];
@@ -35332,8 +37944,12 @@ export interface components {
             email: string | null;
             /** @enum {string} */
             role: "THEKEDAR" | "PM" | "MUNSHI";
-            /** @enum {string} */
-            language: "ENGLISH" | "ROMAN_URDU" | "URDU";
+            /**
+             * @description The user's language for messages, notifications and PDFs: en | roman | ur
+             * @example ur
+             * @enum {string}
+             */
+            language: "en" | "roman" | "ur";
             photoUrl: string | null;
             canSeeFinancials: boolean;
         };
@@ -35420,6 +38036,32 @@ export interface components {
             } | null;
             /** @description Empty for THEKEDAR = all projects */
             assignedProjectIds: string[];
+        };
+        /**
+         * @example {
+         *       "language": "ur"
+         *     }
+         */
+        Preferences: {
+            /**
+             * @description en = English, roman = Roman Urdu, ur = Urdu (right-to-left)
+             * @example ur
+             * @enum {string}
+             */
+            language: "en" | "roman" | "ur";
+        };
+        /**
+         * @example {
+         *       "language": "ur"
+         *     }
+         */
+        PreferencesInput: {
+            /**
+             * @description en = English, roman = Roman Urdu, ur = Urdu (right-to-left)
+             * @example ur
+             * @enum {string}
+             */
+            language: "en" | "roman" | "ur";
         };
         Session: {
             /** Format: uuid */
@@ -35628,6 +38270,12 @@ export interface components {
              * @description Permission role given on accept
              */
             roleId: string | null;
+            /**
+             * @description Language of the invite messages; the person's language on accept
+             * @example ur
+             * @enum {string}
+             */
+            language: "en" | "roman" | "ur";
             projects: {
                 /** Format: uuid */
                 id: string;

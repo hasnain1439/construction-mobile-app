@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { ConfirmSheet } from '@components/ConfirmSheet';
@@ -18,8 +18,7 @@ import { cashAccount, cashEntries, pendingFloats, topups } from '@/features/quer
 import { usePermissions } from '@/features/access';
 import type { CashEntryRow } from '@/features/types';
 import { useSave } from '@/features/useSave';
-import { useT, type TKey } from '@/i18n';
-import { dateTime } from '@/lib/dates';
+import { translateMaybe, useI18n, type TKey } from '@/i18n';
 import { formatPKR, toPaisa } from '@/lib/money';
 import { PERM, rules } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
@@ -32,9 +31,35 @@ const STATUS: Record<string, { key: TKey; tone: Tone }> = {
   REJECTED: { key: 'kharcha.rejected', tone: 'danger' },
 };
 
+/** One list row, memoised so FlashList recycling and unrelated state changes don't re-render every row. */
+const CashEntryItem = memo(function CashEntryItem({ e }: { e: CashEntryRow }) {
+  const { t, f: fmt, language } = useI18n();
+
+  const st = STATUS[e.status];
+  return (
+    <View className="mx-4 mb-2 min-h-16 flex-row items-center gap-3 rounded-card bg-card p-3" style={CARD_SHADOW}>
+      <IconBadge name="🧾" tone={e.amountPaisa.startsWith('-') ? 'danger' : 'success'} size={40} />
+      <View className="flex-1 gap-1">
+        <Text className="font-semibold text-ink" numberOfLines={1}>
+          {e.category ? t(`cat.${e.category}` as TKey) : (translateMaybe(language, `cashType.${e.type}`) ?? e.type)} · {e.description}
+        </Text>
+        <View className="flex-row flex-wrap gap-1">
+          {e.pendingSync ? <StatusChip tone="accent" label={`⏳ ${t('kharcha.notSynced')}`} /> : st ? <StatusChip tone={st.tone} label={t(st.key)} /> : null}
+          {e.lateSync ? <StatusChip tone="neutral" label={`📱 ${t('sync.lateSync')}`} /> : null}
+        </View>
+        {e.reviewNote ? <Text className="text-xs text-danger">{e.reviewNote}</Text> : null}
+      </View>
+      <View className="items-end">
+        <MoneyText paisa={e.amountPaisa} signed />
+        <Text className="text-xs text-muted">{fmt.dateTime(e.occurredAt)}</Text>
+      </View>
+    </View>
+  );
+});
+
 /** My site cash: balance, cash sent to me, kharcha entries. */
 export default function KharchaScreen() {
-  const t = useT();
+  const { t, f: fmt, language } = useI18n();
   const save = useSave();
   const perms = usePermissions();
   const [ack, setAck] = useState<CashEntryRow | null>(null);
@@ -68,9 +93,21 @@ export default function KharchaScreen() {
           {formatPKR(a.balancePaisa)}
         </Text>
         <View className="flex-row flex-wrap gap-x-4 gap-y-1">
-          {toPaisa(a.pendingAckPaisa) ? <Text className="text-sm text-ink/70">{t('kharcha.pendingFloats')}: {formatPKR(a.pendingAckPaisa)}</Text> : null}
-          {toPaisa(a.pendingApprovalPaisa) ? <Text className="text-sm text-ink/70">{t('kharcha.pendingApproval')}: {formatPKR(a.pendingApprovalPaisa)}</Text> : null}
-          {toPaisa(a.recoverablePaisa) ? <Text className="text-sm text-ink/70">{t('kharcha.recoverable')}: {formatPKR(a.recoverablePaisa)}</Text> : null}
+          {toPaisa(a.pendingAckPaisa) ? (
+            <Text className="text-sm text-ink/70">
+              {t('kharcha.pendingFloats')}: {formatPKR(a.pendingAckPaisa)}
+            </Text>
+          ) : null}
+          {toPaisa(a.pendingApprovalPaisa) ? (
+            <Text className="text-sm text-ink/70">
+              {t('kharcha.pendingApproval')}: {formatPKR(a.pendingApprovalPaisa)}
+            </Text>
+          ) : null}
+          {toPaisa(a.recoverablePaisa) ? (
+            <Text className="text-sm text-ink/70">
+              {t('kharcha.recoverable')}: {formatPKR(a.recoverablePaisa)}
+            </Text>
+          ) : null}
         </View>
       </View>
       {perms.can(PERM.expenseCreate) ? <BigButton testID="add-kharcha" icon="➕" label={t('kharcha.add')} onPress={() => router.push('/kharcha/new')} /> : null}
@@ -87,7 +124,7 @@ export default function KharchaScreen() {
           <IconBadge name="hand-coin-outline" tone="primary" size={40} />
           <View className="flex-1">
             <MoneyText paisa={f.amountPaisa} className="text-lg" />
-            <Text className="text-xs text-muted">{[f.method, f.description, dateTime(f.occurredAt)].filter(Boolean).join(' · ')}</Text>
+            <Text className="text-xs text-muted">{[f.method ? (translateMaybe(language, `method.${f.method}`) ?? f.method) : null, f.description, fmt.dateTime(f.occurredAt)].filter(Boolean).join(' · ')}</Text>
           </View>
           {perms.can(PERM.cashView) ? <BigButton small label={t('kharcha.acknowledge')} onPress={() => setAck(f)} /> : null}
         </View>
@@ -107,28 +144,7 @@ export default function KharchaScreen() {
             <EmptyState icon="🧾" title={t('common.empty')} />
           </View>
         }
-        renderItem={({ item: e }) => {
-          const st = STATUS[e.status];
-          return (
-            <View className="mx-4 mb-2 min-h-16 flex-row items-center gap-3 rounded-card bg-card p-3" style={CARD_SHADOW}>
-              <IconBadge name="🧾" tone={e.amountPaisa.startsWith('-') ? 'danger' : 'success'} size={40} />
-              <View className="flex-1 gap-1">
-                <Text className="font-semibold text-ink" numberOfLines={1}>
-                  {e.category ? t(`cat.${e.category}` as TKey) : e.type} · {e.description}
-                </Text>
-                <View className="flex-row flex-wrap gap-1">
-                  {e.pendingSync ? <StatusChip tone="accent" label={`⏳ ${t('kharcha.notSynced')}`} /> : st ? <StatusChip tone={st.tone} label={t(st.key)} /> : null}
-                  {e.lateSync ? <StatusChip tone="neutral" label={`📱 ${t('sync.lateSync')}`} /> : null}
-                </View>
-                {e.reviewNote ? <Text className="text-xs text-danger">{e.reviewNote}</Text> : null}
-              </View>
-              <View className="items-end">
-                <MoneyText paisa={e.amountPaisa} signed />
-                <Text className="text-xs text-muted">{dateTime(e.occurredAt)}</Text>
-              </View>
-            </View>
-          );
-        }}
+        renderItem={({ item }) => <CashEntryItem e={item} />}
       />
       <ConfirmSheet
         visible={!!ack}

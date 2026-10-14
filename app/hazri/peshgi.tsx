@@ -14,14 +14,14 @@ import { giveAdvance } from '@/features/actions';
 import { useProject } from '@/features/project';
 import { advances, assignments, cashAccount, isEnoughCash, siteWorkers } from '@/features/queries';
 import { useSave } from '@/features/useSave';
-import { useT } from '@/i18n';
-import { shortDate, todayPK } from '@/lib/dates';
+import { useI18n } from '@/i18n';
+import { todayPK } from '@/lib/dates';
 import { formatPKR, rupeesToPaisa } from '@/lib/money';
 import { COLORS } from '@/lib/theme';
 
 /** Peshgi (advance) to a worker or a sub-contractor, paid from the munshi's site cash. */
 export default function PeshgiScreen() {
-  const t = useT();
+  const { t, f } = useI18n();
   const save = useSave();
   const { projectId } = useProject();
   const [payeeType, setPayeeType] = useState<'WORKER' | 'SUBCONTRACTOR'>('WORKER');
@@ -46,7 +46,7 @@ export default function PeshgiScreen() {
         amountPaisa: paisa,
         date: todayPK(),
         note: note.trim() || undefined,
-        label: `Peshgi ${formatPKR(paisa)} — ${payee.name}`,
+        label: `${formatPKR(paisa)} — ${payee.name}`,
       }),
     );
     router.back();
@@ -79,7 +79,7 @@ export default function PeshgiScreen() {
       {data.recent.length ? <Text className="mt-3 font-bold text-lg text-ink">{t('hazri.recentPeshgi')}</Text> : null}
       {data.recent.map((a) => {
         const name = a.workerId ? data.workers.find((w) => w.worker.id === a.workerId)?.worker.name : data.subs.find((s) => s.id === a.assignmentId)?.subcontractor.name;
-        return <ListItem key={a.id} title={name ?? '—'} subtitle={`${shortDate(a.date)}${a.pendingSync ? ` · ${t('kharcha.notSynced')}` : ''}`} icon={a.pendingSync ? 'timer-sand' : '🤝'} iconTone={a.pendingSync ? 'warning' : 'success'} right={<MoneyText paisa={a.amountPaisa} />} />;
+        return <ListItem key={a.id} title={name ?? '—'} subtitle={`${f.shortDate(a.date)}${a.pendingSync ? ` · ${t('kharcha.notSynced')}` : ''}`} icon={a.pendingSync ? 'timer-sand' : '🤝'} iconTone={a.pendingSync ? 'warning' : 'success'} right={<MoneyText paisa={a.amountPaisa} />} />;
       })}
 
       <BottomSheet visible={picking} onClose={() => setPicking(false)} title={t('hazri.peshgiTo')}>

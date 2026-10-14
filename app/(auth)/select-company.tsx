@@ -9,7 +9,7 @@ import { passwordLogin, verifyOtp, type Company } from '@/api/auth';
 import { ApiError } from '@/api/client';
 import { clearPendingLogin, takePendingLogin } from '@/features/pendingLogin';
 import { useSession } from '@/features/session';
-import { errorText, useI18n } from '@/i18n';
+import { errorText, roleLabel, useI18n } from '@/i18n';
 import { COLORS } from '@/lib/theme';
 
 /** The phone number belongs to more than one company: the same code (or password) signs into the chosen one. */
@@ -43,7 +43,7 @@ export default function SelectCompanyScreen() {
   return (
     <Screen banner={false} refresh={false} header={<Header back title={t('auth.chooseCompany')} />}>
       {list.map((c) => (
-        <ListItem key={c.tenantId} title={c.name} subtitle={busy === c.tenantId ? t('common.loading') : c.role} onPress={() => void choose(c)} icon="office-building-outline" iconTone="primary" />
+        <ListItem key={c.tenantId} title={c.name} subtitle={busy === c.tenantId ? t('common.loading') : roleLabel(language, c.role)} onPress={() => void choose(c)} icon="office-building-outline" iconTone="primary" />
       ))}
       {error ? (
         <View className="flex-row items-center gap-2 rounded-xl bg-danger-soft px-3 py-2">

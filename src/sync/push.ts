@@ -16,11 +16,13 @@ import { pendingCount, rollback, type LocalChange, type OutboxItem } from './out
 export const BATCH = 100;
 export const backoffMs = (attempts: number) => Math.min(30 * 60_000, 15_000 * 2 ** Math.max(0, attempts - 1));
 
-function readyPrefix(db: Db, now: number): OutboxItem[] {
+/** `holdBack`: attachment clientIds not uploaded yet ("Wi-Fi only" on mobile data) — an entry naming one stops the prefix. */
+function readyPrefix(db: Db, now: number, holdBack: readonly string[] = []): OutboxItem[] {
   const items = db.select().from(outbox).where(eq(outbox.status, 'PENDING')).orderBy(asc(outbox.seq)).limit(BATCH).all();
   const out: OutboxItem[] = [];
   for (const i of items) {
     if (i.nextAttemptAt > now) break;
+    if (holdBack.length && holdBack.some((id) => i.payload.includes(id))) break;
     out.push(i);
   }
   return out;
@@ -38,11 +40,11 @@ export interface PushSummary {
   retry: number;
 }
 
-export async function pushOutbox(db: Db, api: SyncApi, opts: { now?: number; deviceId?: string } = {}): Promise<PushSummary> {
+export async function pushOutbox(db: Db, api: SyncApi, opts: { now?: number; deviceId?: string; holdBack?: readonly string[] } = {}): Promise<PushSummary> {
   const now = opts.now ?? Date.now();
   const summary: PushSummary = { sent: 0, applied: 0, rejected: 0, retry: 0 };
   for (;;) {
-    const batch = readyPrefix(db, now);
+    const batch = readyPrefix(db, now, opts.holdBack);
     if (!batch.length) break;
     const ids = batch.map((b) => b.clientId);
     db.update(outbox).set({ status: 'SENDING' }).where(inArray(outbox.clientId, ids)).run();
@@ -51,7 +53,11 @@ export async function pushOutbox(db: Db, api: SyncApi, opts: { now?: number; dev
       results = (await api.push(batch.map(toMutation), pendingCount(db), opts.deviceId)).results;
     } catch (err) {
       // Nothing was confirmed: everything goes back to PENDING with a back-off.
-      for (const b of batch) db.update(outbox).set({ status: 'PENDING', attempts: b.attempts + 1, nextAttemptAt: now + backoffMs(b.attempts + 1) }).where(eq(outbox.clientId, b.clientId)).run();
+      for (const b of batch)
+        db.update(outbox)
+          .set({ status: 'PENDING', attempts: b.attempts + 1, nextAttemptAt: now + backoffMs(b.attempts + 1) })
+          .where(eq(outbox.clientId, b.clientId))
+          .run();
       throw err instanceof NetworkError ? err : new NetworkError(String(err));
     }
     summary.sent += batch.length;
@@ -70,7 +76,10 @@ export async function pushOutbox(db: Db, api: SyncApi, opts: { now?: number; dev
         } else if (r.status === 'REJECTED') {
           summary.rejected += 1;
           rollback(t, item);
-          t.update(outbox).set({ status: 'REJECTED', lastError: JSON.stringify(r.error) }).where(eq(outbox.clientId, item.clientId)).run();
+          t.update(outbox)
+            .set({ status: 'REJECTED', lastError: JSON.stringify(r.error) })
+            .where(eq(outbox.clientId, item.clientId))
+            .run();
         } else {
           summary.applied += 1;
           if (r.serverId) {

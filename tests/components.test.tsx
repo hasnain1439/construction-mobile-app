@@ -8,7 +8,9 @@ import { eq } from 'drizzle-orm';
 import { outbox } from '../src/db/schema';
 import { I18nProvider, translate } from '../src/i18n';
 import { roman } from '../src/i18n/roman';
-import { refreshStatus, resetEngineForTests } from '../src/sync/engine';
+import { queueAttachment } from '../src/sync/attachments';
+import { refreshStatus, resetEngineForTests, syncNow } from '../src/sync/engine';
+import { FakeApi } from './helpers/fakeApi';
 import { enqueue } from '../src/sync/outbox';
 import { testDb } from './helpers/db';
 
@@ -80,5 +82,19 @@ describe('shared components', () => {
     expect(screen.getByText(new RegExp(translate('roman', 'sync.problems', { n: 1 })))).toBeTruthy();
     await fireEvent.press(screen.getByTestId('sync-banner'));
     expect(mockPush).toHaveBeenCalledWith('/sync-problems');
+  });
+
+  it('SyncBanner says photos wait for Wi-Fi when uploads are deferred on mobile data', async () => {
+    const db = testDb();
+    queueAttachment(db, { localUri: 'file:///p.jpg', kind: 'SITE_PHOTO', mimeType: 'image/jpeg' });
+    await render(
+      <I18nProvider initial="roman">
+        <SyncBanner />
+      </I18nProvider>,
+    );
+    await act(async () => {
+      await syncNow(db, new FakeApi(), { canUpload: async () => false });
+    });
+    expect(screen.getByText(new RegExp(roman['sync.waitingWifi']))).toBeTruthy();
   });
 });

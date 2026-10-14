@@ -15,9 +15,10 @@ import { Icon } from '@components/Icon';
 import { IconBadge } from '@components/IconBadge';
 import { ProjectProvider } from '@/features/project';
 import { SessionProvider, useSession } from '@/features/session';
-import { I18nProvider } from '@/i18n';
+import { I18nProvider, useT } from '@/i18n';
 import { initSentry, wrapRoot } from '@/lib/observability';
 import { COLORS } from '@/lib/theme';
+import { useQuietUpdateCheck } from '@/lib/updates';
 // Importing triggers also defines the background sync task at module scope (expo-task-manager needs that).
 import { startSyncTriggers } from '@/sync/triggers';
 
@@ -27,6 +28,7 @@ initSentry();
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function Gate() {
+  const t = useT();
   const { status, config, bootError } = useSession();
 
   useEffect(() => {
@@ -34,13 +36,19 @@ function Gate() {
   }, [status]);
 
   // Sync on foreground / reconnect / every 15 min only while signed in and set up.
-  useEffect(() => (status === 'ready' ? startSyncTriggers(config?.syncIntervalMinutes ?? 15) : undefined), [status, config]);
+  const syncMinutes = config?.syncIntervalMinutes ?? 15;
+  useEffect(() => (status === 'ready' ? startSyncTriggers(syncMinutes) : undefined), [status, syncMinutes]);
+
+  // OTA: quiet download on foreground (store / pilot builds only); used on the next start.
+  useQuietUpdateCheck(status !== 'booting');
 
   if (bootError) {
     return (
       <View className="flex-1 items-center justify-center gap-2 bg-bg p-6">
         <IconBadge name="alert-circle-outline" tone="danger" size={64} />
-        <Text className="mt-2 text-center text-base text-ink">{bootError}</Text>
+        <Text className="mt-2 text-center text-base text-ink">{t('err.boot')}</Text>
+        {/* The technical reason, for whoever helps the munshi (not translated: it comes from the device). */}
+        <Text className="text-center text-xs text-muted">{bootError}</Text>
       </View>
     );
   }

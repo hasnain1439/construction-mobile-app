@@ -14,8 +14,8 @@ import { usePermissions } from '@/features/access';
 import { useProject } from '@/features/project';
 import { cashAccount, settings, settlementFor, siteWorkers } from '@/features/queries';
 import { useSave } from '@/features/useSave';
-import { useT } from '@/i18n';
-import { addDays, shortDate, todayPK, weekOf, type WeekDay } from '@/lib/dates';
+import { useI18n } from '@/i18n';
+import { addDays, todayPK, weekOf, type WeekDay } from '@/lib/dates';
 import { formatPKR, toPaisa } from '@/lib/money';
 import { PERM, rules } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
@@ -24,7 +24,7 @@ const TONE: Record<string, Tone> = { DRAFT: 'neutral', SUBMITTED: 'primary', APP
 
 /** Weekly wages: make the week, send for approval, pay approved lines from site cash. */
 export default function SettlementScreen() {
-  const t = useT();
+  const { t, f, rtl } = useI18n();
   const save = useSave();
   const { projectId } = useProject();
   const perms = usePermissions();
@@ -49,13 +49,13 @@ export default function SettlementScreen() {
   const enough = !data.account || toPaisa(data.account.balancePaisa) >= payTotal;
 
   return (
-    <Screen header={<Header back title={t('hazri.settlement')} subtitle={`${shortDate(data.week.weekStart)} – ${shortDate(data.week.weekEnd)}`} />}>
+    <Screen header={<Header back title={t('hazri.settlement')} subtitle={`${f.shortDate(data.week.weekStart)} – ${f.shortDate(data.week.weekEnd)}`} />}>
       <View className="flex-row gap-2">
         <View className="flex-1">
-          <BigButton small variant="secondary" icon="chevron-left" label={t('hazri.prevWeek')} onPress={() => setDay(addDays(data.week.weekStart, -1))} />
+          <BigButton small variant="secondary" icon={rtl ? 'chevron-right' : 'chevron-left'} label={t('hazri.prevWeek')} onPress={() => setDay(addDays(data.week.weekStart, -1))} />
         </View>
         <View className="flex-1">
-          <BigButton small variant="secondary" icon="calendar-today" label={`${t('hazri.thisWeek')}`} disabled={todayPK() >= data.week.weekStart && todayPK() <= data.week.weekEnd} onPress={() => setDay(todayPK())} />
+          <BigButton small variant="secondary" icon="calendar-today" label={t('hazri.thisWeek')} disabled={todayPK() >= data.week.weekStart && todayPK() <= data.week.weekEnd} onPress={() => setDay(todayPK())} />
         </View>
       </View>
 
@@ -102,7 +102,7 @@ export default function SettlementScreen() {
                   <Text className="font-semibold text-ink">{data.names.get(l.workerId) ?? '—'}</Text>
                   <Text className="text-xs text-muted">
                     {t('hazri.days')}: {l.daysWorked ?? l.fullDays + l.halfDays / 2}
-                    {l.overtimeHours ? ` · OT ${l.overtimeHours}h` : ''}
+                    {l.overtimeHours ? ` · ${t('hazri.otHours', { h: l.overtimeHours })}` : ''}
                     {toPaisa(l.advanceAdjustedPaisa) > 0n ? ` · ${t('hazri.peshgi')} −${formatPKR(l.advanceAdjustedPaisa)}` : ''}
                   </Text>
                 </View>

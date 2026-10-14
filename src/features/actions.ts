@@ -11,7 +11,7 @@ import { outbox } from '../db/schema';
 import { getRow, listRows } from '../db/store';
 import type { Db } from '../db/types';
 import { todayPK, weekOf, type WeekDay } from '../lib/dates';
-import { toPaisa } from '../lib/money';
+import { formatPKR, toPaisa } from '../lib/money';
 import { uuidv7 } from '../lib/uuid';
 import { enqueue, type Write } from '../sync/outbox';
 import { cashAccount, myLogOn, settings, siteLocation, stockOf } from './queries';
@@ -86,7 +86,7 @@ export function markAttendance(db: Db, c: Ctx, input: { projectId: string; date:
     {
       type: 'ATTENDANCE_UPSERT',
       payload: { projectId: input.projectId, date: input.date, entries: input.entries.map((e) => ({ workerId: e.workerId, status: e.status, ...(e.overtimeHours ? { overtimeHours: e.overtimeHours } : {}) })) },
-      label: `Hazri ${input.date} (${input.entries.length})`,
+      label: `${input.date} (${input.entries.length})`,
       dependsOn: pendingDeps(db, input.entries.map((e) => e.workerId)),
       writes,
     },
@@ -113,7 +113,7 @@ export function addWorker(db: Db, c: Ctx, input: { projectId: string } & WorkerC
       clientId: workerId,
       type: 'WORKER_CREATE',
       payload,
-      label: `Worker ${input.name}`,
+      label: input.name,
       writes: [
         {
           table: 'workers',
@@ -141,7 +141,7 @@ export function addWorker(db: Db, c: Ctx, input: { projectId: string } & WorkerC
       clientId: pwId,
       type: 'PROJECT_WORKER_ASSIGN',
       payload: { projectId: input.projectId, workerId, ...(input.dailyRatePaisa ? { dailyRatePaisa: input.dailyRatePaisa } : {}) },
-      label: `${input.name} → site`,
+      label: input.name,
       dependsOn: [workerId],
       writes: [{ table: 'project_workers', row: { id: pwId, projectId: input.projectId, workerId, dailyRatePaisa: input.dailyRatePaisa ?? null, startDate: todayPK(now), endDate: null, isActive: true, pendingSync: true } }],
     },
@@ -194,7 +194,7 @@ export function recordMeasurement(db: Db, c: Ctx, input: { projectId: string; as
       clientId,
       type: 'WORK_MEASUREMENT_CREATE',
       payload: { projectId: input.projectId, assignmentId: input.assignmentId, date: input.date, description: input.description, quantity: qtyStr(input.quantity), ...(input.attachmentIds.length ? { attachmentIds: input.attachmentIds } : {}) },
-      label: `Naap: ${input.description}`,
+      label: input.description,
       writes: [{ table: 'work_measurements', row: { id: clientId, clientId, projectId: input.projectId, assignmentId: input.assignmentId, date: input.date, description: input.description, quantity: input.quantity, unit: input.unit, status: 'RECORDED', note: null, attachmentIds: input.attachmentIds, pendingSync: true } }],
     },
     now,
@@ -206,13 +206,13 @@ export function generateSettlement(db: Db, c: Ctx, input: { projectId: string; d
   const w = weekOf(input.day, settings(db).settlementWeekStart as WeekDay);
   const clientId = uuidv7(now.getTime());
   const row: SettlementRow = { id: clientId, projectId: input.projectId, weekStart: w.weekStart, weekEnd: w.weekEnd, status: 'DRAFT', grossPaisa: null, advancePaisa: null, netPaisa: null, paidPaisa: null, returnComment: null, lines: [], pendingSync: true };
-  return enqueue(db, { clientId, type: 'SETTLEMENT_GENERATE', payload: { projectId: input.projectId, weekStart: w.weekStart }, label: `Wages ${w.weekStart}`, writes: [{ table: 'settlements', row }] }, now);
+  return enqueue(db, { clientId, type: 'SETTLEMENT_GENERATE', payload: { projectId: input.projectId, weekStart: w.weekStart }, label: w.weekStart, writes: [{ table: 'settlements', row }] }, now);
 }
 
 export function submitSettlement(db: Db, c: Ctx, s: SettlementRow) {
   return enqueue(
     db,
-    { type: 'SETTLEMENT_SUBMIT', payload: { settlementId: s.id }, label: `Wages ${s.weekStart} → approval`, dependsOn: pendingDeps(db, [s.id]), writes: [{ table: 'settlements', row: { ...s, status: 'SUBMITTED', pendingSync: true } }] },
+    { type: 'SETTLEMENT_SUBMIT', payload: { settlementId: s.id }, label: s.weekStart, dependsOn: pendingDeps(db, [s.id]), writes: [{ table: 'settlements', row: { ...s, status: 'SUBMITTED', pendingSync: true } }] },
     nowOf(c),
   );
 }
@@ -223,7 +223,7 @@ export function paySettlement(db: Db, c: Ctx, s: SettlementRow, lineIds: string[
   const writes: Write[] = [{ table: 'settlements', row: { ...s, lines, paidPaisa: (toPaisa(s.paidPaisa) + paid).toString(), pendingSync: true } }];
   const acc = cashAccount(db);
   if (acc) writes.push({ table: 'cash_accounts', row: { ...acc, balancePaisa: (toPaisa(acc.balancePaisa) - paid).toString() } });
-  return enqueue(db, { type: 'SETTLEMENT_PAY', payload: { settlementId: s.id, lineIds, paidFrom: 'SITE_CASH' }, label: `Wages paid (${lineIds.length})`, writes }, nowOf(c));
+  return enqueue(db, { type: 'SETTLEMENT_PAY', payload: { settlementId: s.id, lineIds, paidFrom: 'SITE_CASH' }, label: `${s.weekStart} (${lineIds.length})`, writes }, nowOf(c));
 }
 
 // ─── Maal ───────────────────────────────────────────────────────────────────
@@ -253,7 +253,7 @@ export function receiveDispatch(db: Db, c: Ctx, d: DispatchRow, lines: CountLine
     {
       type: 'DISPATCH_RECEIVE',
       payload: { dispatchId: d.id, items: lines.map((l) => ({ materialId: l.materialId, receivedQty: qtyStr(l.received), ...(l.damaged ? { damagedQty: qtyStr(l.damaged) } : {}), ...(l.note ? { note: l.note } : {}) })), ...(note ? { note } : {}) },
-      label: `Receive ${d.number}`,
+      label: d.number,
       writes: [{ table: 'dispatches', row: { ...d, items, status: 'RECEIVED', receivedAt: nowOf(c).toISOString(), pendingSync: true } }, ...bumpStock(db, d.toLocationId, lines.map((l) => ({ materialId: l.materialId, qty: l.received - l.damaged })))],
     },
     nowOf(c),
@@ -270,7 +270,7 @@ export function receivePurchase(db: Db, c: Ctx, p: PurchaseRow, lines: CountLine
     {
       type: 'PURCHASE_RECEIVE',
       payload: { purchaseId: p.id, items: lines.map((l) => ({ materialId: l.materialId, countedQty: qtyStr(l.received), ...(l.damaged ? { damagedQty: qtyStr(l.damaged) } : {}), ...(l.note ? { note: l.note } : {}) })), ...(note ? { note } : {}) },
-      label: `Receive ${p.challanNo}`,
+      label: p.challanNo,
       writes: [{ table: 'purchases', row: { ...p, items, status: 'RECEIVED', receivedAt: nowOf(c).toISOString(), pendingSync: true } }, ...bumpStock(db, p.locationId, lines.map((l) => ({ materialId: l.materialId, qty: l.received - l.damaged })))],
     },
     nowOf(c),
@@ -299,7 +299,7 @@ export function ownerDelivery(db: Db, c: Ctx, input: { projectId: string; date: 
       clientId,
       type: 'OWNER_DELIVERY_CREATE',
       payload: { projectId: input.projectId, deliveryDate: input.date, items: input.items.map((i) => ({ materialId: i.materialId, qty: qtyStr(i.qty) })), ...(input.note ? { note: input.note } : {}), photoAttachmentIds: input.photoIds },
-      label: `Owner delivery (${input.items.length})`,
+      label: `${input.date} (${input.items.length})`,
       writes,
     },
     now,
@@ -321,7 +321,7 @@ export function recordUsage(db: Db, c: Ctx, input: { projectId: string; date: st
       clientId,
       type: 'MATERIAL_USAGE_CREATE',
       payload: { projectId: input.projectId, usageDate: input.date, items: input.items.map((i) => ({ materialId: i.materialId, qty: qtyStr(i.qty) })), ...(input.note ? { note: input.note } : {}), deviceCreatedAt: now.toISOString() },
-      label: `Maal lag gaya (${input.items.length})`,
+      label: `${input.date} (${input.items.length})`,
       writes,
     },
     now,
@@ -343,7 +343,7 @@ export function stockCount(db: Db, c: Ctx, input: { locationId: string; items: {
       clientId,
       type: 'STOCK_COUNT_CREATE',
       payload: { locationId: input.locationId, countedAt: now.toISOString(), items: input.items.map((i) => ({ materialId: i.materialId, countedQty: qtyStr(i.counted), ...(i.reason ? { reason: i.reason } : {}) })), ...(input.note ? { note: input.note } : {}) },
-      label: `Stock count (${input.items.length})`,
+      label: `(${input.items.length})`,
       writes,
     },
     now,
@@ -393,7 +393,7 @@ export function sitePurchase(db: Db, c: Ctx, input: { projectId: string; supplie
         items: input.items.map((i) => ({ materialId: i.materialId, challanQty: qtyStr(i.qty), countedQty: qtyStr(i.qty) })),
         ...(input.note ? { note: input.note } : {}),
       },
-      label: `Purchase ${input.challanNo}`,
+      label: input.challanNo,
       writes,
     },
     now,
@@ -436,7 +436,7 @@ export function addExpense(db: Db, c: Ctx, input: { projectId: string; category:
       clientId,
       type: 'CASH_EXPENSE_CREATE',
       payload: { projectId: input.projectId, category: input.category, amountPaisa: input.amountPaisa, description: input.description, ...(input.attachmentId ? { attachmentId: input.attachmentId } : {}), date: input.date },
-      label: `Kharcha: ${input.description}`,
+      label: input.description,
       writes,
     },
     now,
@@ -450,7 +450,7 @@ export function acknowledgeFloat(db: Db, c: Ctx, entry: CashEntryRow) {
     const amt = toPaisa(entry.amountPaisa);
     writes.push({ table: 'cash_accounts', row: { ...acc, balancePaisa: (toPaisa(acc.balancePaisa) + amt).toString(), pendingAckPaisa: (toPaisa(acc.pendingAckPaisa) - amt).toString() } });
   }
-  return enqueue(db, { type: 'FLOAT_ACKNOWLEDGE', payload: { entryId: entry.id }, label: 'Cash received', writes }, nowOf(c));
+  return enqueue(db, { type: 'FLOAT_ACKNOWLEDGE', payload: { entryId: entry.id }, label: formatPKR(entry.amountPaisa), writes }, nowOf(c));
 }
 
 export function requestTopup(db: Db, c: Ctx, input: { amountPaisa: string; note?: string }) {
@@ -463,7 +463,7 @@ export function requestTopup(db: Db, c: Ctx, input: { amountPaisa: string; note?
       clientId,
       type: 'TOPUP_REQUEST_CREATE',
       payload: { amountPaisa: input.amountPaisa, ...(input.note ? { note: input.note } : {}) },
-      label: 'Top-up request',
+      label: formatPKR(input.amountPaisa),
       writes: [{ table: 'topup_requests', row: { id: clientId, clientId, accountId: acc?.id ?? '', amountPaisa: input.amountPaisa, note: input.note ?? null, status: 'PENDING', decisionNote: null, createdAt: now.toISOString(), pendingSync: true } }],
     },
     now,
@@ -505,7 +505,7 @@ export function saveDailyLog(db: Db, c: Ctx, input: { projectId: string; conditi
         photoAttachmentIds: input.photoIds,
         voiceAttachmentIds: input.voiceIds,
       },
-      label: `Daily log ${day}`,
+      label: day,
       dependsOn: mine && mine.id !== clientId ? pendingDeps(db, [mine.id]) : [],
       writes: [{ table: 'daily_logs', row }],
     },

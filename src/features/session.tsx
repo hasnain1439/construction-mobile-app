@@ -19,6 +19,8 @@ import { getSyncState, pullAll } from '../sync/pull';
 import { stopBackgroundSync } from '../sync/triggers';
 import { saveAccess } from '../db/access';
 import { clearUser, identifyUser, trackLogin } from '../lib/observability';
+import { useI18n } from '../i18n';
+import { retryLanguageSync } from '../i18n/languageSync';
 
 export type SessionStatus = 'booting' | 'update' | 'signedOut' | 'firstSync' | 'ready';
 
@@ -37,6 +39,7 @@ interface Session {
 const Ctx = createContext<Session | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  const { adoptServerLanguage } = useI18n();
   const [status, setStatus] = useState<SessionStatus>('booting');
   const [user, setUserState] = useState<SessionUser | null>(null);
   const [config, setConfig] = useState<MobileConfig | null>(null);
@@ -60,6 +63,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // Fresh permissions when online (offline: the last stored block is used).
         void getMe()
           .then(async (me) => {
+            // A language picked while offline reaches the server now.
+            void retryLanguageSync();
             if (saveAccess(d, me)) notifyChange();
             if (me.user.role !== u.role) {
               const next = { ...u, role: me.user.role };
@@ -89,7 +94,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signedIn = useCallback(
     (signed: SignedIn | SessionUser, method?: 'otp' | 'password') => {
-      const { access, ...u } = { access: undefined, ...signed };
+      const { access, language, ...u } = { access: undefined, language: undefined, ...signed };
       // Another person's data never stays on the phone.
       if (db && user && user.id !== u.id) wipeAll(db);
       if (db && access) saveAccess(db, access);
@@ -98,8 +103,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setStatus('firstSync');
       // Hashed id + company group, then `login` (no-ops when PostHog / Sentry are not configured).
       void trackLogin(u, method ?? 'otp');
+      // First sign-in on this phone: the app takes the person's language from the server; a choice
+      // made on this phone wins and is sent to the server instead.
+      void adoptServerLanguage(language);
     },
-    [db, user],
+    [db, user, adoptServerLanguage],
   );
 
   const runFirstSync = useCallback(async () => {

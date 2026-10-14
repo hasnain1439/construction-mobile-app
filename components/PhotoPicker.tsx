@@ -26,8 +26,9 @@ export function PhotoPicker({ value, onChange, kind, max = 10, label, required }
     try {
       const id = await takePhoto(source, kind);
       if (id) onChange([...value, id]);
-    } catch (err) {
-      Alert.alert(t('err.generic'), err instanceof Error ? err.message : undefined);
+    } catch {
+      // The camera / file error text from the OS is English: the munshi sees our message instead.
+      Alert.alert(t('err.generic'));
     } finally {
       setBusy(false);
     }

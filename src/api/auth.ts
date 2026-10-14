@@ -23,14 +23,14 @@ export interface Company {
 
 /** Login / OTP result and `/auth/me`: the access block (permissions, fieldAccess, …) sits beside the user. */
 interface AuthResult extends Partial<Access> {
-  user: { id: string; name: string; phone: string; role: Role };
+  user: { id: string; name: string; phone: string; role: Role; language?: 'en' | 'roman' | 'ur' };
   tenant: { id: string; name: string };
   accessToken?: string;
   refreshToken?: string;
 }
 
-/** The person who just signed in plus their permissions (kept in the encrypted local database, not SecureStore). */
-export type SignedIn = SessionUser & { access: Access | null };
+/** The person who just signed in plus their permissions (kept in the encrypted local database, not SecureStore) and their server language. */
+export type SignedIn = SessionUser & { access: Access | null; language?: 'en' | 'roman' | 'ur' };
 
 /** Short timeout: app start waits for it (offline the app opens anyway). */
 export const getMobileConfig = () => request<MobileConfig>(ENDPOINTS.mobileConfig, { auth: false, timeoutMs: 4000 });
@@ -59,7 +59,7 @@ async function keepSession(res: AuthResult): Promise<SignedIn> {
   await setTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
   const user: SessionUser = { id: res.user.id, name: res.user.name, phone: res.user.phone, role: res.user.role, tenantId: res.tenant.id, tenantName: res.tenant.name };
   await setUser(user);
-  return { ...user, access: accessFrom(res) };
+  return { ...user, access: accessFrom(res), ...(res.user.language ? { language: res.user.language } : {}) };
 }
 
 /** The current permissions (app start, when online; changes apply without a new login). */

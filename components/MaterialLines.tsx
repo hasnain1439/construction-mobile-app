@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { useQuery } from '@/db/live';
 import { materials } from '@/features/queries';
-import { useT } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { CARD_SHADOW, COLORS } from '@/lib/theme';
 import { BigButton } from './BigButton';
 import { BottomSheet } from './BottomSheet';
@@ -25,7 +25,7 @@ interface Props {
 
 /** Material + quantity lines with a searchable picker (names and units only — no rates). */
 export function MaterialLines({ value, onChange, hint, error }: Props) {
-  const t = useT();
+  const { t, f } = useI18n();
   const all = useQuery((db) => materials(db), []);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -59,7 +59,7 @@ export function MaterialLines({ value, onChange, hint, error }: Props) {
           <ListItem
             key={m.id}
             title={m.name}
-            subtitle={m.unit}
+            subtitle={f.unit(m.unit)}
             icon="🧱"
             iconTone="accent"
             onPress={() => {

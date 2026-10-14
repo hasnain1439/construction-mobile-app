@@ -9,7 +9,7 @@ import { outbox } from '../db/schema';
 import type { Db } from '../db/types';
 import { flushAnalytics, reportSyncFailure } from '../lib/observability';
 import type { SyncApi } from './api';
-import { pendingAttachments, uploadPending } from './attachments';
+import { pendingAttachmentIds, pendingAttachments, uploadPending } from './attachments';
 import { pendingCount, problems } from './outbox';
 import { getSyncState, pullAll, setSyncState } from './pull';
 import { pushOutbox } from './push';
@@ -23,11 +23,13 @@ export interface SyncStatus {
   problems: number;
   lastPullAt: number | null;
   lastError: string | null;
+  /** Files are waiting because "Wi-Fi only" is on and the phone is on mobile data. */
+  uploadsDeferred: boolean;
 }
 
 type Listener = (s: SyncStatus) => void;
 const listeners = new Set<Listener>();
-let current: SyncStatus = { phase: 'idle', pending: 0, pendingUploads: 0, problems: 0, lastPullAt: null, lastError: null };
+let current: SyncStatus = { phase: 'idle', pending: 0, pendingUploads: 0, problems: 0, lastPullAt: null, lastError: null, uploadsDeferred: false };
 let running: Promise<SyncStatus> | null = null;
 
 export const getStatus = () => current;
@@ -73,6 +75,8 @@ export interface SyncOptions {
   /** Skip the pull (logout: only send what is waiting). */
   pushOnly?: boolean;
   now?: () => number;
+  /** May queued photos / voice notes be uploaded now? ("Wi-Fi only" setting; default yes.) */
+  canUpload?: () => Promise<boolean>;
 }
 
 async function run(db: Db, api: SyncApi, opts: SyncOptions): Promise<SyncStatus> {
@@ -81,9 +85,12 @@ async function run(db: Db, api: SyncApi, opts: SyncOptions): Promise<SyncStatus>
   emit(db, { phase: 'syncing' });
   let stage: 'upload' | 'push' | 'pull' = 'upload';
   try {
-    await uploadPending(db, api);
+    const mayUpload = opts.canUpload ? await opts.canUpload().catch(() => true) : true;
+    if (mayUpload) await uploadPending(db, api);
+    const holdBack = mayUpload ? [] : pendingAttachmentIds(db);
+    current = { ...current, uploadsDeferred: holdBack.length > 0 };
     stage = 'push';
-    await pushOutbox(db, api, { now: now(), deviceId: opts.deviceId });
+    await pushOutbox(db, api, { now: now(), deviceId: opts.deviceId, holdBack });
     setSyncState(db, { lastPushAt: now() });
     stage = 'pull';
     if (!opts.pushOnly) await pullAll(db, api, now());
@@ -113,5 +120,5 @@ export function syncNow(db: Db, api: SyncApi, opts: SyncOptions = {}): Promise<S
 export function resetEngineForTests() {
   running = null;
   listeners.clear();
-  current = { phase: 'idle', pending: 0, pendingUploads: 0, problems: 0, lastPullAt: null, lastError: null };
+  current = { phase: 'idle', pending: 0, pendingUploads: 0, problems: 0, lastPullAt: null, lastError: null, uploadsDeferred: false };
 }

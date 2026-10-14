@@ -13,7 +13,7 @@ import { passwordLogin, requestOtp, type Company } from '@/api/auth';
 import { ApiError } from '@/api/client';
 import { setPendingLogin } from '@/features/pendingLogin';
 import { useSession } from '@/features/session';
-import { errorText, useI18n, type Language } from '@/i18n';
+import { errorText, LANGUAGE_NAMES, useI18n } from '@/i18n';
 import { normalisePhone } from '@/lib/phone';
 import { COLORS, RAISED_SHADOW } from '@/lib/theme';
 
@@ -23,12 +23,6 @@ const schema = z.object({
 });
 type Form = z.infer<typeof schema>;
 type Mode = 'code' | 'password';
-
-const LANGS: { id: Language; label: string }[] = [
-  { id: 'roman', label: 'Roman Urdu' },
-  { id: 'ur', label: 'اردو' },
-  { id: 'en', label: 'English' },
-];
 
 /**
  * Phone + SMS code (default), or phone + password — for when the SMS doesn't arrive (the
@@ -170,7 +164,7 @@ export default function LoginScreen() {
             <Text className="text-center text-sm text-muted">{t(mode === 'code' ? 'auth.noCodeHint' : 'auth.passwordHint')}</Text>
             <View className="mt-auto flex-row items-center justify-center gap-1">
               <Icon name="translate" size={18} color={COLORS.muted} />
-              {LANGS.map((l) => (
+              {LANGUAGE_NAMES.map((l) => (
                 <Pressable key={l.id} accessibilityRole="button" onPress={() => void setLanguage(l.id)} className={`min-h-10 justify-center rounded-full px-3 ${language === l.id ? 'bg-primary-soft' : ''}`}>
                   <Text className={language === l.id ? 'font-semibold text-primary' : 'text-muted'}>{l.label}</Text>
                 </Pressable>

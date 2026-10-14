@@ -1,4 +1,5 @@
 import { Text, TextInput, View } from 'react-native';
+import { useFormat } from '@/i18n';
 import { COLORS } from '@/lib/theme';
 
 interface Props {
@@ -22,6 +23,7 @@ export function cleanNumber(text: string, decimals = 3): string {
 }
 
 export function QuantityInput({ value, onChange, unit, label, placeholder, error, money, testID }: Props) {
+  const f = useFormat();
   return (
     <View className="gap-1">
       {label ? <Text className="font-semibold text-sm text-ink">{label}</Text> : null}
@@ -37,7 +39,7 @@ export function QuantityInput({ value, onChange, unit, label, placeholder, error
           placeholderTextColor={COLORS.neutral}
           className="flex-1 py-3 font-semibold text-xl text-ink"
         />
-        {unit ? <Text className="ml-2 text-base text-muted">{unit}</Text> : null}
+        {unit ? <Text className="ml-2 text-base text-muted">{f.unit(unit)}</Text> : null}
       </View>
       {error ? <Text className="text-sm text-danger">{error}</Text> : null}
     </View>

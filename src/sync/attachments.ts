@@ -17,11 +17,29 @@ export function queueAttachment(db: Db, a: { localUri: string; kind: AttachmentK
   return clientId;
 }
 
-export const pendingAttachments = (db: Db) => db.select({ n: sql<number>`count(*)` }).from(attachmentsQueue).where(eq(attachmentsQueue.status, 'PENDING')).get()?.n ?? 0;
+export const pendingAttachments = (db: Db) =>
+  db
+    .select({ n: sql<number>`count(*)` })
+    .from(attachmentsQueue)
+    .where(eq(attachmentsQueue.status, 'PENDING'))
+    .get()?.n ?? 0;
+
+/** clientIds of files still waiting to upload. */
+export const pendingAttachmentIds = (db: Db) =>
+  db
+    .select({ id: attachmentsQueue.clientId })
+    .from(attachmentsQueue)
+    .where(eq(attachmentsQueue.status, 'PENDING'))
+    .all()
+    .map((r) => r.id);
 
 /** The file on this phone for an attachment id (its clientId, or the server id once uploaded). */
 export const localUriOf = (db: Db, id: string) =>
-  db.select().from(attachmentsQueue).where(or(eq(attachmentsQueue.clientId, id), eq(attachmentsQueue.serverId, id))).get()?.localUri ?? null;
+  db
+    .select()
+    .from(attachmentsQueue)
+    .where(or(eq(attachmentsQueue.clientId, id), eq(attachmentsQueue.serverId, id)))
+    .get()?.localUri ?? null;
 
 export async function uploadPending(db: Db, api: SyncApi): Promise<{ uploaded: number; failed: number }> {
   const items = db.select().from(attachmentsQueue).where(eq(attachmentsQueue.status, 'PENDING')).orderBy(asc(attachmentsQueue.createdAt)).all();
