@@ -1,7 +1,6 @@
-import { formatDistanceToNowStrict } from 'date-fns';
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
-import { useT } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { COLORS } from '@/lib/theme';
 import { syncFromApp } from '@/sync/triggers';
 import { useSyncStatus } from '@/sync/useSyncStatus';
@@ -12,7 +11,7 @@ import { Icon } from './Icon';
  * Tap → "Sync problems" when there are any, otherwise sync now.
  */
 export function SyncBanner() {
-  const t = useT();
+  const { t, f, rtl } = useI18n();
   const s = useSyncStatus();
   const waiting = s.pending + s.pendingUploads;
   let box = 'bg-success-soft';
@@ -43,9 +42,9 @@ export function SyncBanner() {
     text = 'text-warning';
     ink = COLORS.warning;
     icon = 'cloud-upload-outline';
-    label = t('sync.waiting', { n: waiting });
+    label = s.uploadsDeferred ? `${t('sync.waiting', { n: waiting })} · ${t('sync.waitingWifi')}` : t('sync.waiting', { n: waiting });
   } else if (s.lastPullAt) {
-    label = `${t('sync.allSynced')} · ${t('sync.lastSync', { when: formatDistanceToNowStrict(s.lastPullAt) })}`;
+    label = `${t('sync.allSynced')} · ${t('sync.lastSync', { when: f.timeAgo(s.lastPullAt) })}`;
   }
   return (
     <Pressable
@@ -61,7 +60,7 @@ export function SyncBanner() {
       </Text>
       {s.problems > 0 ? (
         <View>
-          <Icon name="chevron-right" size={16} color={ink} />
+          <Icon name={rtl ? 'chevron-left' : 'chevron-right'} size={16} color={ink} />
         </View>
       ) : null}
     </Pressable>

@@ -12,29 +12,72 @@ const sentryPlugin: NonNullable<ExpoConfig['plugins']> = sentryUpload
   : [];
 
 /**
- * API_BASE_URL: set EXPO_PUBLIC_API_BASE_URL in .env (see .env.example). A real phone can't
- * reach "localhost" — use your PC's Wi-Fi IP (`ipconfig` → IPv4 Address), e.g.
- * http://192.168.1.20:4000/api/v1. The Android emulator reaches the PC at 10.0.2.2.
+ * Build variants (APP_VARIANT, set per profile in eas.json) install side by side on one phone:
+ *   development → "Munshi Dev",   pk.construction.munshi.dev      (dev client, channel development)
+ *   preview     → "Munshi Pilot", pk.construction.munshi.preview  (pilot APK, channel preview)
+ *   production  → "Munshi",       pk.construction.munshi          (Play Store AAB, channel production)
+ * No APP_VARIANT (local `expo start` / `expo run:android`) = development.
+ */
+export type AppVariant = 'development' | 'preview' | 'production';
+const VARIANT: AppVariant = (['development', 'preview', 'production'] as const).find((v) => v === process.env.APP_VARIANT) ?? 'development';
+const BASE_ID = 'pk.construction.munshi';
+const VARIANTS: Record<AppVariant, { name: string; id: string; scheme: string }> = {
+  development: { name: 'Munshi Dev', id: `${BASE_ID}.dev`, scheme: 'munshi-dev' },
+  preview: { name: 'Munshi Pilot', id: `${BASE_ID}.preview`, scheme: 'munshi-preview' },
+  production: { name: 'Munshi', id: BASE_ID, scheme: 'munshi' },
+};
+const variant = VARIANTS[VARIANT];
+
+/**
+ * EAS project id: run `npx eas init` once (Expo account), then paste the id it prints here or set
+ * EAS_PROJECT_ID (EAS environment variable + your shell). Without it OTA updates stay off.
+ */
+const EAS_PROJECT_ID_FROM_INIT = '';
+const projectId = process.env.EAS_PROJECT_ID || EAS_PROJECT_ID_FROM_INIT || undefined;
+
+/**
+ * Version scheme (docs/RELEASE.md): `version` is semver and the only number people bump.
+ * runtimeVersion follows it (policy appVersion): an OTA update only reaches builds with the same
+ * version, so bump it for every native change. Android versionCode is kept by EAS (remote +
+ * autoIncrement in eas.json), never here.
+ */
+const VERSION = '1.0.0';
+
+/**
+ * API_BASE_URL: set EXPO_PUBLIC_API_BASE_URL in .env (see .env.example) or per profile in
+ * eas.json. A real phone can't reach "localhost" — use your PC's Wi-Fi IP (`ipconfig` → IPv4
+ * Address), e.g. http://192.168.1.20:4000/api/v1. The Android emulator reaches the PC at 10.0.2.2.
  */
 const config: ExpoConfig = {
-  name: 'Munshi',
+  name: variant.name,
   slug: 'construction-mobile',
-  scheme: 'munshi',
-  version: '1.0.0',
+  scheme: variant.scheme,
+  version: VERSION,
+  runtimeVersion: { policy: 'appVersion' },
+  updates: projectId
+    ? {
+        url: `https://u.expo.dev/${projectId}`,
+        enabled: true,
+        // Checked on every cold start; the download finishes in the background and is used on the next start.
+        checkAutomatically: 'ON_LOAD',
+        fallbackToCacheTimeout: 0,
+      }
+    : { enabled: false },
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
-  ios: { supportsTablet: false, bundleIdentifier: 'pk.construction.munshi' },
+  ios: { supportsTablet: false, bundleIdentifier: variant.id },
   android: {
-    package: 'pk.construction.munshi',
+    package: variant.id,
     adaptiveIcon: {
-      backgroundColor: '#2563EB',
+      // Brand charcoal; the PNGs come from scripts/generate-icons.mjs (placeholders until real artwork).
+      backgroundColor: '#201F1E',
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
     },
-    // Dev API over plain http on the LAN.
-    usesCleartextTraffic: true,
+    // Plain http to a dev API on the LAN only in development builds; pilot and store builds need HTTPS.
+    usesCleartextTraffic: VARIANT === 'development',
     predictiveBackGestureEnabled: false,
   } as ExpoConfig['android'],
   web: { favicon: './assets/favicon.png', bundler: 'metro' },
@@ -43,16 +86,18 @@ const config: ExpoConfig = {
     ['expo-sqlite', { useSQLCipher: true }],
     'expo-secure-store',
     'expo-background-task',
+    'expo-updates',
     ['expo-audio', { microphonePermission: 'Voice note record karne ke liye mic chahiye.' }],
     ['expo-image-picker', { cameraPermission: 'Challan, slip aur site ki photo ke liye camera chahiye.', photosPermission: 'Photo chunne ke liye gallery chahiye.' }],
     'expo-font',
-    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#0F1E3D', imageWidth: 160 }],
+    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#201F1E', imageWidth: 160 }],
     ...sentryPlugin, // see above: only with SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT
   ],
   experiments: { typedRoutes: true },
   extra: {
     apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://10.0.2.2:4000/api/v1',
-    eas: { projectId: process.env.EAS_PROJECT_ID },
+    appVariant: VARIANT,
+    eas: { projectId },
   },
 };
 

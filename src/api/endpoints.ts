@@ -7,6 +7,7 @@ export const ENDPOINTS = {
   refresh: '/auth/refresh',
   logout: '/auth/logout',
   me: '/auth/me',
+  mePreferences: '/auth/me/preferences',
   attachments: '/attachments',
   syncPull: '/sync/pull',
   syncPush: '/sync/push',

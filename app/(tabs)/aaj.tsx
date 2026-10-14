@@ -14,14 +14,14 @@ import { usePermissions } from '@/features/access';
 import { useProject } from '@/features/project';
 import { attendanceOn, cashAccount, incomingDispatches, incomingPurchases, myLogOn, pendingFloats, settings, settlementFor, siteWorkers } from '@/features/queries';
 import { useUser } from '@/features/session';
-import { useT } from '@/i18n';
-import { longDate, todayPK, weekOf, type WeekDay } from '@/lib/dates';
+import { useI18n } from '@/i18n';
+import { todayPK, weekOf, type WeekDay } from '@/lib/dates';
 import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW, TOPBAR_SHADOW } from '@/lib/theme';
 
 /** Greeting bar (like the web top bar): avatar, name, date and the current site. */
 function HomeHeader({ name, date }: { name: string; date: string }) {
-  const t = useT();
+  const { t } = useI18n();
   return (
     <SafeAreaView edges={['top']} className="z-10 bg-card" style={TOPBAR_SHADOW}>
       <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
@@ -42,7 +42,7 @@ function HomeHeader({ name, date }: { name: string; date: string }) {
 
 /** Today: what is still to do on this site, my cash and quick actions. */
 export default function AajScreen() {
-  const t = useT();
+  const { t, f, rtl } = useI18n();
   const user = useUser();
   const perms = usePermissions();
   const { projectId, project } = useProject();
@@ -65,7 +65,7 @@ export default function AajScreen() {
     [projectId, today, user.id],
   );
 
-  const header = <HomeHeader name={user.name.split(' ')[0] ?? user.name} date={longDate(today)} />;
+  const header = <HomeHeader name={user.name.split(' ')[0] ?? user.name} date={f.longDate(today)} />;
   if (!project || !data) {
     return (
       <Screen header={header} safeTop={false}>
@@ -128,7 +128,7 @@ export default function AajScreen() {
           <MoneyText paisa={data.account.balancePaisa} className="mt-1 text-3xl !text-ink" />
           <View className="mt-3 flex-row items-center gap-1">
             <Text className="font-semibold text-xs text-ink">{t('kharcha.title')}</Text>
-            <Icon name="arrow-right" size={14} color={COLORS.ink} />
+            <Icon name={rtl ? 'arrow-left' : 'arrow-right'} size={14} color={COLORS.ink} />
           </View>
         </Pressable>
       ) : null}

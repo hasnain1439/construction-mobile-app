@@ -13,11 +13,11 @@ interface Props {
 }
 
 export function Header({ title, subtitle, back = false, right }: Props) {
-  const { rtl } = useI18n();
+  const { t, rtl } = useI18n();
   return (
     <View className="z-10 min-h-16 flex-row items-center gap-2 bg-card px-3" style={TOPBAR_SHADOW}>
       {back ? (
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-full bg-bg active:bg-border">
+        <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => router.back()} className="h-11 w-11 items-center justify-center rounded-full bg-bg active:bg-border">
           <Icon name={rtl ? 'arrow-right' : 'arrow-left'} size={22} color={COLORS.ink} />
         </Pressable>
       ) : (

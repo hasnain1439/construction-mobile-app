@@ -15,15 +15,15 @@ import { myLogOn } from '@/features/queries';
 import { useUser } from '@/features/session';
 import { SITE_CONDITIONS, type SiteCondition } from '@/features/types';
 import { useSave } from '@/features/useSave';
-import { useT, type TKey } from '@/i18n';
-import { longDate, todayPK } from '@/lib/dates';
+import { useI18n, type TKey } from '@/i18n';
+import { todayPK } from '@/lib/dates';
 import { COLORS } from '@/lib/theme';
 
 const ICON: Record<SiteCondition, string> = { NORMAL: '☀️', RAIN: '🌧️', POWER_CUT: '🔌', WATER_SHORTAGE: '🚱', CURING: '💧', LABOUR_SHORT: '👷', MATERIAL_SHORT: '🧱', OTHER: 'dots-horizontal' };
 
 /** Today's daily log: conditions, work done, photos and one voice note. Saving again updates it. */
 export default function DailyLogScreen() {
-  const t = useT();
+  const { t, f } = useI18n();
   const save = useSave();
   const user = useUser();
   const { projectId, project } = useProject();
@@ -47,7 +47,7 @@ export default function DailyLogScreen() {
   };
 
   return (
-    <Screen header={<Header back title={t('mazeed.dailyLog')} subtitle={`${project?.name ?? ''} · ${longDate(today)}`} />} refresh={false} footer={<BigButton testID="save-log" label={t('common.save')} disabled={!ok} onPress={submit} />}>
+    <Screen header={<Header back title={t('mazeed.dailyLog')} subtitle={`${project?.name ?? ''} · ${f.longDate(today)}`} />} refresh={false} footer={<BigButton testID="save-log" label={t('common.save')} disabled={!ok} onPress={submit} />}>
       {mine?.pendingSync ? <StatusChip tone="accent" label={`⏳ ${t('kharcha.notSynced')}`} /> : mine ? <StatusChip tone="success" label={`✓ ${t('aaj.logDone')}`} /> : null}
       <Text className="font-semibold text-sm text-ink">{t('log.conditions')}</Text>
       <View className="flex-row flex-wrap gap-2">

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import { useI18n } from '@/i18n';
 import { CARD_SHADOW, COLORS } from '@/lib/theme';
 import { Icon } from './Icon';
 import { IconBadge, type BadgeTone } from './IconBadge';
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function ListItem({ title, subtitle, left, icon, iconTone, right, onPress, testID }: Props) {
+  const { rtl } = useI18n();
   const body = (
     <>
       {left ?? (icon ? <IconBadge name={icon} tone={iconTone} /> : null)}
@@ -30,7 +32,7 @@ export function ListItem({ title, subtitle, left, icon, iconTone, right, onPress
           </Text>
         ) : null}
       </View>
-      {right ?? (onPress ? <Icon name="chevron-right" size={22} color={COLORS.neutral} /> : null)}
+      {right ?? (onPress ? <Icon name={rtl ? 'chevron-left' : 'chevron-right'} size={22} color={COLORS.neutral} /> : null)}
     </>
   );
   const cls = 'min-h-16 flex-row items-center gap-3 rounded-card bg-card px-4 py-3';
