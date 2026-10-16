@@ -14,6 +14,7 @@ import { StatusChip } from '@components/StatusChip';
 import { useQuery } from '@/db/live';
 import { usePermissions } from '@/features/access';
 import { useProject } from '@/features/project';
+import { equipmentMap, incomingEquipment } from '@/features/equipment';
 import { incomingDispatches, incomingPurchases, siteStock } from '@/features/queries';
 import { useI18n } from '@/i18n';
 import { PERM } from '@/lib/permissions';
@@ -43,7 +44,15 @@ export default function MaalScreen() {
   const { projectId } = useProject();
   const perms = usePermissions();
   const canReceive = perms.can(PERM.receive);
-  const data = useQuery((db) => (projectId ? { dispatches: incomingDispatches(db, projectId), purchases: incomingPurchases(db, projectId), stock: siteStock(db, projectId) } : null), [projectId]);
+  const canReceiveEq = perms.can(PERM.equipmentReceive);
+  const seesEq = perms.can(PERM.equipmentView);
+  const data = useQuery(
+    (db) =>
+      projectId
+        ? { dispatches: incomingDispatches(db, projectId), purchases: incomingPurchases(db, projectId), stock: siteStock(db, projectId), equipment: seesEq || canReceiveEq ? incomingEquipment(db, projectId) : [], eq: equipmentMap(db) }
+        : null,
+    [projectId, seesEq, canReceiveEq],
+  );
   const header = <Header title={t('maal.title')} right={<ProjectSwitcher />} />;
   if (!projectId || !data) {
     return (
@@ -60,12 +69,14 @@ export default function MaalScreen() {
         {perms.can(PERM.ownerDeliveryCreate) ? <BigButton small variant="secondary" icon="📦" label={t('maal.ownerDelivery')} onPress={() => router.push('/maal/owner-delivery')} /> : null}
         {perms.can(PERM.purchaseCreate) ? <BigButton small variant="secondary" icon="🛒" label={t('maal.purchase')} onPress={() => router.push('/maal/purchase')} /> : null}
         {perms.can(PERM.countCreate) ? <BigButton small variant="secondary" icon="🔢" label={t('maal.count')} onPress={() => router.push('/maal/count')} /> : null}
+        {seesEq ? <BigButton testID="open-equipment" small variant="secondary" icon="crane" label={t('eq.title')} onPress={() => router.push('/maal/equipment')} /> : null}
+        {perms.can(PERM.equipmentLoss) ? <BigButton small variant="secondary" icon="alert-octagon-outline" label={t('eq.reportLoss')} onPress={() => router.push('/maal/equipment-loss')} /> : null}
       </ScrollView>
       <View className="mt-1 flex-row items-center gap-2">
         <Icon name="truck-delivery-outline" size={20} color={COLORS.info} />
         <Text className="font-bold text-lg text-ink">{t('maal.incoming')}</Text>
       </View>
-      {!data.dispatches.length && !data.purchases.length ? (
+      {!data.dispatches.length && !data.purchases.length && !data.equipment.length ? (
         <View className="rounded-card border border-dashed border-border bg-card px-4 py-3">
           <Text className="text-sm text-muted">{t('maal.noIncoming')}</Text>
         </View>
@@ -91,6 +102,18 @@ export default function MaalScreen() {
           subtitle={[p.vehicleNo, f.shortDate(p.purchaseDate)].filter(Boolean).join(' · ')}
           right={canReceive ? <StatusChip tone="primary" label={t('maal.receive')} /> : undefined}
           onPress={canReceive ? () => router.push({ pathname: '/maal/receive', params: { kind: 'purchase', id: p.id } }) : undefined}
+        />
+      ))}
+      {data.equipment.map((tr) => (
+        <ListItem
+          key={tr.id}
+          testID={`incoming-${tr.number}`}
+          icon="crane"
+          iconTone="violet"
+          title={`${tr.number} · ${t('eq.from', { from: tr.from })}`}
+          subtitle={[tr.items.map((i) => data.eq.get(i.equipmentId)?.name).filter(Boolean).join(', '), f.dateTime(tr.sentAt)].filter(Boolean).join(' · ')}
+          right={canReceiveEq ? <StatusChip tone="primary" label={t('eq.receive')} /> : undefined}
+          onPress={canReceiveEq ? () => router.push({ pathname: '/maal/equipment-receive', params: { id: tr.id } }) : undefined}
         />
       ))}
       <View className="mt-3 flex-row items-center gap-2">

@@ -6,6 +6,17 @@ All notable changes to the Munshi site app. Format: [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Steps 13, 15, 16, 17 (mobile)
+
+- **Aaj ka kaam (Step 13).** *Aaj* shows today's milestones of the site (window covers today, or in progress / curing / blocked): stage, status, progress, late, curing until and the **quota left per material** (quantities only, never money). Tap → **Progress likhein**: progress %, status (only the server's allowed changes; BLOCKED needs a note), optional photos → `MILESTONE_PROGRESS`; the milestone changes on the phone at once. All milestones under *Mazeed → Site → Kaam ki progress*.
+- **Kaam ruk gaya (Step 13).** Log stoppage days offline: reason, from + days (1–31, up to 60 days ahead), photo required except HOLIDAY, note required for OTHER, no day logged twice → `STOPPAGE_LOG`; list with PENDING / APPROVED / REJECTED.
+- **Maal lag gaya → Kis kaam ke liye.** Usage can be booked against an open milestone (`MATERIAL_USAGE_CREATE` + `milestoneId`); its quota left drops at once.
+- **Hidayat (Step 15).** Record what the owner asked for on site (photos + note) → `SITE_INSTRUCTION_CREATE`; own list with NEW / CONVERTED (change order code) / DISMISSED (reason).
+- **Machinery & shuttering (Step 16).** *Maal* shows equipment transfers on the way (count per item, damaged, note; blind count hides the sent quantity) → `EQUIPMENT_RECEIVE`; equipment on site (own vs rented, counts only); **Gum / toota saaman** (missing / damaged, photo for damage) → `EQUIPMENT_LOSS_REPORT`; reported losses.
+- **Kharabi (snag) and Naqshe (Step 17).** Snag list with status filter; new snag with place, description, before photo(s), fix-by date and (with `closeout.snag.manage`) who fixes it → `SNAG_CREATE`; **Theek ho gaya** with after photo(s) → `SNAG_FIX`. Drawings: latest revision per drawing by folder with revision number and approved date; the file is fetched once through a signed link and kept on the phone for offline viewing (pictures in the app, PDFs in the phone's viewer); superseded files are removed and logout deletes them.
+- Ten new pull tables stored locally (`milestones`, `stoppages`, `site_instructions`, `equipment`, `equipment_stock`, `equipment_transfers`, `equipment_rentals`, `equipment_losses`, `snags`, `drawings`) — migration **`src/db/migrations/0002_site_modules.sql`** (also clears the pull cursor once so existing phones pull a fresh snapshot). Photos upload first with their own clientId and respect *Wi-Fi only*.
+- Every screen and button gated by its key (`ROUTE_PERMS` / `TAB_PERMS`; the Maal tab also opens for equipment-only people). All new texts and server values (statuses, reasons, stages, milestone names by key, folders, equipment categories, error codes) in English, Roman Urdu and Urdu. API types regenerated. Tests 146 → 174 (`tests/features/site.test.ts`, `tests/siteScreens.test.tsx`, permissions).
+
 ### Added
 
 - **Language sent to the server.** Changing the language in *Mazeed* (or on the login screen) also saves it on the server (`PATCH /auth/me/preferences`), so SMS, notifications and PDFs arrive in the same language; offline or signed out it is sent after the next sign-in / app start. On the first sign-in on a phone where nobody chose a language, the app takes the person's language from the server (e.g. the language of their invite). API types regenerated; tests 141 → 146 (`tests/languageSync.test.ts`).

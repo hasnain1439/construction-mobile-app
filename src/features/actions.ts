@@ -23,6 +23,7 @@ import type {
   DailyLogRow,
   DispatchRow,
   ExpenseCategory,
+  MilestoneRow,
   PurchaseRow,
   SettlementRow,
   SiteCondition,
@@ -306,21 +307,43 @@ export function ownerDelivery(db: Db, c: Ctx, input: { projectId: string; date: 
   );
 }
 
-/** "Maal lag gaya" — the site stock drops at once. */
-export function recordUsage(db: Db, c: Ctx, input: { projectId: string; date: string; items: QtyLine[]; note?: string }) {
+/**
+ * "Maal lag gaya" — the site stock drops at once. With a milestone (Step 13) the usage counts
+ * against its quota: the quota left on the phone drops at once too.
+ */
+export function recordUsage(db: Db, c: Ctx, input: { projectId: string; date: string; items: QtyLine[]; note?: string; milestoneId?: string | null }) {
   const now = nowOf(c);
   const clientId = uuidv7(now.getTime());
   const loc = siteLocation(db, input.projectId);
   const writes: Write[] = [
-    { table: 'material_usage', row: { id: clientId, projectId: input.projectId, locationId: loc?.id ?? '', usageDate: input.date, note: input.note ?? null, createdById: c.userId, items: input.items.map((i, n) => ({ id: `${clientId}:${n}`, materialId: i.materialId, quantity: i.qty })), pendingSync: true } },
+    {
+      table: 'material_usage',
+      row: { id: clientId, projectId: input.projectId, locationId: loc?.id ?? '', usageDate: input.date, note: input.note ?? null, milestoneId: input.milestoneId ?? null, createdById: c.userId, items: input.items.map((i, n) => ({ id: `${clientId}:${n}`, materialId: i.materialId, quantity: i.qty })), pendingSync: true },
+    },
   ];
   if (loc) writes.push(...bumpStock(db, loc.id, input.items.map((i) => ({ materialId: i.materialId, qty: -i.qty }))));
+  const ms = input.milestoneId ? getRow<MilestoneRow>(db, 'milestones', input.milestoneId) : null;
+  if (ms) {
+    const used = (materialId: string | null) => input.items.filter((i) => i.materialId === materialId).reduce((s, i) => s + i.qty, 0);
+    const quotas = ms.quotas.map((q) => {
+      const u = used(q.materialId);
+      return u ? { ...q, usedQty: Math.round((q.usedQty + u) * 1000) / 1000, remainingQty: Math.round((q.remainingQty - u) * 1000) / 1000 } : q;
+    });
+    writes.push({ table: 'milestones', row: { ...ms, quotas } });
+  }
   return enqueue(
     db,
     {
       clientId,
       type: 'MATERIAL_USAGE_CREATE',
-      payload: { projectId: input.projectId, usageDate: input.date, items: input.items.map((i) => ({ materialId: i.materialId, qty: qtyStr(i.qty) })), ...(input.note ? { note: input.note } : {}), deviceCreatedAt: now.toISOString() },
+      payload: {
+        projectId: input.projectId,
+        usageDate: input.date,
+        items: input.items.map((i) => ({ materialId: i.materialId, qty: qtyStr(i.qty) })),
+        ...(input.note ? { note: input.note } : {}),
+        ...(input.milestoneId ? { milestoneId: input.milestoneId } : {}),
+        deviceCreatedAt: now.toISOString(),
+      },
       label: `${input.date} (${input.items.length})`,
       writes,
     },

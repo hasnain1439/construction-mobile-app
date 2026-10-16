@@ -43,3 +43,149 @@ export type TopupRow = Base & { accountId: string; amountPaisa: string; note: st
 export type SettingsRow = Base & { blindCountEnabled: boolean; kharchaApprovalLimitPaisa: string; workingDays: string[]; settlementWeekStart: string; hoursPerDay: number; missingLogAlertTime: string };
 export type HolidayRow = Base & { startDate: string; endDate: string | null; name: string; type: string };
 export type NotificationRow = Base & { type: string; severity: string; title: string; body: string; projectId: string | null; read: boolean; createdAt: string };
+
+// ─── Phase 2 + 3 (Steps 13, 15, 16, 17): quantities, statuses and photos only — never money ──────
+
+/** Step 13 · schedule. */
+export type MilestoneStatus = 'PLANNED' | 'IN_PROGRESS' | 'CURING' | 'DONE' | 'BLOCKED';
+export const MILESTONE_STATUSES: MilestoneStatus[] = ['PLANNED', 'IN_PROGRESS', 'CURING', 'DONE', 'BLOCKED'];
+export type StageKey = 'FOUNDATION_PLINTH' | 'GF_STRUCTURE' | 'F1_STRUCTURE' | 'F2_STRUCTURE' | 'F3_STRUCTURE' | 'MUMTY_ROOF' | 'PLASTER_MEP' | 'FINISHING';
+export type QuotaLine = { materialId: string | null; material: string; description: string; unit: string; ownerSupplied: boolean; plannedQty: number; usedQty: number; remainingQty: number };
+export type MilestoneRow = Base & {
+  projectId: string;
+  stageKey: StageKey | string;
+  stageName: string;
+  key: string;
+  name: string;
+  sortOrder: number;
+  plannedStart: string;
+  plannedEnd: string;
+  durationDays: number;
+  curingDays: number;
+  curingUntil: string | null;
+  status: MilestoneStatus;
+  progressPercent: number;
+  actualStart: string | null;
+  actualEnd: string | null;
+  dependsOn: { milestoneId: string; type: 'FS' | 'SS'; lagDays: number }[];
+  quotas: QuotaLine[];
+  updatedAt: string;
+};
+export type StoppageReason = 'RAIN' | 'SMOG_BAN' | 'HOLIDAY' | 'OWNER_HOLD' | 'MATERIAL_SHORT' | 'LABOUR_SHORT' | 'OTHER';
+export const STOPPAGE_REASONS: StoppageReason[] = ['RAIN', 'SMOG_BAN', 'HOLIDAY', 'OWNER_HOLD', 'MATERIAL_SHORT', 'LABOUR_SHORT', 'OTHER'];
+export type StoppageRow = Base & {
+  projectId: string;
+  dates: string[];
+  reason: StoppageReason;
+  category: 'OWNER' | 'EXCUSABLE' | 'CONTRACTOR';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  note: string | null;
+  photoAttachmentIds: string[];
+  clientId: string | null;
+  reportedById: string | null;
+  reportedAt: string;
+  decidedAt: string | null;
+  decisionNote: string | null;
+};
+
+/** Step 15 · the owner's instruction on site, for the office to turn into a change order. */
+export type SiteInstructionStatus = 'NEW' | 'CONVERTED' | 'DISMISSED';
+export type SiteInstructionRow = Base & {
+  projectId: string;
+  number: number | null;
+  code: string | null;
+  note: string;
+  photoIds: string[];
+  status: SiteInstructionStatus;
+  changeOrderId: string | null;
+  changeOrderCode: string | null;
+  dismissReason: string | null;
+  clientId: string | null;
+  createdById: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Step 16 · equipment & shuttering (rates / values are never sent to a munshi). */
+export type EquipmentCategory = 'SHUTTERING_PLATE' | 'PROP' | 'SCAFFOLDING' | 'MIXER' | 'VIBRATOR' | 'GENERATOR' | 'PUMP' | 'TOOL' | 'OTHER';
+export type EquipmentRow = Base & { code: string; name: string; kind: 'MACHINE' | 'BULK'; category: EquipmentCategory; unit: string; isActive: boolean };
+/** id = "<locationId>:<equipmentId>:<rentalId|own>". */
+export type EquipmentStockRow = Base & { locationId: string; equipmentId: string; rentalId: string | null; quantity: number };
+export type EquipmentTransferItem = { id: string; equipmentId: string; rentalId: string | null; sentQty?: number | null; receivedQty: number | null; damagedQty: number | null; note: string | null };
+export type EquipmentTransferRow = Base & {
+  number: string;
+  kind: 'DISPATCH' | 'TRANSFER' | 'RETURN';
+  status: 'ON_THE_WAY' | 'RECEIVED' | 'RECEIVED_WITH_GAP' | 'CANCELLED';
+  fromLocationId: string;
+  toLocationId: string;
+  projectId: string | null;
+  from: string;
+  sentAt: string | null;
+  blindCount: boolean;
+  items: EquipmentTransferItem[];
+};
+export type EquipmentRentalRow = Base & {
+  number: string;
+  status: string;
+  supplierName: string;
+  projectId: string | null;
+  locationId: string;
+  startDate: string;
+  expectedEndDate: string | null;
+  items: { id: string; equipmentId: string; qty: number; returnedQty: number; missingQty: number }[];
+};
+export type EquipmentLossKind = 'MISSING' | 'DAMAGED';
+export type EquipmentLossRow = Base & {
+  number: string;
+  kind: EquipmentLossKind;
+  status: 'REPORTED' | 'CHARGED';
+  source: 'REPORT' | 'TRANSFER_GAP';
+  equipmentId: string;
+  rentalId: string | null;
+  locationId: string | null;
+  projectId: string | null;
+  transferId: string | null;
+  qty: number;
+  note: string | null;
+  reportedAt: string;
+};
+
+/** Step 17 · closeout. */
+export type SnagStatus = 'OPEN' | 'FIXED' | 'VERIFIED';
+export const SNAG_STATUSES: SnagStatus[] = ['OPEN', 'FIXED', 'VERIFIED'];
+export type SnagRow = Base & {
+  projectId: string;
+  number: number | null;
+  code: string | null;
+  roomId: string | null;
+  location: string | null;
+  description: string;
+  status: SnagStatus;
+  targetDate: string | null;
+  inDefectPeriod: boolean;
+  assigneeType: 'WORKER' | 'SUBCONTRACTOR' | null;
+  workerId: string | null;
+  subcontractorId: string | null;
+  beforePhotoIds: string[];
+  afterPhotoIds: string[];
+  fixNote: string | null;
+  fixedAt: string | null;
+  verifiedAt: string | null;
+  clientId: string | null;
+  createdById: string | null;
+  updatedAt: string;
+};
+export type DrawingFolder = 'ARCHITECTURAL' | 'STRUCTURAL' | 'MEP' | 'SOCIETY_APPROVED' | 'OTHER';
+export const DRAWING_FOLDERS: DrawingFolder[] = ['ARCHITECTURAL', 'STRUCTURAL', 'MEP', 'SOCIETY_APPROVED', 'OTHER'];
+export type DrawingRow = Base & {
+  projectId: string;
+  folder: DrawingFolder;
+  title: string;
+  number: string | null;
+  latestRevisionId: string | null;
+  latestRevisionNo: number | null;
+  latestAttachmentId: string | null;
+  latestApprovedAt: string | null;
+  revisionCount: number;
+  updatedAt: string;
+};

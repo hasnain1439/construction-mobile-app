@@ -188,3 +188,46 @@ describe('PERMISSION_DENIED message', () => {
     expect(rejectedText('en', 'not json')).toBe(translate('en', 'err.generic'));
   });
 });
+
+describe('Steps 13, 15, 16, 17 (site modules)', () => {
+  /** The default MUNSHI template's new keys (PHASE_2_3_CONTRACTS.md): no stoppage approval, no drawing / snag management, no CO view. */
+  const siteMunshi: Access = {
+    ...munshi,
+    permissions: [
+      ...munshi.permissions,
+      'schedule.plan.view',
+      'schedule.progress.edit',
+      'schedule.stoppage.create',
+      'changeorder.instruction.create',
+      'equipment.view',
+      'equipment.receiving.create',
+      'equipment.loss.create',
+      'closeout.snag.view',
+      'closeout.snag.create',
+      'closeout.drawing.view',
+    ],
+  };
+
+  it('guards every new screen by its key', () => {
+    for (const path of ['/site/milestones', '/site/milestone', '/site/stoppages', '/site/stoppage-new', '/site/instructions', '/site/instruction-new', '/site/snags', '/site/snag-new', '/site/snag-fix', '/site/drawings', '/site/drawing', '/maal/equipment', '/maal/equipment-receive', '/maal/equipment-loss']) {
+      expect([path, routeAllowed(siteMunshi, 'MUNSHI', path)]).toEqual([path, true]);
+      expect([path, routeAllowed(munshi, 'MUNSHI', path)]).toEqual([path, false]);
+    }
+    // A site viewer who may only look: lists yes, entry screens no.
+    const viewer: Access = { ...munshi, permissions: ['schedule.plan.view', 'closeout.snag.view', 'closeout.drawing.view', 'equipment.view'] };
+    expect(routeAllowed(viewer, 'MUNSHI', '/site/stoppages')).toBe(true);
+    expect(routeAllowed(viewer, 'MUNSHI', '/site/stoppage-new')).toBe(false);
+    expect(routeAllowed(viewer, 'MUNSHI', '/site/snag-new')).toBe(false);
+    expect(routeAllowed(viewer, 'MUNSHI', '/maal/equipment-receive')).toBe(false);
+    expect(routeAllowed(viewer, 'MUNSHI', '/site/instructions')).toBe(false);
+  });
+
+  it('the Maal tab also opens for equipment-only people; the Site group follows its keys', () => {
+    const yardHand: Access = { ...munshi, permissions: ['equipment.view', 'equipment.receiving.create'] };
+    expect(canAny(yardHand, 'MUNSHI', TAB_PERMS.maal)).toBe(true);
+    expect(canAny(yardHand, 'MUNSHI', TAB_PERMS.site)).toBe(false);
+    expect(canAny(siteMunshi, 'MUNSHI', TAB_PERMS.site)).toBe(true);
+    expect(can(siteMunshi, 'MUNSHI', PERM.snagManage)).toBe(false); // no assignee picker for a default munshi
+    expect(can(siteMunshi, 'MUNSHI', PERM.instructionView)).toBe(false); // own instructions only
+  });
+});

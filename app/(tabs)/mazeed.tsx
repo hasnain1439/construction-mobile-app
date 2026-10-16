@@ -16,7 +16,7 @@ import { usePermissions } from '@/features/access';
 import { useSession, useUser } from '@/features/session';
 import type { NotificationRow } from '@/features/types';
 import { LANGUAGE_NAMES, roleLabel, useI18n } from '@/i18n';
-import { PERM } from '@/lib/permissions';
+import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { displayPhone } from '@/lib/phone';
 import { CARD_SHADOW, COLORS } from '@/lib/theme';
 import { versionLabel } from '@/lib/updates';
@@ -62,6 +62,13 @@ export default function MazeedScreen() {
       </View>
       {perms.can(PERM.logCreate) ? <ListItem icon="📝" iconTone="violet" title={t('mazeed.dailyLog')} onPress={() => router.push('/log/today')} /> : null}
       {perms.can(PERM.logView) ? <ListItem icon="📚" iconTone="info" title={t('mazeed.myLogs')} onPress={() => router.push('/log/history')} /> : null}
+      {perms.canAny(...TAB_PERMS.site) ? <Text className="mt-2 font-bold text-lg text-ink">{t('site.title')}</Text> : null}
+      {perms.can(PERM.planView) ? <ListItem testID="open-milestones" icon="chart-gantt" iconTone="primary" title={t('site.progress')} onPress={() => router.push('/site/milestones')} /> : null}
+      {perms.canAny(PERM.planView, PERM.stoppageCreate) ? <ListItem testID="open-stoppages" icon="weather-pouring" iconTone="warning" title={t('stop.list')} onPress={() => router.push('/site/stoppages')} /> : null}
+      {perms.canAny(PERM.instructionCreate, PERM.instructionView) ? <ListItem testID="open-instructions" icon="message-draw" iconTone="info" title={t('si.title')} onPress={() => router.push('/site/instructions')} /> : null}
+      {perms.can(PERM.snagView) ? <ListItem testID="open-snags" icon="map-marker-alert-outline" iconTone="danger" title={t('snag.title')} onPress={() => router.push('/site/snags')} /> : null}
+      {perms.can(PERM.drawingView) ? <ListItem testID="open-drawings" icon="floor-plan" iconTone="violet" title={t('dwg.title')} onPress={() => router.push('/site/drawings')} /> : null}
+      {perms.can(PERM.equipmentView) ? <ListItem testID="open-equipment-more" icon="crane" iconTone="accent" title={t('eq.title')} onPress={() => router.push('/maal/equipment')} /> : null}
       <ListItem icon="🔔" iconTone="accent" title={t('mazeed.notifications')} right={unread ? <StatusChip tone="danger" label={String(unread)} /> : undefined} onPress={() => router.push('/notifications')} />
       <ListItem
         testID="open-problems"
