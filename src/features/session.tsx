@@ -10,6 +10,7 @@ import { APP_VERSION } from '../api/config';
 import { clearSession, getDeviceId, getUser, setUser, type SessionUser } from '../api/session';
 import { openDb } from '../db/client';
 import { wipeAll } from '../db/kv';
+import { clearDrawingCache } from './drawingCache';
 import { notifyChange } from '../db/live';
 import type { Db } from '../db/types';
 import { httpSyncApi } from '../sync/api';
@@ -81,6 +82,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const wipe = useCallback(async () => {
     if (db) wipeAll(db);
+    clearDrawingCache();
     notifyChange();
     await clearSession();
     await stopBackgroundSync().catch(() => undefined);
@@ -96,7 +98,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     (signed: SignedIn | SessionUser, method?: 'otp' | 'password') => {
       const { access, language, ...u } = { access: undefined, language: undefined, ...signed };
       // Another person's data never stays on the phone.
-      if (db && user && user.id !== u.id) wipeAll(db);
+      if (db && user && user.id !== u.id) {
+        wipeAll(db);
+        clearDrawingCache();
+      }
       if (db && access) saveAccess(db, access);
       notifyChange();
       setUserState(u);

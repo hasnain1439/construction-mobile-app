@@ -15,6 +15,13 @@
       "when": 1791788559343,
       "tag": "0001_worker_types",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792141803878,
+      "tag": "0002_site_modules",
+      "breakpoints": true
     }
   ]
 }

@@ -76,6 +76,22 @@ export const PERM = {
   topupCreate: 'cashbook.topup.create',
   logView: 'dailylog.log.view',
   logCreate: 'dailylog.log.create',
+  // Step 13 · schedule
+  planView: 'schedule.plan.view',
+  progressEdit: 'schedule.progress.edit',
+  stoppageCreate: 'schedule.stoppage.create',
+  // Step 15 · site instructions (without `.view` the munshi sees his own)
+  instructionCreate: 'changeorder.instruction.create',
+  instructionView: 'changeorder.instruction.view',
+  // Step 16 · equipment & shuttering
+  equipmentView: 'equipment.view',
+  equipmentReceive: 'equipment.receiving.create',
+  equipmentLoss: 'equipment.loss.create',
+  // Step 17 · closeout
+  snagView: 'closeout.snag.view',
+  snagCreate: 'closeout.snag.create',
+  snagManage: 'closeout.snag.manage',
+  drawingView: 'closeout.drawing.view',
 } as const;
 
 const fieldOf = (key: string): FieldKey | null => {
@@ -127,13 +143,29 @@ export const ROUTE_PERMS: Record<string, readonly string[]> = {
   '/kharcha/topup': [PERM.topupCreate],
   '/log/today': [PERM.logCreate],
   '/log/history': [PERM.logView],
+  '/maal/equipment': [PERM.equipmentView],
+  '/maal/equipment-receive': [PERM.equipmentReceive],
+  '/maal/equipment-loss': [PERM.equipmentLoss],
+  '/site/milestones': [PERM.planView],
+  '/site/milestone': [PERM.planView],
+  '/site/stoppages': [PERM.planView, PERM.stoppageCreate],
+  '/site/stoppage-new': [PERM.stoppageCreate],
+  '/site/instructions': [PERM.instructionCreate, PERM.instructionView],
+  '/site/instruction-new': [PERM.instructionCreate],
+  '/site/snags': [PERM.snagView],
+  '/site/snag-new': [PERM.snagCreate],
+  '/site/snag-fix': [PERM.snagCreate],
+  '/site/drawings': [PERM.drawingView],
+  '/site/drawing': [PERM.drawingView],
 };
 
 /** The tabs: shown when the person may use anything on them. */
 export const TAB_PERMS = {
   hazri: [PERM.hazriView, PERM.hazriMark, PERM.workerCreate, PERM.peshgiCreate, PERM.measurementCreate, PERM.settlementView],
-  maal: [PERM.dispatchView, PERM.receive, PERM.usageCreate, PERM.ownerDeliveryCreate, PERM.purchaseCreate, PERM.countCreate, PERM.stockView],
+  maal: [PERM.dispatchView, PERM.receive, PERM.usageCreate, PERM.ownerDeliveryCreate, PERM.purchaseCreate, PERM.countCreate, PERM.stockView, PERM.equipmentView, PERM.equipmentReceive, PERM.equipmentLoss],
   kharcha: [PERM.cashView, PERM.expenseView, PERM.expenseCreate, PERM.topupCreate],
+  /** Not a tab: the "Site" group on Mazeed and the Aaj cards (progress, stoppages, instructions, snags, drawings). */
+  site: [PERM.planView, PERM.progressEdit, PERM.stoppageCreate, PERM.instructionCreate, PERM.instructionView, PERM.snagView, PERM.snagCreate, PERM.drawingView],
 } as const;
 
 /** Unknown paths (tabs, sync problems, notifications) are always allowed. */

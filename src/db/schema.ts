@@ -45,6 +45,17 @@ export const topupRequests = record('topup_requests');
 export const settings = record('settings');
 export const holidays = record('holidays');
 export const notifications = record('notifications');
+// Phase 2 + 3 (Steps 13, 15, 16, 17) — quantities and statuses only, never money.
+export const milestones = record('milestones');
+export const stoppages = record('stoppages');
+export const siteInstructions = record('site_instructions');
+export const equipment = record('equipment');
+export const equipmentStock = record('equipment_stock');
+export const equipmentTransfers = record('equipment_transfers');
+export const equipmentRentals = record('equipment_rentals');
+export const equipmentLosses = record('equipment_losses');
+export const snags = record('snags');
+export const drawings = record('drawings');
 
 /** Server table name (from /sync/pull) → local table. */
 export const SYNC_TABLES = {
@@ -74,6 +85,16 @@ export const SYNC_TABLES = {
   settings,
   holidays,
   notifications,
+  milestones,
+  stoppages,
+  site_instructions: siteInstructions,
+  equipment,
+  equipment_stock: equipmentStock,
+  equipment_transfers: equipmentTransfers,
+  equipment_rentals: equipmentRentals,
+  equipment_losses: equipmentLosses,
+  snags,
+  drawings,
 } as const;
 export type SyncTableName = keyof typeof SYNC_TABLES;
 export const SYNC_TABLE_NAMES = Object.keys(SYNC_TABLES) as SyncTableName[];

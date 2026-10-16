@@ -86,11 +86,24 @@ a build older than `minimumAppVersion` is blocked with an update screen.
 
 | Tab | |
 |---|---|
-| **Aaj** | greeting, my cash card, today's to-do (hazri, daily log, incoming material, floats, settlement), quick actions |
+| **Aaj** | greeting, my cash card, today's to-do (hazri, daily log, incoming material / equipment, floats, settlement), **today's work** (milestones with progress and quota left per material), quick actions (incl. *Kaam ruk gaya*, *Nayi hidayat*, *Nayi kharabi*) |
 | **Hazri** | mark the day (full, half, absent, overtime) and see the week, *Naya mazdoor*, peshgi, measurements, settlement |
-| **Maal** | receive dispatches and purchases, usage, owner delivery, purchase, stock count, site stock |
+| **Maal** | receive dispatches, purchases and **equipment transfers**, usage (optionally for a milestone), owner delivery, purchase, stock count, site stock, **Machinery & shuttering** (on site: own / rented counts, report missing / damaged) |
 | **Kharcha** | cash in hand, add kharcha with slip photo, top-up request |
-| **Mazeed** | daily log (photos, voice note) and my logs, notifications, sync problems, sync status, language, log out |
+| **Mazeed** | daily log (photos, voice note) and my logs, the **Site** group (work progress, stoppage days, owner instructions, snags, drawings, machinery), notifications, sync problems, sync status, language, log out |
+
+**Site screens** (Steps 13, 15, 16, 17 — `app/site/*`, `app/maal/equipment*`; quantities, statuses and photos only, never rates, amounts or contract values):
+
+| Screen | What | Key(s) | Sync |
+|---|---|---|---|
+| *Aaj → Aaj ka kaam*, `/site/milestones` | milestones whose window covers today or that are in progress / curing / blocked (all: not done + done in 14 days); stage, status, progress, late, curing until, quota left per material | `schedule.plan.view` | pull `milestones` |
+| `/site/milestone` | quota table (planned / used / left) and **Progress likhein**: progress %, status (only allowed changes, BLOCKED needs a note), optional photos | `schedule.progress.edit` to save | `MILESTONE_PROGRESS` |
+| `/site/stoppages`, `/site/stoppage-new` | **Kaam ruk gaya**: reason, from + days (1–31, ≤ 60 days ahead), photo required except HOLIDAY, note required for OTHER, no day twice; list with PENDING / APPROVED / REJECTED | `schedule.plan.view` / `schedule.stoppage.create` | pull `stoppages`, `STOPPAGE_LOG` |
+| `/maal/usage` | *Kis kaam ke liye* — optional milestone; its quota left drops at once | `inventory.usage.create` (+ `schedule.plan.view` for the picker) | `MATERIAL_USAGE_CREATE` + `milestoneId` |
+| `/site/instructions`, `/site/instruction-new` | **Hidayat**: what the owner asked for (photos + note); own list with NEW / CONVERTED (CO code) / DISMISSED (reason) | `changeorder.instruction.create` (all with `.view`) | pull `site_instructions`, `SITE_INSTRUCTION_CREATE` |
+| `/maal/equipment`, `/maal/equipment-receive`, `/maal/equipment-loss` | equipment on site (own vs rented, counts), incoming transfers → count per item, damaged, note (blind count hides the sent qty), losses; **Gum / toota saaman** (missing leaves the site count; damaged needs a photo) | `equipment.view` / `equipment.receiving.create` / `equipment.loss.create` | pull `equipment`, `equipment_stock`, `equipment_transfers`, `equipment_rentals`, `equipment_losses`; `EQUIPMENT_RECEIVE`, `EQUIPMENT_LOSS_REPORT` |
+| `/site/snags`, `/site/snag-new`, `/site/snag-fix` | **Kharabi (snag)** list with status filter; new: place, description, before photo(s), fix-by date, assignee (only with `closeout.snag.manage`); open snag → **Theek ho gaya** with after photo(s) | `closeout.snag.view` / `closeout.snag.create` | pull `snags`, `SNAG_CREATE`, `SNAG_FIX` |
+| `/site/drawings`, `/site/drawing` | **Naqshe**: latest revision per drawing by folder, revision no. + approved date; opened once online (signed link `GET /attachments/:id`), saved in the app's documents folder (`src/features/drawingCache.ts`) — pictures show in the app offline, PDFs open in the phone's viewer; superseded files are removed, logout deletes them | `closeout.drawing.view` | pull `drawings` |
 
 **Naya mazdoor** offers the company's own active **worker types** (synced `worker_types`, named in
 the current language). Picking a type fills its daily rate for roles that may set rates; leaving
@@ -123,7 +136,8 @@ database (`src/db/access.ts`, kv `auth.access`) so the app works offline, and wi
   the server has not confirmed. Pulled tables (`SYNC_TABLES` in `src/db/schema.ts`) include
   projects, workers, **worker_types**, project_workers, attendance, settlements, advances,
   materials, dispatches, purchases, site_stock, daily_logs, cash accounts / entries, settings,
-  holidays and notifications.
+  holidays, notifications and (Steps 13–17) milestones, stoppages, site_instructions, equipment,
+  equipment_stock, equipment_transfers, equipment_rentals, equipment_losses, snags and drawings.
 * **Outbox:** mutations in order with `depends_on`, back-off and the optimistic row snapshots.
   A `429 RATE_LIMITED` from `/sync/push` (60 pushes / min per user, see
   [../construction-platform/docs/SECURITY.md](../construction-platform/docs/SECURITY.md)) is treated like a network error: retried later.
@@ -150,7 +164,8 @@ database (`src/db/access.ts`, kv `auth.access`) so the app works offline, and wi
 
 **Migrations** live in `src/db/migrations` (generate with `npm run db:generate` after changing
 `src/db/schema.ts`). `0001_worker_types.sql` adds `worker_types` and clears the pull cursor so
-existing phones pull one fresh snapshot.
+existing phones pull one fresh snapshot; `0002_site_modules.sql` does the same for the ten Step 13–17
+tables.
 
 ## Languages
 
@@ -330,3 +345,8 @@ versionCode is kept by EAS (remote, auto-increment). Icons / splash are placehol
 * Two pending entries changing the same row (e.g. two kharcha on the cash balance) restore the
   first one's snapshot when one is refused; the next pull corrects the numbers.
 * Hazri can be entered up to 6 days back (the server allows a munshi 7).
+* Blind equipment count: the phone can't know a gap, so a short count without a note can come back
+  as `NOTE_REQUIRED` under *Sync problems* (the transfer returns to "on the way" to count again).
+* Drawings: a PDF opens in the phone's viewer with internet (fresh signed link); offline only picture
+  drawings show inside the app — opening a saved PDF offline needs a file-opener module (e.g.
+  `expo-sharing`), not installed yet. Snags are logged by place text (rooms are not synced yet).
