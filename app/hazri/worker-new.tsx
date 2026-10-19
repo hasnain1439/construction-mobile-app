@@ -17,7 +17,7 @@ import { useSave } from '@/features/useSave';
 import { workerTypeOptions, workerTypes, type WorkerTypeOption } from '@/features/workerTypes';
 import { useI18n } from '@/i18n';
 import { paisaToRupees, rupeesToPaisa } from '@/lib/money';
-import { rules } from '@/lib/permissions';
+import { rules, visibleRate } from '@/lib/permissions';
 import { normalisePhone } from '@/lib/phone';
 import { COLORS } from '@/lib/theme';
 
@@ -53,7 +53,8 @@ export default function NewWorkerScreen() {
     if (!canRate) return;
     const current = getValues('rate');
     if (current && current !== filledRate.current) return;
-    filledRate.current = paisaToRupees(o.ratePaisa);
+    // Without fields.wages the type has no rate (the server leaves it out): nothing is filled.
+    filledRate.current = paisaToRupees(visibleRate(perms.access, perms.role, o.ratePaisa));
     setValue('rate', filledRate.current, { shouldValidate: !!errors.rate });
   };
 

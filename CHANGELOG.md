@@ -6,6 +6,17 @@ All notable changes to the Munshi site app. Format: [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Owner decisions (integration)
+
+- API types (`src/api/schema.ts`) regenerated from the merged API (decisions 1–8: adds share links, `finishingAllowance`, `latestProject`, the loss-charge error codes). No app change.
+
+### Owner decisions (3, 4)
+
+- **Worker daily wage is a company toggle (`fields.wages`, decision 4).** On by default (Munshi, Project Manager, Accountant, Administrator), so nothing changes unless the company turns it off for a role or person. Without it the server leaves worker, team, worker-type and wage-line rates out of the pull: the app stores those rows without crashing and never shows a rate (no "Rs 0"). Weekly wage totals made by the server still show.
+- **Naya mazdoor without `fields.wages`:** no daily-rate box, no rate filled in from the type, and no `dailyRatePaisa` sent (the company rate is used). Setting a rate now needs `fields.rates` and `fields.wages`.
+- **Equipment shows no money (decision 3).** Equipment, stock, transfers, rentals and losses carry counts and statuses only; any money value a server might send (hire rate, value, deposit, charges, rent to date, idle cost) is dropped on pull and never shown.
+- No new migration (rows are stored as the server's JSON, so a missing rate is simply absent). Tests 174 → 186 (`tests/wages.test.tsx`). API types (`src/api/schema.ts`) regenerated (`FieldAccess.wages`).
+
 ### Steps 13, 15, 16, 17 (mobile)
 
 - **Aaj ka kaam (Step 13).** *Aaj* shows today's milestones of the site (window covers today, or in progress / curing / blocked): stage, status, progress, late, curing until and the **quota left per material** (quantities only, never money). Tap → **Progress likhein**: progress %, status (only the server's allowed changes; BLOCKED needs a note), optional photos → `MILESTONE_PROGRESS`; the milestone changes on the phone at once. All milestones under *Mazeed → Site → Kaam ki progress*.
