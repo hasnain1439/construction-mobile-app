@@ -5964,6 +5964,8 @@ export interface paths {
         /**
          * Open a shared document (WhatsApp link)
          * @description The durable link the share payloads put in `url` / `whatsappText` (invoice, receipt, statement, change-order slip, handover certificate, estimate, quote). No login: the link carries its own HMAC (purpose `share:`, different from file links) and is valid for SHARE_LINK_TTL_DAYS (default 30). A valid link answers **302** to a fresh short-lived signed storage URL of the PDF. Only server-made PDFs open this way. 30 requests / min per IP.
+         *
+         *     **Revocable (owner decision 2).** Every share is recorded (ShareLink) and its link carries `lid`, signed with it (`share:id:tid:exp:lid`). The office can turn one link off (POST /share-links/{id}/revoke): it then answers **410 LINK_REVOKED**. A link without `lid` was issued before links were recorded: it keeps working until it expires, unless a recorded link of the same file has been revoked.
          */
         get: {
             parameters: {
@@ -5972,6 +5974,8 @@ export interface paths {
                     tid: string;
                     /** @description Expiry, unix seconds */
                     exp: number;
+                    /** @description Share link id (signed; absent on links issued before links were recorded) */
+                    lid?: string;
                     /** @description HMAC signature (share:) */
                     sig: string;
                 };
@@ -6018,6 +6022,15 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
+                /** @description LINK_REVOKED */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
                 /** @description RATE_LIMITED */
                 429: {
                     headers: {
@@ -6031,6 +6044,221 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/share-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shared links of a document
+         * @description Owner decision 2. Every WhatsApp share link made for one document (quote, estimate revision, owner shopping list, change-order slip, invoice, receipt, owner statement, handover certificate), newest first: who shared it and when, its expiry and `status` ACTIVE / EXPIRED / REVOKED (with who revoked it). The link itself is never shown again. Needs the permission that shares that document (QUOTE sales.quote.view, ESTIMATE / SHOPPING_LIST projects.estimate.view, CHANGE_ORDER changeorder.view, INVOICE / STATEMENT billing.invoice.view, RECEIPT billing.payment.view, HANDOVER closeout.handover.manage); a project document outside the caller’s scope → 404.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description QUOTE (quote id), ESTIMATE (estimate revision id), SHOPPING_LIST / STATEMENT / HANDOVER (project id), CHANGE_ORDER (change order id), INVOICE (invoice id), RECEIPT (payment id) */
+                    refType: components["schemas"]["ShareRefType"];
+                    /** @description The document id (see refType) */
+                    refId: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Share links */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": [
+                         *         {
+                         *           "id": "0199a8c0-0000-7000-8000-00000000c501",
+                         *           "refType": "INVOICE",
+                         *           "refId": "0199a8c0-0000-7000-8000-00000000b201",
+                         *           "projectId": "0199a8c0-0000-7000-8000-000000000201",
+                         *           "attachmentId": "0199a8c0-0000-7000-8000-00000000a201",
+                         *           "fileName": "INV-2026-001.pdf",
+                         *           "status": "ACTIVE",
+                         *           "createdAt": "2026-10-19T10:00:00.000Z",
+                         *           "createdBy": {
+                         *             "id": "0199a8c0-0000-7000-8000-000000000101",
+                         *             "name": "Malik Aslam"
+                         *           },
+                         *           "expiresAt": "2026-11-18T10:00:00.000Z",
+                         *           "revokedAt": null,
+                         *           "revokedBy": null
+                         *         }
+                         *       ]
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["ShareLink"][];
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description COMPANY_SUSPENDED | ACCOUNT_READ_ONLY | PERMISSION_DENIED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/share-links/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke a share link ("Link band karo")
+         * @description Owner decision 2. Turns this one link off: opening it then answers 410 LINK_REVOKED (other links of the same document keep working). Same permission as sharing that document (see GET /share-links); a project document outside the caller’s scope → 404. Revoking it again returns it unchanged. Audited `share_link.revoke` { refType, refId, projectId, attachmentId, fileName, createdAt, expiresAt }.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Share link id (`shareLinkId` of the share payload) */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The revoked link */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "id": "0199a8c0-0000-7000-8000-00000000c501",
+                         *         "refType": "INVOICE",
+                         *         "refId": "0199a8c0-0000-7000-8000-00000000b201",
+                         *         "projectId": "0199a8c0-0000-7000-8000-000000000201",
+                         *         "attachmentId": "0199a8c0-0000-7000-8000-00000000a201",
+                         *         "fileName": "INV-2026-001.pdf",
+                         *         "status": "REVOKED",
+                         *         "createdAt": "2026-10-19T10:00:00.000Z",
+                         *         "createdBy": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000101",
+                         *           "name": "Malik Aslam"
+                         *         },
+                         *         "expiresAt": "2026-11-18T10:00:00.000Z",
+                         *         "revokedAt": "2026-10-20T09:00:00.000Z",
+                         *         "revokedBy": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000101",
+                         *           "name": "Malik Aslam"
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["ShareLink"];
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description COMPANY_SUSPENDED | ACCOUNT_READ_ONLY | PERMISSION_DENIED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description SHARE_LINK_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -10808,7 +11036,7 @@ export interface paths {
         };
         /**
          * Setup checklist
-         * @description Owner (`company.settings.manage`). Computed from the company’s data, demo data excluded: LOGO (company logo), RATES (a rate / worker type changed, or confirmed with rates-reviewed), TEAM (a PM / munshi or an invitation), WORKERS, SUPPLIERS, PROJECT. `demo` = the demo project when there is one.
+         * @description Owner (`company.settings.manage`). Computed from the company’s data, demo data excluded: LOGO (company logo), RATES (a rate / worker type changed, or confirmed with rates-reviewed), TEAM (a PM / munshi or an invitation), WORKERS, SUPPLIERS, PROJECT. `demo` = the demo project when there is one. `latestProject` { id, code, name } = the newest real (non-demo) project, or null — the web opens the optional next steps that live on a project page (estimate, schedule, change orders, closeout) in it.
          */
         get: {
             parameters: {
@@ -10869,7 +11097,8 @@ export interface paths {
                          *           "teamUsers": 1,
                          *           "pendingOrSentInvites": 1
                          *         },
-                         *         "demo": null
+                         *         "demo": null,
+                         *         "latestProject": null
                          *       }
                          *     }
                          */
@@ -10990,7 +11219,8 @@ export interface paths {
                          *           "teamUsers": 1,
                          *           "pendingOrSentInvites": 1
                          *         },
-                         *         "demo": null
+                         *         "demo": null,
+                         *         "latestProject": null
                          *       }
                          *     }
                          */
@@ -11108,7 +11338,8 @@ export interface paths {
                          *           "teamUsers": 1,
                          *           "pendingOrSentInvites": 1
                          *         },
-                         *         "demo": null
+                         *         "demo": null,
+                         *         "latestProject": null
                          *       }
                          *     }
                          */
@@ -17885,7 +18116,7 @@ export interface paths {
          *
          *     **Costing** Each material is priced from the company price list in the project's quality category for its supply category (cement, bricks, steel, sand & bajri, waterproofing; the company default category otherwise), converted to the rate's unit (kg → ton, nos → thousand, cft → trolley, alt units). No rate → `rateStatus: RATE_MISSING`, left out of every total, warning RATES_MISSING. Steel by size is priced from Steel Grade-60 #3 / #4 / #5 / #6 (a company "Grade-40 #n" material first when a roof is G40); a size without a rate takes the general steel rate (`rateFallback: true`, warning STEEL_RATE_GENERIC). Owner-supplied categories are valued but kept out of the contractor cost (`ownerSuppliedPaisa`). Labour: covered area × `labourRatePerSqftPaisa` when set, else the SUBCONTRACT piece rates BRICK_MASONRY / PLASTER / SHUTTERING / STEEL_FIXING. `cost.marginPercent` = (contract total − estimated cost) ÷ contract total.
          *
-         *     **Contract value from this estimate** `contractSuggestion` (needs fields.contract + fields.rates; null before the contract type is chosen): the cost is the **BoQ total** (Step 11: direct + site overheads + contingency, contractor scope; also returned as `boqCost`) of the saved revision the BoQ page opens by default (draft, else approved, else newest), else of the live BoQ preview (`basisSource` REVISION / LIVE, `estimateId`, `estimateRevision`, `estimateStatus`). `kind` CONTRACT_VALUE (FULL / GREY) = BoQ total × (1 + finishing %) × (1 + margin %) rounded to the nearest Rs 1,000 — the finishing allowance applies to FULL only, and only when the BoQ prices no finishing (`finishingApplies`; the BoQ normally prices tiles, paint and finishing labour, so finishing is never counted twice); RATE_PER_SQFT (LABOR_ONLY, the owner buys the material) = BoQ total × (1 + margin %) ÷ covered sq ft rounded to Rs 5. `marginPercent` / `finishingAllowancePercent` come from the project override (`marginSource` / `finishingSource` PROJECT) or the company settings (COMPANY; `companyMarginPercent`, `companyFinishingAllowancePercent`). `basisPaisa` = the cost (labour) used, `suggestedPaisa` (null without a cost / covered area), `currentPaisa` = the value already on the project. Apply it with POST /projects/{id}/contract/from-estimate.
+         *     **Contract value from this estimate** `contractSuggestion` (needs fields.contract + fields.rates; null before the contract type is chosen): the cost is the **BoQ total** (Step 11: direct + site overheads + contingency, contractor scope; also returned as `boqCost`) of the saved revision the BoQ page opens by default (draft, else approved, else newest), else of the live BoQ preview (`basisSource` REVISION / LIVE, `estimateId`, `estimateRevision`, `estimateStatus`). `kind` CONTRACT_VALUE (FULL / GREY) = BoQ total × (1 + finishing %) × (1 + margin %) rounded to the nearest Rs 1,000 — the finishing allowance applies to FULL only, and only when the BoQ prices no finishing (`finishingApplies`; the BoQ normally prices tiles, paint and finishing labour, so finishing is never counted twice; when it applies, `finishingAllowance` is its own labelled line { label "Finishing allowance — no finishing lines in BoQ", reason NO_FINISHING_LINES, method PERCENT_OF_BOQ, percent, basisPaisa, amountPaisa = BoQ total × finishing % (before the margin), calculation }, else null — never both finishing lines and the allowance); RATE_PER_SQFT (LABOR_ONLY, the owner buys the material) = BoQ total × (1 + margin %) ÷ covered sq ft rounded to Rs 5. `marginPercent` / `finishingAllowancePercent` come from the project override (`marginSource` / `finishingSource` PROJECT) or the company settings (COMPANY; `companyMarginPercent`, `companyFinishingAllowancePercent`). `basisPaisa` = the cost (labour) used, `suggestedPaisa` (null without a cost / covered area), `currentPaisa` = the value already on the project. Apply it with POST /projects/{id}/contract/from-estimate.
          *
          *     **Visibility** Rates, amounts and `cost` need fields.rates; `contractTotalPaisa` fields.contract; the margin fields.profit + fields.contract. Warnings: NO_FLOORS, NO_ROOMS, FOUNDATION_MISSING, STRUCTURE_TYPE_ASSUMED, COVERED_AREA_ESTIMATED, FOUNDATION_LENGTH_UNKNOWN, ROOMS_BELOW_COVERED, RATES_MISSING, LABOUR_RATES_MISSING, CONTRACT_VALUE_MISSING, CONTRACT_INCLUDES_FINISHING. A project with no rooms or foundation answers 200 with warnings.
          *
@@ -32504,7 +32735,7 @@ export interface paths {
         };
         /**
          * Equipment register
-         * @description equipment.view. Machines and bulk items with company-wide totals (owned / on rent / at sites / at the yard / in transit). Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
+         * @description equipment.view. Machines and bulk items with company-wide totals (owned / on rent / at sites / at the yard / in transit). Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Money entered as part of an allowed action (the daily rent and deposit, damage / missing charges, deposit refund, a loss value) is accepted without it but never shown back; the register hire rate / replacement value (master data) need fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -32757,7 +32988,7 @@ export interface paths {
         };
         /**
          * Equipment detail
-         * @description equipment.view. Totals plus quantity per location the caller can see. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
+         * @description equipment.view. Totals plus quantity per location the caller can see. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Money entered as part of an allowed action (the daily rent and deposit, damage / missing charges, deposit refund, a loss value) is accepted without it but never shown back; the register hire rate / replacement value (master data) need fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -33640,7 +33871,7 @@ export interface paths {
         };
         /**
          * Equipment on site
-         * @description equipment.view + project scope. Owned / rented units at the site, transfers on the way, active rentals, losses not charged yet, hire and rent posted to date. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
+         * @description equipment.view + project scope. Owned / rented units at the site, transfers on the way, active rentals, losses not charged yet, hire and rent posted to date. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Money entered as part of an allowed action (the daily rent and deposit, damage / missing charges, deposit refund, a loss value) is accepted without it but never shown back; the register hire rate / replacement value (master data) need fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -34676,7 +34907,7 @@ export interface paths {
         };
         /**
          * Rentals from yards
-         * @description equipment.view (rentals of projects in scope; yard rentals for equipment managers). daysOnRent / accruedToDatePaisa = from the start day up to (not including) the return date, or today while on hire — the same days the bill at return charges; postedPaisa = daily charges posted. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
+         * @description equipment.view (rentals of projects in scope; yard rentals for equipment managers). daysOnRent / accruedToDatePaisa = from the start day up to (not including) the return date, or today while on hire — the same days the bill at return charges; postedPaisa = daily charges posted. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Money entered as part of an allowed action (the daily rent and deposit, damage / missing charges, deposit refund, a loss value) is accepted without it but never shown back; the register hire rate / replacement value (master data) need fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -34812,7 +35043,7 @@ export interface paths {
         put?: never;
         /**
          * Hire from a yard
-         * @description equipment.rental.manage + fields.amounts (a rental sets the daily rent; owner decision 3). Items arrive at the site (or yard) on startDate (RENTAL_IN). Deposit → supplier ledger credit (ADJUSTMENT, refType RENTAL_DEPOSIT). Rent accrues daily to the project (P&L EQUIPMENT).
+         * @description equipment.rental.manage. The daily rent and deposit are entered without fields.amounts too, but the response hides them without it (owner decision 3). Items arrive at the site (or yard) on startDate (RENTAL_IN). Deposit → supplier ledger credit (ADJUSTMENT, refType RENTAL_DEPOSIT). Rent accrues daily to the project (P&L EQUIPMENT).
          */
         post: {
             parameters: {
@@ -35304,7 +35535,7 @@ export interface paths {
         put?: never;
         /**
          * Return to the yard (partly or fully), with damage charges
-         * @description equipment.rental.manage (damageChargesPaisa / missingChargesPaisa also fields.amounts). `qty` leaves the location (RENTAL_RETURN_OUT); `missingQty` = never handed back and must already be reported as a MISSING loss (400 MISSING_NOT_REPORTED). Damage charges → supplier ledger (RENTAL_DAMAGE). Missing pieces → supplier ledger (RENTAL_MISSING): missingChargesPaisa, default missing qty × the equipment replacement value. When nothing is outstanding: the remaining days are posted, rent = Σ daily RENTAL charges → supplier ledger (RENTAL_CHARGE), status RETURNED. Return day is not charged.
+         * @description equipment.rental.manage (charges accepted without fields.amounts, shown only with it). `qty` leaves the location (RENTAL_RETURN_OUT); `missingQty` = never handed back and must already be reported as a MISSING loss (400 MISSING_NOT_REPORTED). Damage charges → supplier ledger (RENTAL_DAMAGE). Missing pieces → supplier ledger (RENTAL_MISSING): missingChargesPaisa, default missing qty × the equipment replacement value. Owner decision 6: the MISSING losses of those pieces are valued with the same number (one computation): each item gets its share of the charge (in proportion to its replacement value), its losses oldest first; the audit lists them (missingLosses). When nothing is outstanding: the remaining days are posted, rent = Σ daily RENTAL charges → supplier ledger (RENTAL_CHARGE), status RETURNED. Return day is not charged.
          */
         post: {
             parameters: {
@@ -35502,7 +35733,7 @@ export interface paths {
         put?: never;
         /**
          * Close (settle the deposit)
-         * @description equipment.rental.manage (depositRefundPaisa also fields.amounts). RETURNED only. Cash refunded by the yard → supplier ledger (RENTAL_DEPOSIT_REFUND); the rest of the deposit stays as credit against the charges.
+         * @description equipment.rental.manage (the refund is accepted without fields.amounts, shown only with it). RETURNED only. Cash refunded by the yard → supplier ledger (RENTAL_DEPOSIT_REFUND); the rest of the deposit stays as credit against the charges.
          */
         post: {
             parameters: {
@@ -35667,7 +35898,7 @@ export interface paths {
         };
         /**
          * Loss & damage
-         * @description equipment.view (projects in scope; yard losses for equipment managers). Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
+         * @description equipment.view (projects in scope; yard losses for equipment managers). Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Money entered as part of an allowed action (the daily rent and deposit, damage / missing charges, deposit refund, a loss value) is accepted without it but never shown back; the register hire rate / replacement value (master data) need fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -36059,7 +36290,7 @@ export interface paths {
         put?: never;
         /**
          * Charge a loss
-         * @description equipment.loss.approve (an explicit valuePaisa also fields.amounts). PROJECT → project P&L (LOSSES); SUBCONTRACTOR → sub-contract ledger DEDUCTION; WRITE_OFF → the company (no project cost). valuePaisa defaults to the estimate.
+         * @description equipment.loss.approve (an explicit valuePaisa is accepted without fields.amounts, shown only with it). PROJECT → project P&L (LOSSES); SUBCONTRACTOR → sub-contract ledger DEDUCTION; WRITE_OFF → the company (no project cost). valuePaisa defaults to the estimate. Owner decision 6: a MISSING loss of rented pieces is worth what the yard billed for them at the return — before that return (rental still active) → 409 RENTAL_RETURN_PENDING; another valuePaisa → 400 LOSS_VALUE_IS_YARD_CHARGE (generic message without the amount, whoever charges it).
          */
         post: {
             parameters: {
@@ -36151,7 +36382,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description VALIDATION_ERROR | NOTHING_TO_CHARGE | NO_PROJECT | INVALID_ASSIGNMENT */
+                /** @description VALIDATION_ERROR | NOTHING_TO_CHARGE | NO_PROJECT | INVALID_ASSIGNMENT | LOSS_VALUE_IS_YARD_CHARGE */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -36187,7 +36418,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description LOSS_ALREADY_CHARGED */
+                /** @description LOSS_ALREADY_CHARGED | RENTAL_RETURN_PENDING */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -36213,7 +36444,7 @@ export interface paths {
         };
         /**
          * Daily hire and rent charges
-         * @description equipment.view (projects in scope). One row per day × site × equipment (INTERNAL_HIRE) or day × rental item (RENTAL); correction rows have correction: true. meta.totalPaisa = Σ amount of the filter. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
+         * @description equipment.view (projects in scope). One row per day × site × equipment (INTERNAL_HIRE) or day × rental item (RENTAL); correction rows have correction: true. meta.totalPaisa = Σ amount of the filter. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Money entered as part of an allowed action (the daily rent and deposit, damage / missing charges, deposit refund, a loss value) is accepted without it but never shown back; the register hire rate / replacement value (master data) need fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -37299,7 +37530,7 @@ export interface paths {
         };
         /**
          * Idle rented equipment
-         * @description equipment.view (sites in scope). Rented units at a site whose project had no milestone activity (progress update, usage linked to a milestone, a structure milestone IN_PROGRESS / CURING) for at least the company `equipmentIdleDays` (default 5). since = max(last activity, arrival); `all=true` also lists rentals below the threshold. Most idle first. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
+         * @description equipment.view (sites in scope). Rented units at a site whose project had no milestone activity (progress update, usage linked to a milestone, a structure milestone IN_PROGRESS / CURING) for at least the company `equipmentIdleDays` (default 5). since = max(last activity, arrival); `all=true` also lists rentals below the threshold. Most idle first. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Money entered as part of an allowed action (the daily rent and deposit, damage / missing charges, deposit refund, a loss value) is accepted without it but never shown back; the register hire rate / replacement value (master data) need fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -45999,7 +46230,8 @@ export interface paths {
                          *       "success": true,
                          *       "data": {
                          *         "attachmentId": "0199a8c0-0000-7000-8000-000000000e51",
-                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&sig=…",
+                         *         "shareLinkId": "0199a8c0-0000-7000-8000-00000000c501",
+                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&lid=0199a8c0-0000-7000-8000-00000000c501&sig=…",
                          *         "expiresAt": "2026-11-30T10:05:00.000Z",
                          *         "fileUrl": "http://localhost:4000/api/v1/attachments/0199a8c0-0000-7000-8000-000000000e51/file/INV-2026-0010.pdf?tid=…&exp=…&sig=…",
                          *         "fileUrlExpiresAt": "2026-10-06T10:15:00.000Z",
@@ -46852,7 +47084,8 @@ export interface paths {
                          *       "success": true,
                          *       "data": {
                          *         "attachmentId": "0199a8c0-0000-7000-8000-000000000e51",
-                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&sig=…",
+                         *         "shareLinkId": "0199a8c0-0000-7000-8000-00000000c501",
+                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&lid=0199a8c0-0000-7000-8000-00000000c501&sig=…",
                          *         "expiresAt": "2026-11-30T10:05:00.000Z",
                          *         "fileUrl": "http://localhost:4000/api/v1/attachments/0199a8c0-0000-7000-8000-000000000e51/file/INV-2026-0010.pdf?tid=…&exp=…&sig=…",
                          *         "fileUrlExpiresAt": "2026-10-06T10:15:00.000Z",
@@ -47444,7 +47677,8 @@ export interface paths {
                          *       "success": true,
                          *       "data": {
                          *         "attachmentId": "0199a8c0-0000-7000-8000-000000000e51",
-                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&sig=…",
+                         *         "shareLinkId": "0199a8c0-0000-7000-8000-00000000c501",
+                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&lid=0199a8c0-0000-7000-8000-00000000c501&sig=…",
                          *         "expiresAt": "2026-11-30T10:05:00.000Z",
                          *         "fileUrl": "http://localhost:4000/api/v1/attachments/0199a8c0-0000-7000-8000-000000000e51/file/INV-2026-0010.pdf?tid=…&exp=…&sig=…",
                          *         "fileUrlExpiresAt": "2026-10-06T10:15:00.000Z",
@@ -64416,6 +64650,38 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        ShareLink: {
+            /** Format: uuid */
+            id: string;
+            refType: components["schemas"]["ShareRefType"];
+            /** Format: uuid */
+            refId: string;
+            /** Format: uuid */
+            projectId: string | null;
+            /** Format: uuid */
+            attachmentId: string;
+            fileName: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "EXPIRED" | "REVOKED";
+            createdAt: string;
+            createdBy: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+            } | null;
+            expiresAt: string;
+            revokedAt: string | null;
+            revokedBy: {
+                /** Format: uuid */
+                id: string;
+                name: string;
+            } | null;
+        };
+        /**
+         * @description QUOTE (quote id), ESTIMATE (estimate revision id), SHOPPING_LIST / STATEMENT / HANDOVER (project id), CHANGE_ORDER (change order id), INVOICE (invoice id), RECEIPT (payment id)
+         * @enum {string}
+         */
+        ShareRefType: "QUOTE" | "ESTIMATE" | "SHOPPING_LIST" | "CHANGE_ORDER" | "INVOICE" | "RECEIPT" | "STATEMENT" | "HANDOVER";
         SetRoomWalls: {
             /** @description The four sides, or null to clear (the estimate goes back to the perimeter method for this floor) */
             walls: {

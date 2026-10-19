@@ -6,6 +6,10 @@ All notable changes to the Munshi site app. Format: [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Owner decisions (integration)
+
+- API types (`src/api/schema.ts`) regenerated from the merged API (decisions 1–8: adds share links, `finishingAllowance`, `latestProject`, the loss-charge error codes). No app change.
+
 ### Owner decisions (3, 4)
 
 - **Worker daily wage is a company toggle (`fields.wages`, decision 4).** On by default (Munshi, Project Manager, Accountant, Administrator), so nothing changes unless the company turns it off for a role or person. Without it the server leaves worker, team, worker-type and wage-line rates out of the pull: the app stores those rows without crashing and never shows a rate (no "Rs 0"). Weekly wage totals made by the server still show.
