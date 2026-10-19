@@ -233,7 +233,8 @@ export interface paths {
                          *           "rates": true,
                          *           "amounts": true,
                          *           "profit": true,
-                         *           "contract": true
+                         *           "contract": true,
+                         *           "wages": true
                          *         },
                          *         "scopes": {
                          *           "projects.project.view": "ALL_PROJECTS",
@@ -406,7 +407,8 @@ export interface paths {
                          *           "rates": true,
                          *           "amounts": true,
                          *           "profit": true,
-                         *           "contract": true
+                         *           "contract": true,
+                         *           "wages": true
                          *         },
                          *         "scopes": {
                          *           "projects.project.view": "ALL_PROJECTS",
@@ -791,7 +793,8 @@ export interface paths {
                          *           "rates": true,
                          *           "amounts": true,
                          *           "profit": true,
-                         *           "contract": true
+                         *           "contract": true,
+                         *           "wages": true
                          *         },
                          *         "scopes": {
                          *           "projects.project.view": "ALL_PROJECTS",
@@ -1507,6 +1510,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Look at an invitation before accepting it
+         * @description Public (the token is the secret). The company, the invited name and the permission role given on accept — for the invite page header.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Token from the invitation link */
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The invitation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data: components["schemas"]["InvitationPreview"];
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description INVITE_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description INVITE_ALREADY_ACCEPTED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description INVITE_EXPIRED | INVITE_CANCELLED */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description RATE_LIMITED */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invitations/{token}/accept": {
         parameters: {
             query?: never;
@@ -1616,7 +1710,8 @@ export interface paths {
                          *           "rates": true,
                          *           "amounts": true,
                          *           "profit": true,
-                         *           "contract": true
+                         *           "contract": true,
+                         *           "wages": true
                          *         },
                          *         "scopes": {
                          *           "projects.project.view": "ALL_PROJECTS",
@@ -2219,7 +2314,10 @@ export interface paths {
                          *         "pmCanRecordPayments": false,
                          *         "defaultMarginPercent": 20,
                          *         "defaultFinishingAllowancePercent": 0,
-                         *         "defaultLanguage": "ROMAN_URDU"
+                         *         "defaultLanguage": "ROMAN_URDU",
+                         *         "equipmentIdleDays": 5,
+                         *         "shutteringPropsPerPlate": 0.75,
+                         *         "shutteringSparePercent": 5
                          *       }
                          *     }
                          */
@@ -2271,6 +2369,8 @@ export interface paths {
          *     Billing: `paymentTermsDays` (0–90), `taxRatePercent` (0–30) and `taxLabel` (used only when `taxEnabled`), `pmCanRecordPayments`.
          *
          *     Estimate → contract value: `defaultMarginPercent` (0–100, default 20) and `defaultFinishingAllowancePercent` (0–200, default 0, FULL contracts only) pre-fill the “contract value from this estimate” card and POST /projects/{id}/contract/from-estimate; a project may override both.
+         *
+         *     Equipment (Step 16): `equipmentIdleDays` (1–60, default 5) — rented units with no milestone activity at their site for this many days raise EQUIPMENT_IDLE; shuttering planner `shutteringPropsPerPlate` (0–5, default 0.75) and `shutteringSparePercent` (0–30, default 5).
          */
         patch: {
             parameters: {
@@ -2314,6 +2414,14 @@ export interface paths {
                             /** @example 2026-12-25 */
                             end: string;
                         }[] | null;
+                        equipmentIdleDays?: number;
+                        shutteringPropsPerPlate?: number;
+                        shutteringSparePercent?: number;
+                        behindPlanAlertPoints?: number;
+                        lateFinishGraceDays?: number;
+                        quotaAlertPercent?: number;
+                        spendAheadAlertPoints?: number;
+                        controlAlertsEnabled?: boolean;
                     };
                 };
             };
@@ -5779,7 +5887,7 @@ export interface paths {
         };
         /**
          * Download the file through a signed link
-         * @description No login needed — use the `url` returned by the API as-is (e.g. in an `<img>` tag). Expired or edited links answer 403.
+         * @description No login needed — use the `url` returned by the API as-is (e.g. in an `<img>` tag). Expired or edited links answer 403. Exports and documents come as `/attachments/{id}/file/<file name>?…` (the name is ignored by the server; browsers save the file under it) and `Content-Disposition` carries the name; `dl=1` (the `downloadUrl` of report exports) makes it an attachment (save instead of preview).
          */
         get: {
             parameters: {
@@ -5790,6 +5898,8 @@ export interface paths {
                     exp: number;
                     /** @description HMAC signature */
                     sig: string;
+                    /** @description 1 = Content-Disposition: attachment (not signed) */
+                    dl?: "1";
                 };
                 header?: never;
                 path: {
@@ -5827,6 +5937,89 @@ export interface paths {
                 };
                 /** @description ATTACHMENT_NOT_FOUND */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Open a shared document (WhatsApp link)
+         * @description The durable link the share payloads put in `url` / `whatsappText` (invoice, receipt, statement, change-order slip, handover certificate, estimate, quote). No login: the link carries its own HMAC (purpose `share:`, different from file links) and is valid for SHARE_LINK_TTL_DAYS (default 30). A valid link answers **302** to a fresh short-lived signed storage URL of the PDF. Only server-made PDFs open this way. 30 requests / min per IP.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @description Company id (part of the signed link) */
+                    tid: string;
+                    /** @description Expiry, unix seconds */
+                    exp: number;
+                    /** @description HMAC signature (share:) */
+                    sig: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Attachment id (from the upload response) */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redirect to the PDF (short-lived signed URL) */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description INVALID_SIGNATURE | LINK_EXPIRED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description ATTACHMENT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description RATE_LIMITED */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -9215,7 +9408,7 @@ export interface paths {
         };
         /**
          * List workers
-         * @description All roles. Search matches name or phone; `type` = a worker type key. Each worker has its type’s names: `typeLabel`, `typeLabelRoman`, `typeLabelUrdu`.
+         * @description All roles. Search matches name or phone; `type` = a worker type key. Each worker has its type’s names: `typeLabel`, `typeLabelRoman`, `typeLabelUrdu`. `dailyRatePaisa` only with fields.wages (owner decision 4, on by default); POST / PATCH with a `dailyRatePaisa` need it too (403 PERMISSION_DENIED).
          */
         get: {
             parameters: {
@@ -9330,7 +9523,7 @@ export interface paths {
                          */
                         phone?: string;
                         /**
-                         * @description Defaults to the company's labour rate for this type
+                         * @description Defaults to the company's labour rate for this type. Giving one needs fields.wages (owner decision 4).
                          * @example 280000
                          */
                         dailyRatePaisa?: string | number;
@@ -10246,6 +10439,7 @@ export interface paths {
                          *           "email": null,
                          *           "address": null,
                          *           "notes": null,
+                         *           "ntn": null,
                          *           "createdAt": "2026-03-01T09:00:00.000Z",
                          *           "projectsCount": 1
                          *         }
@@ -10320,6 +10514,8 @@ export interface paths {
                         email?: string;
                         address?: string;
                         notes?: string;
+                        /** @example 1234567-8 */
+                        ntn?: string;
                     };
                 };
             };
@@ -10340,6 +10536,7 @@ export interface paths {
                          *         "email": null,
                          *         "address": null,
                          *         "notes": null,
+                         *         "ntn": null,
                          *         "createdAt": "2026-03-01T09:00:00.000Z"
                          *       }
                          *     }
@@ -10434,6 +10631,7 @@ export interface paths {
                          *         "email": null,
                          *         "address": null,
                          *         "notes": null,
+                         *         "ntn": null,
                          *         "createdAt": "2026-03-01T09:00:00.000Z",
                          *         "projects": [
                          *           {
@@ -10518,6 +10716,8 @@ export interface paths {
                         email?: string | null;
                         address?: string | null;
                         notes?: string | null;
+                        /** @example 1234567-8 */
+                        ntn?: string | null;
                     };
                 };
             };
@@ -10538,6 +10738,7 @@ export interface paths {
                          *         "email": null,
                          *         "address": null,
                          *         "notes": null,
+                         *         "ntn": null,
                          *         "createdAt": "2026-03-01T09:00:00.000Z"
                          *       }
                          *     }
@@ -17684,7 +17885,7 @@ export interface paths {
          *
          *     **Costing** Each material is priced from the company price list in the project's quality category for its supply category (cement, bricks, steel, sand & bajri, waterproofing; the company default category otherwise), converted to the rate's unit (kg → ton, nos → thousand, cft → trolley, alt units). No rate → `rateStatus: RATE_MISSING`, left out of every total, warning RATES_MISSING. Steel by size is priced from Steel Grade-60 #3 / #4 / #5 / #6 (a company "Grade-40 #n" material first when a roof is G40); a size without a rate takes the general steel rate (`rateFallback: true`, warning STEEL_RATE_GENERIC). Owner-supplied categories are valued but kept out of the contractor cost (`ownerSuppliedPaisa`). Labour: covered area × `labourRatePerSqftPaisa` when set, else the SUBCONTRACT piece rates BRICK_MASONRY / PLASTER / SHUTTERING / STEEL_FIXING. `cost.marginPercent` = (contract total − estimated cost) ÷ contract total.
          *
-         *     **Contract value from this estimate** `contractSuggestion` (needs fields.contract + fields.rates; null before the contract type is chosen): `kind` CONTRACT_VALUE (FULL / GREY) = cost × (1 + finishing %) × (1 + margin %) rounded to the nearest Rs 1,000 — the finishing allowance applies to FULL only (`finishingApplies`) because this estimate is grey structure; RATE_PER_SQFT (LABOR_ONLY, the owner buys the material) = estimated labour × (1 + margin %) ÷ covered sq ft rounded to Rs 5. `marginPercent` / `finishingAllowancePercent` come from the project override (`marginSource` / `finishingSource` PROJECT) or the company settings (COMPANY; `companyMarginPercent`, `companyFinishingAllowancePercent`). `basisPaisa` = the cost (labour) used, `suggestedPaisa` (null without a cost / covered area), `currentPaisa` = the value already on the project. Apply it with POST /projects/{id}/contract/from-estimate.
+         *     **Contract value from this estimate** `contractSuggestion` (needs fields.contract + fields.rates; null before the contract type is chosen): the cost is the **BoQ total** (Step 11: direct + site overheads + contingency, contractor scope; also returned as `boqCost`) of the saved revision the BoQ page opens by default (draft, else approved, else newest), else of the live BoQ preview (`basisSource` REVISION / LIVE, `estimateId`, `estimateRevision`, `estimateStatus`). `kind` CONTRACT_VALUE (FULL / GREY) = BoQ total × (1 + finishing %) × (1 + margin %) rounded to the nearest Rs 1,000 — the finishing allowance applies to FULL only, and only when the BoQ prices no finishing (`finishingApplies`; the BoQ normally prices tiles, paint and finishing labour, so finishing is never counted twice); RATE_PER_SQFT (LABOR_ONLY, the owner buys the material) = BoQ total × (1 + margin %) ÷ covered sq ft rounded to Rs 5. `marginPercent` / `finishingAllowancePercent` come from the project override (`marginSource` / `finishingSource` PROJECT) or the company settings (COMPANY; `companyMarginPercent`, `companyFinishingAllowancePercent`). `basisPaisa` = the cost (labour) used, `suggestedPaisa` (null without a cost / covered area), `currentPaisa` = the value already on the project. Apply it with POST /projects/{id}/contract/from-estimate.
          *
          *     **Visibility** Rates, amounts and `cost` need fields.rates; `contractTotalPaisa` fields.contract; the margin fields.profit + fields.contract. Warnings: NO_FLOORS, NO_ROOMS, FOUNDATION_MISSING, STRUCTURE_TYPE_ASSUMED, COVERED_AREA_ESTIMATED, FOUNDATION_LENGTH_UNKNOWN, ROOMS_BELOW_COVERED, RATES_MISSING, LABOUR_RATES_MISSING, CONTRACT_VALUE_MISSING, CONTRACT_INCLUDES_FINISHING. A project with no rooms or foundation answers 200 with warnings.
          *
@@ -18074,7 +18275,7 @@ export interface paths {
         put?: never;
         /**
          * Set the contract value from the estimate
-         * @description Sets the contract value (FULL / GREY: cost × (1 + finishing %) × (1 + margin %), nearest Rs 1,000) or, for LABOR_ONLY, the rate per sq ft (labour × (1 + margin %) ÷ covered sq ft, nearest Rs 5) from the live estimate — the same numbers as `contractSuggestion` of GET /estimate. Omitted percentages = the project override, else the company default (TenantSettings.defaultMarginPercent / defaultFinishingAllowancePercent). A percentage that differs from the company default is stored on the project (it sticks for the next suggestion); one equal to it clears the override. Contract type, billing model, supply rules and stages are unchanged; stage amounts are recomputed. A project that already has a value → 409 CONTRACT_VALUE_EXISTS `{ currentPaisa, suggestedPaisa }` unless `replace: true` (the user confirmed). No contract type yet → 400 CONTRACT_MISSING; no cost (no rooms / rates; labour-only: no labour or covered area) → 400 ESTIMATE_COST_MISSING. Needs projects.project.edit + fields.contract + fields.rates (403 PERMISSION_DENIED); project DRAFT or ACTIVE (409 PROJECT_LOCKED). Audited `project.contract_from_estimate` { costPaisa, marginPercent, marginSource, finishingAllowancePercent, valuePaisa, previousPaisa }. Returns the full project.
+         * @description Sets the contract value (FULL / GREY: BoQ total × (1 + finishing %) × (1 + margin %), nearest Rs 1,000; the finishing allowance only when the BoQ prices no finishing) or, for LABOR_ONLY, the rate per sq ft (BoQ total × (1 + margin %) ÷ covered sq ft, nearest Rs 5). The BoQ total is that of the saved revision `estimateId` (the BoQ page sends the one on screen), else the draft / approved / newest revision, else the live BoQ preview — the same numbers as `contractSuggestion` of GET /estimate. Unknown `estimateId` → 404 ESTIMATE_NOT_FOUND. Omitted percentages = the project override, else the company default (TenantSettings.defaultMarginPercent / defaultFinishingAllowancePercent). A percentage that differs from the company default is stored on the project (it sticks for the next suggestion); one equal to it clears the override. Contract type, billing model, supply rules and stages are unchanged; stage amounts are recomputed. A project that already has a value → 409 CONTRACT_VALUE_EXISTS `{ currentPaisa, suggestedPaisa }` unless `replace: true` (the user confirmed). No contract type yet → 400 CONTRACT_MISSING; no cost (no rooms / rates; labour-only: no labour or covered area) → 400 ESTIMATE_COST_MISSING. Needs projects.project.edit + fields.contract + fields.rates (403 PERMISSION_DENIED); project DRAFT or ACTIVE (409 PROJECT_LOCKED). Audited `project.contract_from_estimate` { costPaisa, marginPercent, marginSource, finishingAllowancePercent, valuePaisa, previousPaisa }. Returns the full project.
          */
         post: {
             parameters: {
@@ -18132,7 +18333,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description PROJECT_NOT_FOUND */
+                /** @description PROJECT_NOT_FOUND | ESTIMATE_NOT_FOUND */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -21378,6 +21579,7 @@ export interface paths {
                          *             "from": "2026-10-07",
                          *             "to": "2026-10-08",
                          *             "days": 2,
+                         *             "warning": null,
                          *             "reason": "RAIN",
                          *             "category": "EXCUSABLE",
                          *             "status": "APPROVED",
@@ -21651,6 +21853,7 @@ export interface paths {
                          *             "from": "2026-10-07",
                          *             "to": "2026-10-08",
                          *             "days": 2,
+                         *             "warning": null,
                          *             "reason": "RAIN",
                          *             "category": "EXCUSABLE",
                          *             "status": "APPROVED",
@@ -21940,6 +22143,7 @@ export interface paths {
                          *             "from": "2026-10-07",
                          *             "to": "2026-10-08",
                          *             "days": 2,
+                         *             "warning": null,
                          *             "reason": "RAIN",
                          *             "category": "EXCUSABLE",
                          *             "status": "APPROVED",
@@ -23255,6 +23459,7 @@ export interface paths {
                          *             "from": "2026-10-07",
                          *             "to": "2026-10-08",
                          *             "days": 2,
+                         *             "warning": null,
                          *             "reason": "RAIN",
                          *             "category": "EXCUSABLE",
                          *             "status": "APPROVED",
@@ -23376,6 +23581,7 @@ export interface paths {
                          *         "from": "2026-10-07",
                          *         "to": "2026-10-08",
                          *         "days": 2,
+                         *         "warning": null,
                          *         "reason": "RAIN",
                          *         "category": "EXCUSABLE",
                          *         "status": "APPROVED",
@@ -23428,6 +23634,7 @@ export interface paths {
                          *         "from": "2026-10-07",
                          *         "to": "2026-10-08",
                          *         "days": 2,
+                         *         "warning": null,
                          *         "reason": "RAIN",
                          *         "category": "EXCUSABLE",
                          *         "status": "PENDING",
@@ -23553,6 +23760,7 @@ export interface paths {
                          *         "from": "2026-10-07",
                          *         "to": "2026-10-08",
                          *         "days": 2,
+                         *         "warning": null,
                          *         "reason": "RAIN",
                          *         "category": "EXCUSABLE",
                          *         "status": "APPROVED",
@@ -23672,6 +23880,7 @@ export interface paths {
                          *           "from": "2026-10-07",
                          *           "to": "2026-10-08",
                          *           "days": 2,
+                         *           "warning": null,
                          *           "reason": "RAIN",
                          *           "category": "EXCUSABLE",
                          *           "status": "APPROVED",
@@ -23826,6 +24035,7 @@ export interface paths {
                          *         "from": "2026-10-07",
                          *         "to": "2026-10-08",
                          *         "days": 2,
+                         *         "warning": null,
                          *         "reason": "RAIN",
                          *         "category": "EXCUSABLE",
                          *         "status": "REJECTED",
@@ -32294,7 +32504,7 @@ export interface paths {
         };
         /**
          * Equipment register
-         * @description equipment.view. Machines and bulk items with company-wide totals (owned / on rent / at sites / at the yard / in transit). Rates, values and amounts are left out without fields.rates (Munshi never sees them).
+         * @description equipment.view. Machines and bulk items with company-wide totals (owned / on rent / at sites / at the yard / in transit). Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -32391,7 +32601,7 @@ export interface paths {
         put?: never;
         /**
          * Add equipment
-         * @description equipment.manage. Name unique per company (409 EQUIPMENT_EXISTS). Quantities come in through stock-in (opening / purchase) or rentals.
+         * @description equipment.manage (hireRatePaisaPerDay / replacementValuePaisa also fields.amounts). Name unique per company (409 EQUIPMENT_EXISTS). Quantities come in through stock-in (opening / purchase) or rentals.
          */
         post: {
             parameters: {
@@ -32547,7 +32757,7 @@ export interface paths {
         };
         /**
          * Equipment detail
-         * @description equipment.view. Totals plus quantity per location the caller can see. Rates, values and amounts are left out without fields.rates (Munshi never sees them).
+         * @description equipment.view. Totals plus quantity per location the caller can see. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -32658,7 +32868,7 @@ export interface paths {
         head?: never;
         /**
          * Edit equipment
-         * @description equipment.manage. A new hire rate applies to days not charged yet (posted days keep their rate).
+         * @description equipment.manage (hire rate / replacement value also fields.amounts). A new hire rate applies to days not charged yet (posted days keep their rate).
          */
         patch: {
             parameters: {
@@ -33430,7 +33640,7 @@ export interface paths {
         };
         /**
          * Equipment on site
-         * @description equipment.view + project scope. Owned / rented units at the site, transfers on the way, active rentals, losses not charged yet, hire and rent posted to date. Rates, values and amounts are left out without fields.rates (Munshi never sees them).
+         * @description equipment.view + project scope. Owned / rented units at the site, transfers on the way, active rentals, losses not charged yet, hire and rent posted to date. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -33525,6 +33735,7 @@ export interface paths {
                          *             "depositPaisa": "2000000",
                          *             "depositRefundedPaisa": "0",
                          *             "damageChargesPaisa": "0",
+                         *             "missingChargesPaisa": "0",
                          *             "rentChargedPaisa": "0",
                          *             "accruedToDatePaisa": "3600000",
                          *             "postedPaisa": "3375000",
@@ -34465,7 +34676,7 @@ export interface paths {
         };
         /**
          * Rentals from yards
-         * @description equipment.view (rentals of projects in scope; yard rentals for equipment managers). accruedToDatePaisa = days × outstanding × rate up to today (live); postedPaisa = daily charges posted. Rates, values and amounts are left out without fields.rates (Munshi never sees them).
+         * @description equipment.view (rentals of projects in scope; yard rentals for equipment managers). daysOnRent / accruedToDatePaisa = from the start day up to (not including) the return date, or today while on hire — the same days the bill at return charges; postedPaisa = daily charges posted. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -34540,6 +34751,7 @@ export interface paths {
                          *           "depositPaisa": "2000000",
                          *           "depositRefundedPaisa": "0",
                          *           "damageChargesPaisa": "0",
+                         *           "missingChargesPaisa": "0",
                          *           "rentChargedPaisa": "0",
                          *           "accruedToDatePaisa": "3600000",
                          *           "postedPaisa": "3375000",
@@ -34600,7 +34812,7 @@ export interface paths {
         put?: never;
         /**
          * Hire from a yard
-         * @description equipment.rental.manage. Items arrive at the site (or yard) on startDate (RENTAL_IN). Deposit → supplier ledger credit (ADJUSTMENT, refType RENTAL_DEPOSIT). Rent accrues daily to the project (P&L EQUIPMENT).
+         * @description equipment.rental.manage + fields.amounts (a rental sets the daily rent; owner decision 3). Items arrive at the site (or yard) on startDate (RENTAL_IN). Deposit → supplier ledger credit (ADJUSTMENT, refType RENTAL_DEPOSIT). Rent accrues daily to the project (P&L EQUIPMENT).
          */
         post: {
             parameters: {
@@ -34710,6 +34922,7 @@ export interface paths {
                          *         "depositPaisa": "2000000",
                          *         "depositRefundedPaisa": "0",
                          *         "damageChargesPaisa": "0",
+                         *         "missingChargesPaisa": "0",
                          *         "rentChargedPaisa": "0",
                          *         "accruedToDatePaisa": "3600000",
                          *         "postedPaisa": "3375000",
@@ -34860,6 +35073,7 @@ export interface paths {
                          *         "depositPaisa": "2000000",
                          *         "depositRefundedPaisa": "0",
                          *         "damageChargesPaisa": "0",
+                         *         "missingChargesPaisa": "0",
                          *         "rentChargedPaisa": "0",
                          *         "accruedToDatePaisa": "3600000",
                          *         "postedPaisa": "3375000",
@@ -35004,6 +35218,7 @@ export interface paths {
                          *         "depositPaisa": "2000000",
                          *         "depositRefundedPaisa": "0",
                          *         "damageChargesPaisa": "0",
+                         *         "missingChargesPaisa": "0",
                          *         "rentChargedPaisa": "0",
                          *         "accruedToDatePaisa": "3600000",
                          *         "postedPaisa": "3375000",
@@ -35089,7 +35304,7 @@ export interface paths {
         put?: never;
         /**
          * Return to the yard (partly or fully), with damage charges
-         * @description equipment.rental.manage. `qty` leaves the location (RENTAL_RETURN_OUT); `missingQty` = never handed back and must already be reported as a MISSING loss (400 MISSING_NOT_REPORTED). Damage charges → supplier ledger (RENTAL_DAMAGE). When nothing is outstanding: the remaining days are posted, rent = Σ daily RENTAL charges → supplier ledger (RENTAL_CHARGE), status RETURNED. Return day is not charged.
+         * @description equipment.rental.manage (damageChargesPaisa / missingChargesPaisa also fields.amounts). `qty` leaves the location (RENTAL_RETURN_OUT); `missingQty` = never handed back and must already be reported as a MISSING loss (400 MISSING_NOT_REPORTED). Damage charges → supplier ledger (RENTAL_DAMAGE). Missing pieces → supplier ledger (RENTAL_MISSING): missingChargesPaisa, default missing qty × the equipment replacement value. When nothing is outstanding: the remaining days are posted, rent = Σ daily RENTAL charges → supplier ledger (RENTAL_CHARGE), status RETURNED. Return day is not charged.
          */
         post: {
             parameters: {
@@ -35135,6 +35350,11 @@ export interface paths {
                          * @example 450000
                          */
                         damageChargesPaisa?: string | number;
+                        /**
+                         * @description What the yard bills for the missing pieces (supplier ledger RENTAL_MISSING). Default: missing qty × the equipment’s replacement value
+                         * @example 1050000
+                         */
+                        missingChargesPaisa?: string | number;
                         note?: string;
                     };
                 };
@@ -35196,6 +35416,7 @@ export interface paths {
                          *         "depositPaisa": "2000000",
                          *         "depositRefundedPaisa": "0",
                          *         "damageChargesPaisa": "450000",
+                         *         "missingChargesPaisa": "0",
                          *         "rentChargedPaisa": "3375000",
                          *         "accruedToDatePaisa": "3600000",
                          *         "postedPaisa": "3375000",
@@ -35281,7 +35502,7 @@ export interface paths {
         put?: never;
         /**
          * Close (settle the deposit)
-         * @description equipment.rental.manage. RETURNED only. Cash refunded by the yard → supplier ledger (RENTAL_DEPOSIT_REFUND); the rest of the deposit stays as credit against the charges.
+         * @description equipment.rental.manage (depositRefundPaisa also fields.amounts). RETURNED only. Cash refunded by the yard → supplier ledger (RENTAL_DEPOSIT_REFUND); the rest of the deposit stays as credit against the charges.
          */
         post: {
             parameters: {
@@ -35362,6 +35583,7 @@ export interface paths {
                          *         "depositPaisa": "2000000",
                          *         "depositRefundedPaisa": "0",
                          *         "damageChargesPaisa": "0",
+                         *         "missingChargesPaisa": "0",
                          *         "rentChargedPaisa": "0",
                          *         "accruedToDatePaisa": "3600000",
                          *         "postedPaisa": "3375000",
@@ -35445,7 +35667,7 @@ export interface paths {
         };
         /**
          * Loss & damage
-         * @description equipment.view (projects in scope; yard losses for equipment managers). Rates, values and amounts are left out without fields.rates (Munshi never sees them).
+         * @description equipment.view (projects in scope; yard losses for equipment managers). Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -35837,7 +36059,7 @@ export interface paths {
         put?: never;
         /**
          * Charge a loss
-         * @description equipment.loss.approve. PROJECT → project P&L (LOSSES); SUBCONTRACTOR → sub-contract ledger DEDUCTION; WRITE_OFF → the company (no project cost). valuePaisa defaults to the estimate.
+         * @description equipment.loss.approve (an explicit valuePaisa also fields.amounts). PROJECT → project P&L (LOSSES); SUBCONTRACTOR → sub-contract ledger DEDUCTION; WRITE_OFF → the company (no project cost). valuePaisa defaults to the estimate.
          */
         post: {
             parameters: {
@@ -35991,7 +36213,7 @@ export interface paths {
         };
         /**
          * Daily hire and rent charges
-         * @description equipment.view (projects in scope). One row per day × site × equipment (INTERNAL_HIRE) or day × rental item (RENTAL); correction rows have correction: true. meta.totalPaisa = Σ amount of the filter. Rates, values and amounts are left out without fields.rates (Munshi never sees them).
+         * @description equipment.view (projects in scope). One row per day × site × equipment (INTERNAL_HIRE) or day × rental item (RENTAL); correction rows have correction: true. meta.totalPaisa = Σ amount of the filter. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
          */
         get: {
             parameters: {
@@ -36200,6 +36422,1096 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/equipment/shuttering-demand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shuttering demand planner
+         * @description equipment.view. Every ACTIVE project in scope (or `projectId`), from the week of `from` (Monday) for `weeks` weeks. Weekly shuttering plates / props needed by the slab milestones (GF / F1 / F2 / F3 slab, mumty roof) of the schedule vs owned and rented units, with suggestions. Area per slab from the APPROVED estimate: slab soffit + beam sides from the shuttering BoQ line (BOQ), else the floor footprint + beamSidesPercent (ESTIMATE_FOOTPRINT), else covered area ÷ slab floors (COVERED_AREA). plates = ceil(area ÷ plate coverage × (1 + spare %)), props = ceil(plates × props per plate) (company settings). Plates are held from the start of the slab work until it is struck (end + curing lag, else 14 days). Weekly need = the highest day of the week. Company view: owned available = every owned unit, on rent = rented units on hand; project view: owned at the site + the yard, rented at the site. Suggestions: EXTEND_RENTAL for the site’s own rentals ending while it is still short, TRANSFER from the yard, then from sites that need fewer from that week on (idleAfterWeek), RENT the rest (supplier = yard last rented from); RETURN_RENTAL for rented units nobody needs. No money in the planner. Assumptions need engineer review.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    projectId?: string;
+                    /** @description First week (snapped back to Monday; default this week) */
+                    from?: string;
+                    /** @description Weeks to plan (default 8) */
+                    weeks?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Demand */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "scope": "COMPANY",
+                         *         "project": null,
+                         *         "from": "2026-10-12",
+                         *         "to": "2026-11-08",
+                         *         "today": "2026-10-16",
+                         *         "weeks": 4,
+                         *         "parameters": {
+                         *           "plateCoverageSqft": 6,
+                         *           "plateCoverageSource": "EQUIPMENT",
+                         *           "propsPerPlate": 0.75,
+                         *           "sparePercent": 5,
+                         *           "beamSidesPercent": 20,
+                         *           "defaultStrikeDays": 14
+                         *         },
+                         *         "equipment": {
+                         *           "plates": [
+                         *             {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001601",
+                         *               "name": "Steel shuttering plate 2×3 ft",
+                         *               "code": "SP-23",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "SHUTTERING_PLATE"
+                         *             }
+                         *           ],
+                         *           "props": [
+                         *             {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001602",
+                         *               "name": "Steel prop (adjustable)",
+                         *               "code": "PR-01",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "PROP"
+                         *             }
+                         *           ]
+                         *         },
+                         *         "milestones": [
+                         *           {
+                         *             "project": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "milestone": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001671",
+                         *               "key": "F1_STRUCTURE.SLAB",
+                         *               "name": "First floor roof slab (lenter)",
+                         *               "stageKey": "F1_STRUCTURE",
+                         *               "status": "IN_PROGRESS",
+                         *               "plannedStart": "2026-10-14",
+                         *               "plannedEnd": "2026-10-28",
+                         *               "curingDays": 14
+                         *             },
+                         *             "holdFrom": "2026-10-14",
+                         *             "holdUntil": "2026-11-11",
+                         *             "area": {
+                         *               "slabSqft": 2250,
+                         *               "beamSqft": 450,
+                         *               "totalSqft": 2700,
+                         *               "source": "ESTIMATE_FOOTPRINT"
+                         *             },
+                         *             "plates": 473,
+                         *             "props": 355
+                         *           }
+                         *         ],
+                         *         "series": [
+                         *           {
+                         *             "category": "SHUTTERING_PLATE",
+                         *             "weeks": [
+                         *               {
+                         *                 "weekStart": "2026-10-12",
+                         *                 "weekEnd": "2026-10-18",
+                         *                 "needed": 473,
+                         *                 "ownedAvailable": 394,
+                         *                 "onRent": 0,
+                         *                 "available": 394,
+                         *                 "shortfall": 79,
+                         *                 "surplus": 0,
+                         *                 "demand": [
+                         *                   {
+                         *                     "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *                     "milestoneId": "0199a8c0-0000-7000-8000-000000001671",
+                         *                     "qty": 473
+                         *                   }
+                         *                 ]
+                         *               },
+                         *               {
+                         *                 "weekStart": "2026-10-19",
+                         *                 "weekEnd": "2026-10-25",
+                         *                 "needed": 473,
+                         *                 "ownedAvailable": 394,
+                         *                 "onRent": 0,
+                         *                 "available": 394,
+                         *                 "shortfall": 79,
+                         *                 "surplus": 0,
+                         *                 "demand": [
+                         *                   {
+                         *                     "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *                     "milestoneId": "0199a8c0-0000-7000-8000-000000001671",
+                         *                     "qty": 473
+                         *                   }
+                         *                 ]
+                         *               },
+                         *               {
+                         *                 "weekStart": "2026-10-26",
+                         *                 "weekEnd": "2026-11-01",
+                         *                 "needed": 473,
+                         *                 "ownedAvailable": 394,
+                         *                 "onRent": 0,
+                         *                 "available": 394,
+                         *                 "shortfall": 79,
+                         *                 "surplus": 0,
+                         *                 "demand": [
+                         *                   {
+                         *                     "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *                     "milestoneId": "0199a8c0-0000-7000-8000-000000001671",
+                         *                     "qty": 473
+                         *                   }
+                         *                 ]
+                         *               },
+                         *               {
+                         *                 "weekStart": "2026-11-02",
+                         *                 "weekEnd": "2026-11-08",
+                         *                 "needed": 473,
+                         *                 "ownedAvailable": 394,
+                         *                 "onRent": 0,
+                         *                 "available": 394,
+                         *                 "shortfall": 79,
+                         *                 "surplus": 0,
+                         *                 "demand": [
+                         *                   {
+                         *                     "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *                     "milestoneId": "0199a8c0-0000-7000-8000-000000001671",
+                         *                     "qty": 473
+                         *                   }
+                         *                 ]
+                         *               }
+                         *             ]
+                         *           }
+                         *         ],
+                         *         "suggestions": [
+                         *           {
+                         *             "type": "EXTEND_RENTAL",
+                         *             "category": "PROP",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001602",
+                         *               "name": "Steel prop (adjustable)",
+                         *               "code": "PR-01",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "PROP"
+                         *             },
+                         *             "qty": 150,
+                         *             "fromWeek": "2026-11-02",
+                         *             "toWeek": "2026-11-09",
+                         *             "from": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "fromProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "idleAfterWeek": null,
+                         *             "toProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "toLocation": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "rental": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001621",
+                         *               "number": "RNT-0001"
+                         *             },
+                         *             "supplier": null
+                         *           },
+                         *           {
+                         *             "type": "TRANSFER",
+                         *             "category": "SHUTTERING_PLATE",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001601",
+                         *               "name": "Steel shuttering plate 2×3 ft",
+                         *               "code": "SP-23",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "SHUTTERING_PLATE"
+                         *             },
+                         *             "qty": 20,
+                         *             "fromWeek": "2026-10-12",
+                         *             "toWeek": "2026-11-08",
+                         *             "from": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000501",
+                         *               "type": "STORE",
+                         *               "name": "Central Store",
+                         *               "projectId": null
+                         *             },
+                         *             "fromProject": null,
+                         *             "idleAfterWeek": null,
+                         *             "toProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "toLocation": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "rental": null,
+                         *             "supplier": null
+                         *           },
+                         *           {
+                         *             "type": "TRANSFER",
+                         *             "category": "SHUTTERING_PLATE",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001601",
+                         *               "name": "Steel shuttering plate 2×3 ft",
+                         *               "code": "SP-23",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "SHUTTERING_PLATE"
+                         *             },
+                         *             "qty": 130,
+                         *             "fromWeek": "2026-10-12",
+                         *             "toWeek": "2026-11-08",
+                         *             "from": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000504",
+                         *               "type": "SITE",
+                         *               "name": "Johar Town · 5 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000303"
+                         *             },
+                         *             "fromProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000303",
+                         *               "code": "MSB-2026-014",
+                         *               "name": "Johar Town · 5 Marla"
+                         *             },
+                         *             "idleAfterWeek": null,
+                         *             "toProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "toLocation": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "rental": null,
+                         *             "supplier": null
+                         *           },
+                         *           {
+                         *             "type": "RENT",
+                         *             "category": "SHUTTERING_PLATE",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001601",
+                         *               "name": "Steel shuttering plate 2×3 ft",
+                         *               "code": "SP-23",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "SHUTTERING_PLATE"
+                         *             },
+                         *             "qty": 79,
+                         *             "fromWeek": "2026-10-12",
+                         *             "toWeek": "2026-11-08",
+                         *             "from": null,
+                         *             "fromProject": null,
+                         *             "idleAfterWeek": null,
+                         *             "toProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "toLocation": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "rental": null,
+                         *             "supplier": {
+                         *               "id": "0199a8c0-0000-7000-8000-0000000000f5",
+                         *               "name": "Punjab Shuttering Yard"
+                         *             }
+                         *           },
+                         *           {
+                         *             "type": "RETURN_RENTAL",
+                         *             "category": "PROP",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001602",
+                         *               "name": "Steel prop (adjustable)",
+                         *               "code": "PR-01",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "PROP"
+                         *             },
+                         *             "qty": 100,
+                         *             "fromWeek": "2026-10-12",
+                         *             "toWeek": "2026-10-12",
+                         *             "from": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000504",
+                         *               "type": "SITE",
+                         *               "name": "Johar Town · 5 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000303"
+                         *             },
+                         *             "fromProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000303",
+                         *               "code": "MSB-2026-014",
+                         *               "name": "Johar Town · 5 Marla"
+                         *             },
+                         *             "idleAfterWeek": null,
+                         *             "toProject": null,
+                         *             "toLocation": null,
+                         *             "rental": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001623",
+                         *               "number": "RNT-0002"
+                         *             },
+                         *             "supplier": null
+                         *           }
+                         *         ],
+                         *         "warnings": [
+                         *           {
+                         *             "code": "NO_SCHEDULE",
+                         *             "project": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000303",
+                         *               "code": "MSB-2026-014",
+                         *               "name": "Johar Town · 5 Marla"
+                         *             }
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/shuttering-demand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shuttering demand of one project
+         * @description equipment.view + project scope. Same as GET /equipment/shuttering-demand?projectId= (scope PROJECT). Weekly shuttering plates / props needed by the slab milestones (GF / F1 / F2 / F3 slab, mumty roof) of the schedule vs owned and rented units, with suggestions. Area per slab from the APPROVED estimate: slab soffit + beam sides from the shuttering BoQ line (BOQ), else the floor footprint + beamSidesPercent (ESTIMATE_FOOTPRINT), else covered area ÷ slab floors (COVERED_AREA). plates = ceil(area ÷ plate coverage × (1 + spare %)), props = ceil(plates × props per plate) (company settings). Plates are held from the start of the slab work until it is struck (end + curing lag, else 14 days). Weekly need = the highest day of the week. Company view: owned available = every owned unit, on rent = rented units on hand; project view: owned at the site + the yard, rented at the site. Suggestions: EXTEND_RENTAL for the site’s own rentals ending while it is still short, TRANSFER from the yard, then from sites that need fewer from that week on (idleAfterWeek), RENT the rest (supplier = yard last rented from); RETURN_RENTAL for rented units nobody needs. No money in the planner. Assumptions need engineer review.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description First week (snapped back to Monday; default this week) */
+                    from?: string;
+                    /** @description Weeks to plan (default 8) */
+                    weeks?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Project id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Demand */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "scope": "PROJECT",
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla"
+                         *         },
+                         *         "from": "2026-10-12",
+                         *         "to": "2026-11-08",
+                         *         "today": "2026-10-16",
+                         *         "weeks": 4,
+                         *         "parameters": {
+                         *           "plateCoverageSqft": 6,
+                         *           "plateCoverageSource": "EQUIPMENT",
+                         *           "propsPerPlate": 0.75,
+                         *           "sparePercent": 5,
+                         *           "beamSidesPercent": 20,
+                         *           "defaultStrikeDays": 14
+                         *         },
+                         *         "equipment": {
+                         *           "plates": [
+                         *             {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001601",
+                         *               "name": "Steel shuttering plate 2×3 ft",
+                         *               "code": "SP-23",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "SHUTTERING_PLATE"
+                         *             }
+                         *           ],
+                         *           "props": [
+                         *             {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001602",
+                         *               "name": "Steel prop (adjustable)",
+                         *               "code": "PR-01",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "PROP"
+                         *             }
+                         *           ]
+                         *         },
+                         *         "milestones": [
+                         *           {
+                         *             "project": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "milestone": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001671",
+                         *               "key": "F1_STRUCTURE.SLAB",
+                         *               "name": "First floor roof slab (lenter)",
+                         *               "stageKey": "F1_STRUCTURE",
+                         *               "status": "IN_PROGRESS",
+                         *               "plannedStart": "2026-10-14",
+                         *               "plannedEnd": "2026-10-28",
+                         *               "curingDays": 14
+                         *             },
+                         *             "holdFrom": "2026-10-14",
+                         *             "holdUntil": "2026-11-11",
+                         *             "area": {
+                         *               "slabSqft": 2250,
+                         *               "beamSqft": 450,
+                         *               "totalSqft": 2700,
+                         *               "source": "ESTIMATE_FOOTPRINT"
+                         *             },
+                         *             "plates": 473,
+                         *             "props": 355
+                         *           }
+                         *         ],
+                         *         "series": [
+                         *           {
+                         *             "category": "SHUTTERING_PLATE",
+                         *             "weeks": [
+                         *               {
+                         *                 "weekStart": "2026-10-12",
+                         *                 "weekEnd": "2026-10-18",
+                         *                 "needed": 473,
+                         *                 "ownedAvailable": 394,
+                         *                 "onRent": 0,
+                         *                 "available": 394,
+                         *                 "shortfall": 79,
+                         *                 "surplus": 0,
+                         *                 "demand": [
+                         *                   {
+                         *                     "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *                     "milestoneId": "0199a8c0-0000-7000-8000-000000001671",
+                         *                     "qty": 473
+                         *                   }
+                         *                 ]
+                         *               },
+                         *               {
+                         *                 "weekStart": "2026-10-19",
+                         *                 "weekEnd": "2026-10-25",
+                         *                 "needed": 473,
+                         *                 "ownedAvailable": 394,
+                         *                 "onRent": 0,
+                         *                 "available": 394,
+                         *                 "shortfall": 79,
+                         *                 "surplus": 0,
+                         *                 "demand": [
+                         *                   {
+                         *                     "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *                     "milestoneId": "0199a8c0-0000-7000-8000-000000001671",
+                         *                     "qty": 473
+                         *                   }
+                         *                 ]
+                         *               },
+                         *               {
+                         *                 "weekStart": "2026-10-26",
+                         *                 "weekEnd": "2026-11-01",
+                         *                 "needed": 473,
+                         *                 "ownedAvailable": 394,
+                         *                 "onRent": 0,
+                         *                 "available": 394,
+                         *                 "shortfall": 79,
+                         *                 "surplus": 0,
+                         *                 "demand": [
+                         *                   {
+                         *                     "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *                     "milestoneId": "0199a8c0-0000-7000-8000-000000001671",
+                         *                     "qty": 473
+                         *                   }
+                         *                 ]
+                         *               },
+                         *               {
+                         *                 "weekStart": "2026-11-02",
+                         *                 "weekEnd": "2026-11-08",
+                         *                 "needed": 473,
+                         *                 "ownedAvailable": 394,
+                         *                 "onRent": 0,
+                         *                 "available": 394,
+                         *                 "shortfall": 79,
+                         *                 "surplus": 0,
+                         *                 "demand": [
+                         *                   {
+                         *                     "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *                     "milestoneId": "0199a8c0-0000-7000-8000-000000001671",
+                         *                     "qty": 473
+                         *                   }
+                         *                 ]
+                         *               }
+                         *             ]
+                         *           }
+                         *         ],
+                         *         "suggestions": [
+                         *           {
+                         *             "type": "EXTEND_RENTAL",
+                         *             "category": "PROP",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001602",
+                         *               "name": "Steel prop (adjustable)",
+                         *               "code": "PR-01",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "PROP"
+                         *             },
+                         *             "qty": 150,
+                         *             "fromWeek": "2026-11-02",
+                         *             "toWeek": "2026-11-09",
+                         *             "from": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "fromProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "idleAfterWeek": null,
+                         *             "toProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "toLocation": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "rental": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001621",
+                         *               "number": "RNT-0001"
+                         *             },
+                         *             "supplier": null
+                         *           },
+                         *           {
+                         *             "type": "TRANSFER",
+                         *             "category": "SHUTTERING_PLATE",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001601",
+                         *               "name": "Steel shuttering plate 2×3 ft",
+                         *               "code": "SP-23",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "SHUTTERING_PLATE"
+                         *             },
+                         *             "qty": 20,
+                         *             "fromWeek": "2026-10-12",
+                         *             "toWeek": "2026-11-08",
+                         *             "from": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000501",
+                         *               "type": "STORE",
+                         *               "name": "Central Store",
+                         *               "projectId": null
+                         *             },
+                         *             "fromProject": null,
+                         *             "idleAfterWeek": null,
+                         *             "toProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "toLocation": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "rental": null,
+                         *             "supplier": null
+                         *           },
+                         *           {
+                         *             "type": "TRANSFER",
+                         *             "category": "SHUTTERING_PLATE",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001601",
+                         *               "name": "Steel shuttering plate 2×3 ft",
+                         *               "code": "SP-23",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "SHUTTERING_PLATE"
+                         *             },
+                         *             "qty": 130,
+                         *             "fromWeek": "2026-10-12",
+                         *             "toWeek": "2026-11-08",
+                         *             "from": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000504",
+                         *               "type": "SITE",
+                         *               "name": "Johar Town · 5 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000303"
+                         *             },
+                         *             "fromProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000303",
+                         *               "code": "MSB-2026-014",
+                         *               "name": "Johar Town · 5 Marla"
+                         *             },
+                         *             "idleAfterWeek": null,
+                         *             "toProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "toLocation": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "rental": null,
+                         *             "supplier": null
+                         *           },
+                         *           {
+                         *             "type": "RENT",
+                         *             "category": "SHUTTERING_PLATE",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001601",
+                         *               "name": "Steel shuttering plate 2×3 ft",
+                         *               "code": "SP-23",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "SHUTTERING_PLATE"
+                         *             },
+                         *             "qty": 79,
+                         *             "fromWeek": "2026-10-12",
+                         *             "toWeek": "2026-11-08",
+                         *             "from": null,
+                         *             "fromProject": null,
+                         *             "idleAfterWeek": null,
+                         *             "toProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "toLocation": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000503",
+                         *               "type": "SITE",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000301"
+                         *             },
+                         *             "rental": null,
+                         *             "supplier": {
+                         *               "id": "0199a8c0-0000-7000-8000-0000000000f5",
+                         *               "name": "Punjab Shuttering Yard"
+                         *             }
+                         *           },
+                         *           {
+                         *             "type": "RETURN_RENTAL",
+                         *             "category": "PROP",
+                         *             "equipment": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001602",
+                         *               "name": "Steel prop (adjustable)",
+                         *               "code": "PR-01",
+                         *               "unit": "nos",
+                         *               "kind": "BULK",
+                         *               "category": "PROP"
+                         *             },
+                         *             "qty": 100,
+                         *             "fromWeek": "2026-10-12",
+                         *             "toWeek": "2026-10-12",
+                         *             "from": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000504",
+                         *               "type": "SITE",
+                         *               "name": "Johar Town · 5 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000303"
+                         *             },
+                         *             "fromProject": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000303",
+                         *               "code": "MSB-2026-014",
+                         *               "name": "Johar Town · 5 Marla"
+                         *             },
+                         *             "idleAfterWeek": null,
+                         *             "toProject": null,
+                         *             "toLocation": null,
+                         *             "rental": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001623",
+                         *               "number": "RNT-0002"
+                         *             },
+                         *             "supplier": null
+                         *           }
+                         *         ],
+                         *         "warnings": [
+                         *           {
+                         *             "code": "NO_SCHEDULE",
+                         *             "project": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000303",
+                         *               "code": "MSB-2026-014",
+                         *               "name": "Johar Town · 5 Marla"
+                         *             }
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipment/idle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Idle rented equipment
+         * @description equipment.view (sites in scope). Rented units at a site whose project had no milestone activity (progress update, usage linked to a milestone, a structure milestone IN_PROGRESS / CURING) for at least the company `equipmentIdleDays` (default 5). since = max(last activity, arrival); `all=true` also lists rentals below the threshold. Most idle first. Rates, values and amounts are left out without fields.amounts (owner decision 3: the closeout rule; a Munshi never sees them). Writing them (hire rate, replacement value, a rental, damage / missing charges, deposit refund, loss value) also needs fields.amounts → 403 PERMISSION_DENIED.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    projectId?: string;
+                    /** @description true = also rentals below the idle threshold */
+                    all?: "true" | "false";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Idle rentals */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "today": "2026-10-16",
+                         *         "thresholdDays": 5,
+                         *         "items": [
+                         *           {
+                         *             "rental": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000001623",
+                         *               "number": "RNT-0002",
+                         *               "status": "ACTIVE",
+                         *               "startDate": "2026-10-04",
+                         *               "expectedEndDate": "2026-11-03",
+                         *               "supplier": {
+                         *                 "id": "0199a8c0-0000-7000-8000-0000000000f5",
+                         *                 "name": "Punjab Shuttering Yard"
+                         *               }
+                         *             },
+                         *             "project": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000303",
+                         *               "code": "MSB-2026-014",
+                         *               "name": "Johar Town · 5 Marla"
+                         *             },
+                         *             "location": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000504",
+                         *               "type": "SITE",
+                         *               "name": "Johar Town · 5 Marla",
+                         *               "projectId": "0199a8c0-0000-7000-8000-000000000303"
+                         *             },
+                         *             "items": [
+                         *               {
+                         *                 "equipment": {
+                         *                   "id": "0199a8c0-0000-7000-8000-000000001602",
+                         *                   "name": "Steel prop (adjustable)",
+                         *                   "code": "PR-01",
+                         *                   "unit": "nos",
+                         *                   "kind": "BULK",
+                         *                   "category": "PROP"
+                         *                 },
+                         *                 "qty": 100,
+                         *                 "ratePaisaPerDay": "1500",
+                         *                 "dailyCostPaisa": "150000"
+                         *               }
+                         *             ],
+                         *             "qty": 100,
+                         *             "since": "2026-10-04",
+                         *             "lastActivity": null,
+                         *             "hasSchedule": false,
+                         *             "idleDays": 12,
+                         *             "thresholdDays": 5,
+                         *             "idle": true,
+                         *             "dailyCostPaisa": "150000",
+                         *             "idleCostPaisa": "1800000"
+                         *           }
+                         *         ],
+                         *         "totalDailyCostPaisa": "150000"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipment/idle/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the idle-rent alert now
+         * @description equipment.rental.manage. Same as the daily 09:00 job, for this company: EQUIPMENT_IDLE (WARNING) per idle rental to the holders of equipment.rental.manage for the project + its PMs (the daily rent only for users with fields.amounts). At most once per rental per 7 days per user. Audited (equipment.idle.check).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Checked */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "date": "2026-10-16",
+                         *         "thresholdDays": 5,
+                         *         "checked": 2,
+                         *         "idle": 1,
+                         *         "notified": [
+                         *           {
+                         *             "rentalId": "0199a8c0-0000-7000-8000-000000001623",
+                         *             "number": "RNT-0002",
+                         *             "users": 2
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/projects/{id}/labor/workers": {
         parameters: {
             query?: never;
@@ -36209,7 +37521,7 @@ export interface paths {
         };
         /**
          * Workers on the project
-         * @description All roles with project access (PM / MUNSHI: assigned projects, else 404). Each row has the project rate and the worker’s own default rate.
+         * @description All roles with project access (PM / MUNSHI: assigned projects, else 404). Each row has the project rate and the worker’s own default rate. Daily rates (`dailyRatePaisa`, `defaultRatePaisa`, `rateOverridden`) only with fields.wages (owner decision 4, on by default); setting one needs it too.
          */
         get: {
             parameters: {
@@ -36311,7 +37623,7 @@ export interface paths {
                         /** Format: uuid */
                         workerId: string;
                         /**
-                         * @description Defaults to the worker's own daily rate. MUNSHI may not change it.
+                         * @description Defaults to the worker's own daily rate. MUNSHI may not change it; giving one needs fields.wages.
                          * @example 2500000
                          */
                         dailyRatePaisa?: string | number;
@@ -37330,7 +38642,7 @@ export interface paths {
         };
         /**
          * Hazri register (grid)
-         * @description All roles with project access. Rows = workers, columns = days. Default: the current settlement week; at most 62 days. `weeks` lists settlements in the range (locked = submitted / approved).
+         * @description All roles with project access. Rows = workers, columns = days. Default: the current settlement week; at most 62 days. `weeks` lists settlements in the range (locked = submitted / approved). `dailyRatePaisa` only with fields.wages (owner decision 4).
          */
         get: {
             parameters: {
@@ -43534,6 +44846,11 @@ export interface paths {
                          *           "taxPaisa": "0",
                          *           "taxLabel": null,
                          *           "taxRatePercent": null,
+                         *           "taxableBasePaisa": "0",
+                         *           "taxAuthority": null,
+                         *           "sellerNtn": null,
+                         *           "sellerStrn": null,
+                         *           "buyerNtn": null,
                          *           "totalPaisa": "370000000",
                          *           "paidPaisa": "260000000",
                          *           "pendingPaisa": "0",
@@ -43645,7 +44962,7 @@ export interface paths {
          *     - **RETENTION** — after handover (CLOSEOUT / HANDED_OVER)
          *     - **OTHER** `lines` — manual (THEKEDAR)
          *
-         *     Tax is added when tax is on (subtotal × taxRatePercent).
+         *     Step 18 tax: when tax is on for the project (company setting or project override) a tax line is added: round(taxable base × rate ÷ 100), base = all lines except owner-recoverable purchases (CASH_ENTRY). Drafts follow the current settings; issuing freezes `taxAuthority`, `taxRatePercent`, `taxLabel`, `taxableBasePaisa`, `taxPaisa`, `sellerNtn`, `sellerStrn`, `buyerNtn`.
          */
         post: {
             parameters: {
@@ -43744,6 +45061,11 @@ export interface paths {
                          *         "taxPaisa": "0",
                          *         "taxLabel": null,
                          *         "taxRatePercent": null,
+                         *         "taxableBasePaisa": "0",
+                         *         "taxAuthority": null,
+                         *         "sellerNtn": null,
+                         *         "sellerStrn": null,
+                         *         "buyerNtn": null,
                          *         "totalPaisa": "370000000",
                          *         "paidPaisa": "0",
                          *         "pendingPaisa": "0",
@@ -43892,6 +45214,11 @@ export interface paths {
                          *         "taxPaisa": "0",
                          *         "taxLabel": null,
                          *         "taxRatePercent": null,
+                         *         "taxableBasePaisa": "0",
+                         *         "taxAuthority": null,
+                         *         "sellerNtn": null,
+                         *         "sellerStrn": null,
+                         *         "buyerNtn": null,
                          *         "totalPaisa": "370000000",
                          *         "paidPaisa": "260000000",
                          *         "pendingPaisa": "0",
@@ -44140,6 +45467,11 @@ export interface paths {
                          *         "taxPaisa": "0",
                          *         "taxLabel": null,
                          *         "taxRatePercent": null,
+                         *         "taxableBasePaisa": "0",
+                         *         "taxAuthority": null,
+                         *         "sellerNtn": null,
+                         *         "sellerStrn": null,
+                         *         "buyerNtn": null,
                          *         "totalPaisa": "370000000",
                          *         "paidPaisa": "260000000",
                          *         "pendingPaisa": "0",
@@ -44323,6 +45655,11 @@ export interface paths {
                          *         "taxPaisa": "0",
                          *         "taxLabel": null,
                          *         "taxRatePercent": null,
+                         *         "taxableBasePaisa": "0",
+                         *         "taxAuthority": null,
+                         *         "sellerNtn": null,
+                         *         "sellerStrn": null,
+                         *         "buyerNtn": null,
                          *         "totalPaisa": "370000000",
                          *         "paidPaisa": "260000000",
                          *         "pendingPaisa": "0",
@@ -44506,6 +45843,11 @@ export interface paths {
                          *         "taxPaisa": "0",
                          *         "taxLabel": null,
                          *         "taxRatePercent": null,
+                         *         "taxableBasePaisa": "0",
+                         *         "taxAuthority": null,
+                         *         "sellerNtn": null,
+                         *         "sellerStrn": null,
+                         *         "buyerNtn": null,
                          *         "totalPaisa": "370000000",
                          *         "paidPaisa": "260000000",
                          *         "pendingPaisa": "0",
@@ -44657,8 +45999,10 @@ export interface paths {
                          *       "success": true,
                          *       "data": {
                          *         "attachmentId": "0199a8c0-0000-7000-8000-000000000e51",
-                         *         "url": "https://res.cloudinary.com/demo/raw/upload/s--sig--/INV-2026-0010.pdf",
-                         *         "expiresAt": "2026-10-06T10:15:00.000Z",
+                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&sig=…",
+                         *         "expiresAt": "2026-11-30T10:05:00.000Z",
+                         *         "fileUrl": "http://localhost:4000/api/v1/attachments/0199a8c0-0000-7000-8000-000000000e51/file/INV-2026-0010.pdf?tid=…&exp=…&sig=…",
+                         *         "fileUrlExpiresAt": "2026-10-06T10:15:00.000Z",
                          *         "whatsappText": "Assalam o Alaikum Ahmed Raza sahib, DHA Phase 6 · 10 Marla ka invoice INV-2026-0010 (Rs 37,00,000), due 3 Sept. Link: https://…",
                          *         "clientPhone": "+923001112222"
                          *       }
@@ -44779,6 +46123,9 @@ export interface paths {
                          *           "receivedOn": "2026-09-20",
                          *           "amountPaisa": "110000000",
                          *           "whtDeductedPaisa": "0",
+                         *           "grossPaisa": "110000000",
+                         *           "whtRatePercent": null,
+                         *           "whtCertificate": null,
                          *           "method": "CHEQUE",
                          *           "bankName": "MCB",
                          *           "reference": null,
@@ -44859,7 +46206,7 @@ export interface paths {
         put?: never;
         /**
          * Record a payment
-         * @description THEKEDAR (PM only when `pmCanRecordPayments`). Numbered RV-2026-0001. Without `allocations` the oldest due invoices are settled first; the remainder is kept as project credit and settles the next issued invoice. Cheques start PENDING (shown as pending, not paid). WHT (only when tax is on) counts towards the invoices.
+         * @description THEKEDAR (PM only when `pmCanRecordPayments`). Numbered RV-2026-0001. Without `allocations` the oldest due invoices are settled first; the remainder is kept as project credit and settles the next issued invoice. Cheques start PENDING (shown as pending, not paid). WHT (only when tax is on for the project) counts towards the invoices like cash: paid / balance / received include it. Step 18: `whtRatePercent` alone works the WHT out as r % of the gross (cash + WHT); with `whtDeductedPaisa` both must agree within Rs 1. The certificate number / date / file can be added later (PATCH /payments/{id}/wht-certificate).
          */
         post: {
             parameters: {
@@ -44893,6 +46240,19 @@ export interface paths {
                          * @example 2500000
                          */
                         whtDeductedPaisa?: string | number;
+                        /**
+                         * @description WHT % of the gross (cash + WHT). Alone → the WHT amount is worked out; with whtDeductedPaisa → must match within Rs 1
+                         * @example 8
+                         */
+                        whtRatePercent?: number;
+                        whtCertificateNo?: string;
+                        /** @example 2026-12-25 */
+                        whtCertificateDate?: string;
+                        /**
+                         * Format: uuid
+                         * @description Photo / PDF of the client's withholding certificate
+                         */
+                        whtCertificateAttachmentId?: string;
                         /** Format: uuid */
                         attachmentId?: string;
                         note?: string;
@@ -44934,6 +46294,9 @@ export interface paths {
                          *         "receivedOn": "2026-09-20",
                          *         "amountPaisa": "110000000",
                          *         "whtDeductedPaisa": "0",
+                         *         "grossPaisa": "110000000",
+                         *         "whtRatePercent": null,
+                         *         "whtCertificate": null,
                          *         "method": "CHEQUE",
                          *         "bankName": "MCB",
                          *         "reference": null,
@@ -44972,7 +46335,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description VALIDATION_ERROR | FUTURE_DATE | WHT_NOT_ENABLED | INVALID_ATTACHMENT | INVALID_ALLOCATION | ALLOCATION_EXCEEDS_BALANCE | ALLOCATION_EXCEEDS_PAYMENT */
+                /** @description VALIDATION_ERROR | FUTURE_DATE | WHT_NOT_ENABLED | WHT_RATE_MISMATCH | WHT_TOO_HIGH | WHT_CERTIFICATE_WITHOUT_WHT | INVALID_ATTACHMENT | INVALID_ALLOCATION | ALLOCATION_EXCEEDS_BALANCE | ALLOCATION_EXCEEDS_PAYMENT */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -45060,6 +46423,9 @@ export interface paths {
                          *         "receivedOn": "2026-09-20",
                          *         "amountPaisa": "110000000",
                          *         "whtDeductedPaisa": "0",
+                         *         "grossPaisa": "110000000",
+                         *         "whtRatePercent": null,
+                         *         "whtCertificate": null,
                          *         "method": "CHEQUE",
                          *         "bankName": "MCB",
                          *         "reference": null,
@@ -45198,6 +46564,9 @@ export interface paths {
                          *         "receivedOn": "2026-09-20",
                          *         "amountPaisa": "110000000",
                          *         "whtDeductedPaisa": "0",
+                         *         "grossPaisa": "110000000",
+                         *         "whtRatePercent": null,
+                         *         "whtCertificate": null,
                          *         "method": "CHEQUE",
                          *         "bankName": "MCB",
                          *         "reference": null,
@@ -45285,6 +46654,167 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/payments/{id}/wht-certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * WHT certificate (Step 18)
+         * @description billing.payment.create. The client's withholding certificate for the WHT on this payment (it usually arrives weeks later). `certificateNo: null` removes it. Shown in the WHT summary report (certificates received / missing).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description ClientPayment id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description null removes the certificate
+                         * @example WHT-2026-00412
+                         */
+                        certificateNo: string | null;
+                        /** @example 2026-12-25 */
+                        certificateDate?: string | null;
+                        /** Format: uuid */
+                        attachmentId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Payment */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "id": "0199a8c0-0000-7000-8000-000000000e21",
+                         *         "number": "RV-2026-0013",
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla"
+                         *         },
+                         *         "client": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000101",
+                         *           "name": "Ahmed Raza"
+                         *         },
+                         *         "receivedOn": "2026-09-20",
+                         *         "amountPaisa": "110000000",
+                         *         "whtDeductedPaisa": "8000000",
+                         *         "grossPaisa": "118000000",
+                         *         "whtRatePercent": 6.78,
+                         *         "whtCertificate": {
+                         *           "number": "WHT-2026-00412",
+                         *           "date": "2026-10-05",
+                         *           "attachmentId": "0199a8c0-0000-7000-8000-000000000602"
+                         *         },
+                         *         "method": "CHEQUE",
+                         *         "bankName": "MCB",
+                         *         "reference": null,
+                         *         "chequeNo": "118845",
+                         *         "chequeDate": null,
+                         *         "status": "CLEARED",
+                         *         "allocatedPaisa": "110000000",
+                         *         "creditPaisa": "0",
+                         *         "allocations": [
+                         *           {
+                         *             "id": "0199a8c0-0000-7000-8000-000000000e21",
+                         *             "amountPaisa": "110000000",
+                         *             "invoice": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000e11",
+                         *               "number": "INV-2026-0010",
+                         *               "type": "STAGE",
+                         *               "status": "PARTLY_PAID"
+                         *             }
+                         *           }
+                         *         ],
+                         *         "attachmentId": null,
+                         *         "receiptAttachmentId": "0199a8c0-0000-7000-8000-000000000e51",
+                         *         "note": null,
+                         *         "bounceReason": null,
+                         *         "clearedAt": null,
+                         *         "bouncedAt": null,
+                         *         "receivedById": "0199a8c0-0000-7000-8000-000000000001",
+                         *         "createdAt": "2026-09-20T10:00:00.000Z"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR | FUTURE_DATE | INVALID_ATTACHMENT */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PAYMENT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description NO_WHT | PAYMENT_BOUNCED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/api/v1/payments/{id}/receipt-pdf": {
         parameters: {
             query?: never;
@@ -45322,8 +46852,10 @@ export interface paths {
                          *       "success": true,
                          *       "data": {
                          *         "attachmentId": "0199a8c0-0000-7000-8000-000000000e51",
-                         *         "url": "https://res.cloudinary.com/demo/raw/upload/s--sig--/INV-2026-0010.pdf",
-                         *         "expiresAt": "2026-10-06T10:15:00.000Z",
+                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&sig=…",
+                         *         "expiresAt": "2026-11-30T10:05:00.000Z",
+                         *         "fileUrl": "http://localhost:4000/api/v1/attachments/0199a8c0-0000-7000-8000-000000000e51/file/INV-2026-0010.pdf?tid=…&exp=…&sig=…",
+                         *         "fileUrlExpiresAt": "2026-10-06T10:15:00.000Z",
                          *         "whatsappText": "Assalam o Alaikum Ahmed Raza sahib, … ki receipt RV-2026-0013. Link: https://…",
                          *         "clientPhone": "+923001112222"
                          *       }
@@ -45912,8 +47444,10 @@ export interface paths {
                          *       "success": true,
                          *       "data": {
                          *         "attachmentId": "0199a8c0-0000-7000-8000-000000000e51",
-                         *         "url": "https://res.cloudinary.com/demo/raw/upload/s--sig--/INV-2026-0010.pdf",
-                         *         "expiresAt": "2026-10-06T10:15:00.000Z",
+                         *         "url": "http://localhost:4000/api/v1/public/files/0199a8c0-0000-7000-8000-000000000e51?tid=…&exp=1764460800&sig=…",
+                         *         "expiresAt": "2026-11-30T10:05:00.000Z",
+                         *         "fileUrl": "http://localhost:4000/api/v1/attachments/0199a8c0-0000-7000-8000-000000000e51/file/INV-2026-0010.pdf?tid=…&exp=…&sig=…",
+                         *         "fileUrlExpiresAt": "2026-10-06T10:15:00.000Z",
                          *         "whatsappText": "Assalam o Alaikum Ahmed Raza sahib, DHA Phase 6 · 10 Marla ka hisaab (…): baqaya Rs 11,00,000. Link: https://…",
                          *         "clientPhone": "+923001112222"
                          *       }
@@ -45990,7 +47524,7 @@ export interface paths {
                     limit?: number;
                     /** @description Only unread */
                     unreadOnly?: "true" | "false";
-                    type?: "DISPATCH_CREATED" | "SHORTAGE_CREATED" | "LOW_STOCK" | "PURCHASE_PENDING_RATE" | "SETTLEMENT_SUBMITTED" | "SETTLEMENT_RETURNED" | "EXPENSE_PENDING_APPROVAL" | "TOPUP_REQUESTED" | "FLOAT_SENT" | "MEASUREMENT_RECORDED" | "SUBCONTRACTOR_OVERPAID" | "INVOICE_OVERDUE" | "CHEQUE_BOUNCED" | "STAGE_READY_UNBILLED" | "PREVIOUS_STAGE_UNPAID" | "SUBSCRIPTION_RENEWAL" | "SUBSCRIPTION_PAYMENT_APPROVED" | "SUBSCRIPTION_PAYMENT_REJECTED" | "INVITE_ACCEPTED" | "PLATFORM_SUPPORT_ACCESS";
+                    type?: "DISPATCH_CREATED" | "SHORTAGE_CREATED" | "LOW_STOCK" | "PURCHASE_PENDING_RATE" | "SETTLEMENT_SUBMITTED" | "SETTLEMENT_RETURNED" | "EXPENSE_PENDING_APPROVAL" | "TOPUP_REQUESTED" | "FLOAT_SENT" | "MEASUREMENT_RECORDED" | "SUBCONTRACTOR_OVERPAID" | "INVOICE_OVERDUE" | "CHEQUE_BOUNCED" | "STAGE_READY_UNBILLED" | "PREVIOUS_STAGE_UNPAID" | "SUBSCRIPTION_RENEWAL" | "SUBSCRIPTION_PAYMENT_APPROVED" | "SUBSCRIPTION_PAYMENT_REJECTED" | "INVITE_ACCEPTED" | "PLATFORM_SUPPORT_ACCESS" | "MISSING_DAILY_LOG" | "RETENTION_RELEASE_DUE" | "SITE_INSTRUCTION_CREATED" | "EQUIPMENT_IDLE" | "CONTROL_ALERT";
                     severity?: "INFO" | "WARNING" | "CRITICAL";
                     projectId?: string;
                 };
@@ -47212,7 +48746,7 @@ export interface paths {
         };
         /**
          * Profit & loss to date
-         * @description THEKEDAR, or a PM with profit.view (assigned projects). Billed = live invoices before sales tax, recoverable invoices left out (they pass the owner’s own purchases through). Cost by bucket from the cost engine (MATERIALS, LABOR_WAGES, SUBCONTRACT, SITE_OVERHEAD, EQUIPMENT, LOSSES — they add up to cost to date). Gross profit = billed − cost; margin = gross profit ÷ billed. `projectedMarginPercent` is null until the estimate engine (Phase 2). Trend: the 12 months ending with `to`.
+         * @description THEKEDAR, or a PM with profit.view (assigned projects). Billed = live invoices before sales tax, recoverable invoices left out (they pass the owner’s own purchases through). Cost by bucket from the cost engine (MATERIALS, LABOR_WAGES, SUBCONTRACT, SITE_OVERHEAD, EQUIPMENT, LOSSES — they add up to cost to date). Gross profit = billed − cost; margin = gross profit ÷ billed. Projected margin at completion (Step 14, as of today) = revised contract − estimate at completion; `projectedMarginBasis` says how it was worked out (null margin when there is no approved estimate and too little progress). Trend: the 12 months ending with `to`.
          */
         get: {
             parameters: {
@@ -47279,8 +48813,11 @@ export interface paths {
                          *             "marginToDatePercent": 85.6,
                          *             "percentBilled": 50,
                          *             "percentCostOfContract": 7.1,
-                         *             "projectedMarginPercent": null,
-                         *             "projectedMarginNote": "Available after the estimate engine (Phase 2)"
+                         *             "projectedMarginPercent": 18.4,
+                         *             "projectedMarginPaisa": "340400000",
+                         *             "estimateAtCompletionPaisa": "1509600000",
+                         *             "projectedMarginBasis": "EARNED_VALUE",
+                         *             "projectedMarginNote": "Cost to date + the rest of the approved estimate (Rev 1) adjusted by performance so far (CPI 0.97)."
                          *           }
                          *         ],
                          *         "totals": {
@@ -47297,7 +48834,7 @@ export interface paths {
                          *             "grossProfitPaisa": "308000000"
                          *           }
                          *         ],
-                         *         "projectedMarginNote": "Available after the estimate engine (Phase 2)"
+                         *         "projectedMarginNote": "Projected margin at completion = revised contract − estimate at completion (cost to date + the rest of the approved estimate, adjusted by cost performance so far). It is as of today, whatever the period."
                          *       }
                          *     }
                          */
@@ -47475,6 +49012,1375 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects/{id}/control/material-variance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Material variance (estimated vs delivered vs used vs stock vs loss)
+         * @description Per material at the project site: estimated total (APPROVED estimate quantities through the milestone quotas, material units) and estimated to date (× each milestone’s progress), delivered (receipts + site purchases + owner deliveries − returns), used (usage entries), counted loss (stock-count shortfall), in stock, consumed = used + loss, variance = consumed − estimated to date (qty and %). Status OVER / UNDER beyond the company overuse % (Alerts & Limits), ON_TRACK, UNPLANNED (not in the estimate), NOT_STARTED, NO_SCHEDULE (no schedule → nothing can be prorated). PKR impact (fields.rates): quantity variance × estimate rate + (actual average cost − estimate rate) × consumed. `?milestoneId=`: that milestone’s quotas × its progress vs the usage linked to it (site-level delivered / stock / loss are null). Owner-supplied materials: quantities only. Rupee keys are LEFT OUT (not null) without the data-visibility permission: material rates / PKR impact need fields.rates; cost-variance money needs fields.amounts + fields.rates; burn-rate cost fields.amounts, contract value fields.contract, spent % fields.amounts + fields.contract; the projected margin fields.amounts + fields.rates + fields.contract + fields.profit. Permission control.view (project in scope).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Only this milestone: its quotas × its progress vs usage linked to it */
+                    milestoneId?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description Project id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Material variance */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla",
+                         *           "status": "ACTIVE"
+                         *         },
+                         *         "milestone": null,
+                         *         "asOf": "2026-10-16",
+                         *         "estimate": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000e11",
+                         *           "revision": 1
+                         *         },
+                         *         "hasSchedule": true,
+                         *         "progress": {
+                         *           "percent": 46.8,
+                         *           "basis": "ESTIMATE_VALUE"
+                         *         },
+                         *         "thresholdPercent": 10,
+                         *         "items": [
+                         *           {
+                         *             "materialId": "0199a8c0-0000-7000-8000-0000000000d1",
+                         *             "material": {
+                         *               "id": "0199a8c0-0000-7000-8000-0000000000d1",
+                         *               "name": "Cement OPC",
+                         *               "unit": "bag"
+                         *             },
+                         *             "estimateKey": "cement",
+                         *             "description": "Cement OPC",
+                         *             "unit": "bag",
+                         *             "ownerSupplied": false,
+                         *             "estimatedTotalQty": 812.4,
+                         *             "estimatedToDateQty": 360.8,
+                         *             "deliveredQty": 450,
+                         *             "usedQty": 408,
+                         *             "lossQty": 4,
+                         *             "inStockQty": 38,
+                         *             "consumedQty": 412,
+                         *             "varianceQty": 51.2,
+                         *             "variancePercent": 14.2,
+                         *             "status": "OVER",
+                         *             "estimateRatePaisa": "142000",
+                         *             "actualAvgCostPaisa": "145500",
+                         *             "quantityImpactPaisa": "7270400",
+                         *             "priceImpactPaisa": "1442000",
+                         *             "impactPaisa": "8712400"
+                         *           }
+                         *         ],
+                         *         "counts": {
+                         *           "over": 1,
+                         *           "under": 0,
+                         *           "onTrack": 4,
+                         *           "unplanned": 0,
+                         *           "notStarted": 3
+                         *         },
+                         *         "totals": {
+                         *           "quantityImpactPaisa": "7270400",
+                         *           "priceImpactPaisa": "1442000",
+                         *           "impactPaisa": "8712400"
+                         *         },
+                         *         "milestones": [
+                         *           {
+                         *             "id": "0199a8c0-0000-7000-8000-000000001301",
+                         *             "key": "F1_STRUCTURE.SLAB",
+                         *             "name": "First floor — roof slab (lenter)",
+                         *             "stageKey": "F1_STRUCTURE",
+                         *             "status": "IN_PROGRESS",
+                         *             "progressPercent": 20
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR | INVALID_MILESTONE */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/control/cost-variance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cost variance by bucket vs the estimate to date + projected margin
+         * @description Buckets MATERIALS, LABOUR (wages), SUBCONTRACT (theka payments; estimate LUMP_SUM lines such as MEP), EQUIPMENT, OVERHEADS, LOSSES, CONTINGENCY: estimate total, estimate to date (each APPROVED estimate line × its stage’s progress; lines without a stage × physical progress), actual (cost engine), variance (actual − estimate to date; positive = over). `labourCombined` = LABOUR + SUBCONTRACT (piece-rate labour is often paid as a theka). Physical progress is weighted by the estimate value of each stage (`ESTIMATE_VALUE`), else by effort (`EFFORT`). `projection` = projected margin at completion: EAC = cost to date + (budget − earned value) ÷ CPI (CPI = earned value ÷ cost, 0.5–1.5; 1 below 10 % progress); margin = revised contract − EAC. Rupee keys are LEFT OUT (not null) without the data-visibility permission: material rates / PKR impact need fields.rates; cost-variance money needs fields.amounts + fields.rates; burn-rate cost fields.amounts, contract value fields.contract, spent % fields.amounts + fields.contract; the projected margin fields.amounts + fields.rates + fields.contract + fields.profit. Permission control.view.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Project id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Cost variance */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla",
+                         *           "status": "ACTIVE"
+                         *         },
+                         *         "asOf": "2026-10-16",
+                         *         "estimate": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000e11",
+                         *           "revision": 1
+                         *         },
+                         *         "hasSchedule": true,
+                         *         "progress": {
+                         *           "percent": 39,
+                         *           "basis": "ESTIMATE_VALUE"
+                         *         },
+                         *         "thresholdPercent": 10,
+                         *         "buckets": [
+                         *           {
+                         *             "bucket": "MATERIALS",
+                         *             "status": "OVER",
+                         *             "estimateTotalPaisa": "980000000",
+                         *             "estimateToDatePaisa": "382200000",
+                         *             "actualPaisa": "431000000",
+                         *             "variancePaisa": "48800000",
+                         *             "variancePercent": 12.8
+                         *           },
+                         *           {
+                         *             "bucket": "LABOUR",
+                         *             "status": "UNDER",
+                         *             "estimateTotalPaisa": "260000000",
+                         *             "estimateToDatePaisa": "101400000",
+                         *             "actualPaisa": "61000000",
+                         *             "variancePaisa": "-40400000",
+                         *             "variancePercent": -39.8
+                         *           }
+                         *         ],
+                         *         "totals": {
+                         *           "estimateTotalPaisa": "1512000000",
+                         *           "estimateToDatePaisa": "589680000",
+                         *           "actualPaisa": "640000000",
+                         *           "variancePaisa": "50320000",
+                         *           "variancePercent": 8.5
+                         *         },
+                         *         "labourCombined": {
+                         *           "estimateToDatePaisa": "140000000",
+                         *           "actualPaisa": "150000000",
+                         *           "variancePaisa": "10000000",
+                         *           "variancePercent": 7.1
+                         *         },
+                         *         "stages": [
+                         *           {
+                         *             "stageKey": "GF_STRUCTURE",
+                         *             "progressPercent": 100,
+                         *             "estimatePaisa": "320000000",
+                         *             "estimateToDatePaisa": "320000000"
+                         *           }
+                         *         ],
+                         *         "projection": {
+                         *           "contractPaisa": "1850000000",
+                         *           "approvedChangesPaisa": "0",
+                         *           "revisedContractPaisa": "1850000000",
+                         *           "budgetAtCompletionPaisa": "1512000000",
+                         *           "actualToDatePaisa": "640000000",
+                         *           "earnedValuePaisa": "589680000",
+                         *           "costPerformanceIndex": 0.921,
+                         *           "estimateAtCompletionPaisa": "1641737000",
+                         *           "remainingCostPaisa": "1001737000",
+                         *           "projectedMarginPaisa": "208263000",
+                         *           "projectedMarginPercent": 11.3,
+                         *           "basis": "EARNED_VALUE",
+                         *           "note": "Cost to date + the rest of the approved estimate (Rev 1) adjusted by performance so far (CPI 0.921)."
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/control/burn-rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Burn rate (cost % of contract) vs physical progress by month
+         * @description One row per Karachi month from the first cost / plan month to this month: cost of the month and cumulative (fields.amounts), cumulative cost as % of the revised contract (`spentPercent`), physical progress at month end (milestone updates up to that date; this month = live) and `gapPoints` = spent − progress; `ahead` when the gap is above the spend-ahead points (Alerts & Limits). `current.plannedProgressPercent` = where the plan says the work should be today. Rupee keys are LEFT OUT (not null) without the data-visibility permission: material rates / PKR impact need fields.rates; cost-variance money needs fields.amounts + fields.rates; burn-rate cost fields.amounts, contract value fields.contract, spent % fields.amounts + fields.contract; the projected margin fields.amounts + fields.rates + fields.contract + fields.profit. Permission control.view.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Project id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Burn rate */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla",
+                         *           "status": "ACTIVE"
+                         *         },
+                         *         "asOf": "2026-10-16",
+                         *         "thresholdPoints": 10,
+                         *         "progressBasis": "ESTIMATE_VALUE",
+                         *         "hasSchedule": true,
+                         *         "contractPaisa": "1850000000",
+                         *         "months": [
+                         *           {
+                         *             "month": "2026-09",
+                         *             "progressPercent": 33.5,
+                         *             "costPaisa": "62000000",
+                         *             "cumulativeCostPaisa": "590000000",
+                         *             "spentPercent": 31.9,
+                         *             "gapPoints": -1.6,
+                         *             "ahead": false
+                         *           },
+                         *           {
+                         *             "month": "2026-10",
+                         *             "progressPercent": 39,
+                         *             "costPaisa": "50000000",
+                         *             "cumulativeCostPaisa": "640000000",
+                         *             "spentPercent": 34.6,
+                         *             "gapPoints": -4.4,
+                         *             "ahead": false
+                         *           }
+                         *         ],
+                         *         "current": {
+                         *           "progressPercent": 39,
+                         *           "plannedProgressPercent": 44.2,
+                         *           "spentPercent": 34.6,
+                         *           "gapPoints": -4.4,
+                         *           "ahead": false
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/control/delay-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delay analysis (Step 13 delays + planned vs actual per milestone + timeline)
+         * @description `delays` = the Step 13 delay breakdown (original / revised / projected end, owner / excusable / contractor days with reasons, pending stoppages). Each milestone: planned progress today (working days elapsed of its window) vs actual, `behindPoints`, `lateDays` (past its planned end, not finished) and `behind` (the MILESTONE_BEHIND_PLAN condition with the company thresholds). `timeline`: stoppages, plan versions and site updates, newest first (≤ 100). Without a schedule: `hasSchedule: false`, `delays: null`. No money. Permission control.view.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Project id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Delay analysis */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla",
+                         *           "status": "ACTIVE"
+                         *         },
+                         *         "asOf": "2026-10-16",
+                         *         "thresholdPoints": 15,
+                         *         "graceDays": 3,
+                         *         "hasSchedule": true,
+                         *         "delays": {
+                         *           "originalEnd": "2027-02-15",
+                         *           "baselineEnd": "2027-01-12",
+                         *           "plannedEnd": "2027-02-02",
+                         *           "revisedEnd": "2027-02-17",
+                         *           "projectedEnd": "2027-03-01",
+                         *           "pace": 0.86,
+                         *           "progressPercent": 41.2,
+                         *           "days": {
+                         *             "owner": 0,
+                         *             "excusable": 2,
+                         *             "contractor": 10,
+                         *             "changeOrders": 0,
+                         *             "total": 12
+                         *           },
+                         *           "aheadDays": 0,
+                         *           "calendarDaysLate": 14,
+                         *           "categories": [],
+                         *           "pending": [],
+                         *           "changeOrders": {
+                         *             "days": 0,
+                         *             "items": []
+                         *           }
+                         *         },
+                         *         "milestones": [
+                         *           {
+                         *             "id": "0199a8c0-0000-7000-8000-000000001301",
+                         *             "key": "F1_STRUCTURE.SLAB",
+                         *             "name": "First floor — roof slab (lenter)",
+                         *             "stageKey": "F1_STRUCTURE",
+                         *             "status": "IN_PROGRESS",
+                         *             "plannedStart": "2026-10-08",
+                         *             "plannedEnd": "2026-10-28",
+                         *             "baselineStart": "2026-07-20",
+                         *             "baselineEnd": "2026-08-14",
+                         *             "varianceDays": 75,
+                         *             "actualStart": "2026-10-14",
+                         *             "actualEnd": null,
+                         *             "progressPercent": 20,
+                         *             "plannedProgressPercent": 44.4,
+                         *             "behindPoints": 24.4,
+                         *             "late": false,
+                         *             "lateDays": 0,
+                         *             "behind": true
+                         *           }
+                         *         ],
+                         *         "timeline": [
+                         *           {
+                         *             "date": "2026-10-15",
+                         *             "kind": "MILESTONE_UPDATE",
+                         *             "title": "First floor — roof slab (lenter)",
+                         *             "detail": null,
+                         *             "category": null,
+                         *             "status": "IN_PROGRESS",
+                         *             "days": null,
+                         *             "refId": "0199a8c0-0000-7000-8000-000000001301",
+                         *             "plannedEnd": null,
+                         *             "progressPercent": 20
+                         *           }
+                         *         ],
+                         *         "summary": {
+                         *           "behind": 1,
+                         *           "late": 0,
+                         *           "finished": 8,
+                         *           "total": 13
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/control/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Control alerts of a project
+         * @description Alerts the caller may see (rules whose permission + money permissions they hold), OPEN by default. Title / body in the reader’s language; never money. Permission control.view.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "OPEN" | "RESOLVED" | "ALL";
+                };
+                header?: never;
+                path: {
+                    /** @description Project id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Alerts */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "items": [
+                         *           {
+                         *             "id": "0199a8c0-0000-7000-8000-000000001401",
+                         *             "rule": "MATERIAL_OVERUSE",
+                         *             "severity": "WARNING",
+                         *             "status": "OPEN",
+                         *             "project": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "title": "DHA Phase 6 · 10 Marla: Cement OPC 14.2% over the estimate",
+                         *             "body": "412 bags used (with counted losses) against 360.8 bags due for the work done so far. Check wastage, theft or a wrong entry.",
+                         *             "refType": "MATERIAL",
+                         *             "refId": "0199a8c0-0000-7000-8000-0000000000d1",
+                         *             "details": {
+                         *               "materialId": "0199a8c0-0000-7000-8000-0000000000d1",
+                         *               "material": "Cement OPC",
+                         *               "unit": "bag",
+                         *               "estimatedToDateQty": 360.8,
+                         *               "consumedQty": 412,
+                         *               "varianceQty": 51.2,
+                         *               "variancePercent": 14.2,
+                         *               "thresholdPercent": 10
+                         *             },
+                         *             "actionUrl": "/projects/0199a8c0-0000-7000-8000-000000000301/control/material-variance",
+                         *             "openedAt": "2026-10-14T01:30:00.000Z",
+                         *             "lastSeenAt": "2026-10-16T01:30:00.000Z",
+                         *             "lastEvaluatedAt": "2026-10-16T01:30:00.000Z",
+                         *             "resolvedAt": null,
+                         *             "notifiedAt": "2026-10-14T01:30:00.000Z",
+                         *             "occurrences": 1
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company control summary (dashboard card)
+         * @description Every ACTIVE / CLOSEOUT project in the caller’s control.view scope: physical vs planned progress, behind / late milestones, materials over the estimate, exhausted quotas, open alerts by severity; `spentPercent` / `gapPoints` with fields.amounts + fields.contract, `projectedMarginPercent` / `projectedMarginPaisa` with the projected-margin permissions. Permission control.view.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Summary */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "asOf": "2026-10-16",
+                         *         "thresholds": {
+                         *           "overuseAlertPercent": 10,
+                         *           "behindPlanAlertPoints": 15,
+                         *           "lateFinishGraceDays": 3,
+                         *           "quotaAlertPercent": 100,
+                         *           "spendAheadAlertPoints": 10,
+                         *           "controlAlertsEnabled": true
+                         *         },
+                         *         "projects": [
+                         *           {
+                         *             "project": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla",
+                         *               "status": "ACTIVE"
+                         *             },
+                         *             "hasSchedule": true,
+                         *             "progressPercent": 39,
+                         *             "plannedProgressPercent": 44.2,
+                         *             "behindMilestones": 1,
+                         *             "lateMilestones": 0,
+                         *             "overuseMaterials": 1,
+                         *             "quotasExhausted": 1,
+                         *             "openAlerts": {
+                         *               "critical": 0,
+                         *               "warning": 3,
+                         *               "info": 0
+                         *             },
+                         *             "spentPercent": 34.6,
+                         *             "gapPoints": -4.4,
+                         *             "projectedMarginPercent": 11.3,
+                         *             "projectedMarginPaisa": "208263000"
+                         *           }
+                         *         ],
+                         *         "alerts": {
+                         *           "open": 3,
+                         *           "critical": 0,
+                         *           "warning": 3,
+                         *           "info": 0,
+                         *           "byRule": {
+                         *             "MATERIAL_OVERUSE": 1,
+                         *             "MILESTONE_BEHIND_PLAN": 1,
+                         *             "QUOTA_EXHAUSTED": 1
+                         *           }
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Control alerts (company)
+         * @description Paged, newest `lastSeenAt` first; only projects in the caller’s control.view scope and rules the caller may see. Filters: project, rule, severity, status (OPEN default / RESOLVED / ALL). Permission control.view.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    limit?: number;
+                    projectId?: string;
+                    rule?: string;
+                    severity?: "INFO" | "WARNING" | "CRITICAL";
+                    status?: "OPEN" | "RESOLVED" | "ALL";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Alerts */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": [
+                         *         {
+                         *           "id": "0199a8c0-0000-7000-8000-000000001401",
+                         *           "rule": "MATERIAL_OVERUSE",
+                         *           "severity": "WARNING",
+                         *           "status": "OPEN",
+                         *           "project": {
+                         *             "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *             "code": "MSB-2026-012",
+                         *             "name": "DHA Phase 6 · 10 Marla"
+                         *           },
+                         *           "title": "DHA Phase 6 · 10 Marla: Cement OPC 14.2% over the estimate",
+                         *           "body": "412 bags used (with counted losses) against 360.8 bags due for the work done so far. Check wastage, theft or a wrong entry.",
+                         *           "refType": "MATERIAL",
+                         *           "refId": "0199a8c0-0000-7000-8000-0000000000d1",
+                         *           "details": {
+                         *             "materialId": "0199a8c0-0000-7000-8000-0000000000d1",
+                         *             "material": "Cement OPC",
+                         *             "unit": "bag",
+                         *             "estimatedToDateQty": 360.8,
+                         *             "consumedQty": 412,
+                         *             "varianceQty": 51.2,
+                         *             "variancePercent": 14.2,
+                         *             "thresholdPercent": 10
+                         *           },
+                         *           "actionUrl": "/projects/0199a8c0-0000-7000-8000-000000000301/control/material-variance",
+                         *           "openedAt": "2026-10-14T01:30:00.000Z",
+                         *           "lastSeenAt": "2026-10-16T01:30:00.000Z",
+                         *           "lastEvaluatedAt": "2026-10-16T01:30:00.000Z",
+                         *           "resolvedAt": null,
+                         *           "notifiedAt": "2026-10-14T01:30:00.000Z",
+                         *           "occurrences": 1
+                         *         }
+                         *       ],
+                         *       "meta": {
+                         *         "page": 1,
+                         *         "limit": 25,
+                         *         "total": 1,
+                         *         "totalPages": 1
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/alerts/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Alert rule registry
+         * @description Every rule the engine knows: source (CONTROL / EXTERNAL job), trigger (DAILY 06:30 PKT, ON_WRITE = usage / stock count / milestone progress), default severity, recipients (permission + money permissions, project scope; the owner always), threshold setting and value, dedupe key + renotify window, link, status (ACTIVE / DISABLED / PENDING_PLUGIN — EQUIPMENT_IDLE until Step 16 plugs it in). Permission control.view.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Rules */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": [
+                         *         {
+                         *           "rule": "MATERIAL_OVERUSE",
+                         *           "source": "CONTROL",
+                         *           "trigger": "DAILY_AND_ON_WRITE",
+                         *           "severity": "WARNING",
+                         *           "permission": "control.view",
+                         *           "moneyPermissions": [],
+                         *           "threshold": {
+                         *             "setting": "overuseAlertPercent",
+                         *             "value": 10
+                         *           },
+                         *           "dedupe": {
+                         *             "key": "MATERIAL_OVERUSE:<projectId>:<materialId>",
+                         *             "renotifyHours": 168
+                         *           },
+                         *           "actionUrl": "/projects/:projectId/control/material-variance",
+                         *           "status": "ACTIVE",
+                         *           "description": "A material is used …"
+                         *         },
+                         *         {
+                         *           "rule": "EQUIPMENT_IDLE",
+                         *           "source": "CONTROL",
+                         *           "trigger": "DAILY",
+                         *           "severity": "WARNING",
+                         *           "permission": "equipment.rental.manage",
+                         *           "moneyPermissions": [],
+                         *           "threshold": {
+                         *             "setting": "equipmentIdleDays",
+                         *             "value": 5
+                         *           },
+                         *           "dedupe": {
+                         *             "key": "EQUIPMENT_IDLE:<rentalId>",
+                         *             "renotifyHours": 24
+                         *           },
+                         *           "actionUrl": "/equipment/rentals",
+                         *           "status": "ACTIVE",
+                         *           "description": "Rented equipment …"
+                         *         }
+                         *       ]
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/alerts/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the alert engine now
+         * @description Evaluates the rules (default all) for one project or every ACTIVE / CLOSEOUT project now — what the daily job does. New findings open alerts and notify (CONTROL_ALERT) the permitted users; findings that are gone resolve their alert. Permission control.manage. Audited `control.alerts_run`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * Format: uuid
+                         * @description Only this project (default: every ACTIVE / CLOSEOUT project)
+                         */
+                        projectId?: string;
+                        /**
+                         * @description Only these rules (default: every rule the engine evaluates)
+                         * @example [
+                         *       "MATERIAL_OVERUSE"
+                         *     ]
+                         */
+                        rules?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Ran */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "ranAt": "2026-10-16T09:00:00.000Z",
+                         *         "projects": 2,
+                         *         "evaluated": 3,
+                         *         "opened": 1,
+                         *         "updated": 2,
+                         *         "resolved": 0,
+                         *         "notified": 3,
+                         *         "alerts": [
+                         *           {
+                         *             "id": "0199a8c0-0000-7000-8000-000000001401",
+                         *             "rule": "MATERIAL_OVERUSE",
+                         *             "severity": "WARNING",
+                         *             "status": "OPEN",
+                         *             "project": {
+                         *               "id": "0199a8c0-0000-7000-8000-000000000301",
+                         *               "code": "MSB-2026-012",
+                         *               "name": "DHA Phase 6 · 10 Marla"
+                         *             },
+                         *             "title": "DHA Phase 6 · 10 Marla: Cement OPC 14.2% over the estimate",
+                         *             "body": "412 bags used (with counted losses) against 360.8 bags due for the work done so far. Check wastage, theft or a wrong entry.",
+                         *             "refType": "MATERIAL",
+                         *             "refId": "0199a8c0-0000-7000-8000-0000000000d1",
+                         *             "details": {
+                         *               "materialId": "0199a8c0-0000-7000-8000-0000000000d1",
+                         *               "material": "Cement OPC",
+                         *               "unit": "bag",
+                         *               "estimatedToDateQty": 360.8,
+                         *               "consumedQty": 412,
+                         *               "varianceQty": 51.2,
+                         *               "variancePercent": 14.2,
+                         *               "thresholdPercent": 10
+                         *             },
+                         *             "actionUrl": "/projects/0199a8c0-0000-7000-8000-000000000301/control/material-variance",
+                         *             "openedAt": "2026-10-14T01:30:00.000Z",
+                         *             "lastSeenAt": "2026-10-16T01:30:00.000Z",
+                         *             "lastEvaluatedAt": "2026-10-16T01:30:00.000Z",
+                         *             "resolvedAt": null,
+                         *             "notifiedAt": "2026-10-14T01:30:00.000Z",
+                         *             "occurrences": 1
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR | UNKNOWN_RULE */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description ALERTS_DISABLED */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Alert thresholds
+         * @description The company thresholds of the control alerts (also in GET /company/settings for the owner). Permission control.view.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Thresholds */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "overuseAlertPercent": 10,
+                         *         "behindPlanAlertPoints": 15,
+                         *         "lateFinishGraceDays": 3,
+                         *         "quotaAlertPercent": 100,
+                         *         "spendAheadAlertPoints": 10,
+                         *         "controlAlertsEnabled": true
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        /**
+         * Change alert thresholds
+         * @description overuseAlertPercent 1–20, behindPlanAlertPoints 5–50, lateFinishGraceDays 0–30, quotaAlertPercent 50–150, spendAheadAlertPoints 1–50, controlAlertsEnabled. Permission control.manage. Audited `control.settings_update` (before / after).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        overuseAlertPercent?: number;
+                        behindPlanAlertPoints?: number;
+                        lateFinishGraceDays?: number;
+                        quotaAlertPercent?: number;
+                        spendAheadAlertPoints?: number;
+                        controlAlertsEnabled?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Thresholds */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "overuseAlertPercent": 5,
+                         *         "behindPlanAlertPoints": 10,
+                         *         "lateFinishGraceDays": 3,
+                         *         "quotaAlertPercent": 100,
+                         *         "spendAheadAlertPoints": 10,
+                         *         "controlAlertsEnabled": true
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/project-summary": {
         parameters: {
             query?: never;
@@ -47484,7 +50390,7 @@ export interface paths {
         };
         /**
          * Project summary
-         * @description THEKEDAR, PM with billing.view (own projects). Per project: contract, billed, received, outstanding, cost by bucket, cost to date, own money invested. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         * @description THEKEDAR, PM with billing.view (own projects). Per project: contract, billed, received, outstanding, cost by bucket, cost to date, own money invested. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -47618,7 +50524,7 @@ export interface paths {
         };
         /**
          * Material audit
-         * @description THEKEDAR, PM (own projects); the value column needs rates.view. Per project × material: delivered (contractor / owner), used, sent away, count adjustments, losses written off, in stock and value. The period limits the movement columns; stock and value are as of `to`. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         * @description THEKEDAR, PM (own projects); the value column needs rates.view. Per project × material: delivered (contractor / owner), used, sent away, count adjustments, losses written off, in stock and value. The period limits the movement columns; stock and value are as of `to`. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -47752,7 +50658,7 @@ export interface paths {
         };
         /**
          * Labour & peshgi
-         * @description THEKEDAR, PM (own projects). Per worker / sub-contractor and project: days, wages (or work value), peshgi given / adjusted / outstanding, paid, retention and balance due. The period limits days and wages. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         * @description THEKEDAR, PM (own projects). Per worker / sub-contractor and project: days, wages (or work value), peshgi given / adjusted / outstanding, paid, retention and balance due. The period limits days and wages. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -47886,7 +50792,7 @@ export interface paths {
         };
         /**
          * Cash book
-         * @description THEKEDAR, PM (own projects). Per holder and project: floats, kharcha by category, other payments, waiting approval, owed back, count differences and net. Without a period, net adds up to cash in hand. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         * @description THEKEDAR, PM (own projects). Per holder and project: floats, kharcha by category, other payments, waiting approval, owed back, count differences and net. Without a period, net adds up to cash in hand. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -48020,7 +50926,7 @@ export interface paths {
         };
         /**
          * Supplier ageing
-         * @description THEKEDAR. Udhaar per supplier in 0–15 / 16–30 / 31–60 / 60+ day buckets (FIFO), oldest unpaid days and the last payment. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         * @description THEKEDAR. Udhaar per supplier in 0–15 / 16–30 / 31–60 / 60+ day buckets (FIFO), oldest unpaid days and the last payment. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -48054,7 +50960,8 @@ export interface paths {
                          *         "format": "xlsx",
                          *         "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                          *         "sizeBytes": 7393,
-                         *         "url": "https://res.cloudinary.com/demo/raw/upload/s--sig--/supplier-ageing-2026-10-06.xlsx",
+                         *         "url": "http://localhost:4000/api/v1/attachments/0199a8c0-0000-7000-8000-000000000f51/file/supplier-ageing-2026-10-06.xlsx?tid=…&exp=…&sig=…",
+                         *         "downloadUrl": "http://localhost:4000/api/v1/attachments/0199a8c0-0000-7000-8000-000000000f51/file/supplier-ageing-2026-10-06.xlsx?tid=…&exp=…&sig=…&dl=1",
                          *         "expiresAt": "2026-10-06T10:15:00.000Z"
                          *       }
                          *     }
@@ -48130,7 +51037,7 @@ export interface paths {
         };
         /**
          * Receivables ageing
-         * @description THEKEDAR. Outstanding per project / client in the same buckets (days since the invoice was issued), overdue and pending cheques. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         * @description THEKEDAR. Outstanding per project / client in the same buckets (days since the invoice was issued), overdue and pending cheques. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -48264,7 +51171,7 @@ export interface paths {
         };
         /**
          * Stock valuation
-         * @description THEKEDAR. Store, sites and transit: quantity × weighted-average cost; owner-supplied stock shown without value. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ url, expiresAt }` — a signed link, never the raw file. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         * @description THEKEDAR. Store, sites and transit: quantity × weighted-average cost; owner-supplied stock shown without value. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
          */
         get: {
             parameters: {
@@ -48324,6 +51231,1908 @@ export interface paths {
                          *           "project": null,
                          *           "value": "79890724"
                          *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/delay-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delay analysis — all projects
+         * @description finance.reports.view + control.view (its project scope); no money. One row per project with a schedule: original / revised / projected end, progress, working days of delay by owner / excusable / contractor, change-order days, total, calendar days late, days ahead, late and behind milestones, top reasons (in the file language). `extra.projects[]` (JSON only): days per category and every reason with its days. The per-project book with stoppages, change orders and milestones: GET /reports/delay-analysis/{projectId}. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    projectId?: string;
+                    from?: string;
+                    to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
+                    /** @description change-orders only: one change-order status */
+                    status?: "DRAFT" | "SENT" | "APPROVED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "BILLED";
+                    /** @description change-orders only: ADDITION or DEDUCTION */
+                    type?: "ADDITION" | "DEDUCTION";
+                    /** @description equipment-utilisation only: one equipment category */
+                    category?: "SHUTTERING_PLATE" | "PROP" | "SCAFFOLDING" | "MIXER" | "VIBRATOR" | "GENERATOR" | "PUMP" | "TOOL" | "OTHER";
+                    /** @description equipment-utilisation only: one row per item (default) or per category */
+                    group?: "item" | "category";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report table (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "delay-analysis",
+                         *         "title": "Delay analysis — all projects",
+                         *         "subtitle": "All projects · Up to 6 Oct 2026",
+                         *         "generatedAt": "2026-10-06T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": null,
+                         *           "from": null,
+                         *           "to": null
+                         *         },
+                         *         "columns": [
+                         *           {
+                         *             "key": "project",
+                         *             "label": "Project",
+                         *             "type": "text"
+                         *           },
+                         *           {
+                         *             "key": "value",
+                         *             "label": "Value",
+                         *             "type": "money"
+                         *           }
+                         *         ],
+                         *         "rows": [
+                         *           {
+                         *             "project": "MSB-2026-012",
+                         *             "value": "79890724"
+                         *           }
+                         *         ],
+                         *         "totals": {
+                         *           "project": null,
+                         *           "value": "79890724"
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/variance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Variance — company summary
+         * @description finance.reports.view + control.view (its project scope). One row per ACTIVE / CLOSEOUT project: physical vs planned progress, materials over / under / not in the estimate; material PKR impact (fields.rates); cost estimate to date, actual, variance and % (fields.amounts + fields.rates); spent % of contract and the gap to progress (fields.amounts + fields.contract); revised contract (fields.contract); estimate at completion and projected margin (fields.amounts + rates + contract + profit). Money columns are left out without the permission. Plan + estimate are loaded once per project and the cost rows in one query. Per project: GET /reports/variance/{projectId}. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    projectId?: string;
+                    from?: string;
+                    to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
+                    /** @description change-orders only: one change-order status */
+                    status?: "DRAFT" | "SENT" | "APPROVED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "BILLED";
+                    /** @description change-orders only: ADDITION or DEDUCTION */
+                    type?: "ADDITION" | "DEDUCTION";
+                    /** @description equipment-utilisation only: one equipment category */
+                    category?: "SHUTTERING_PLATE" | "PROP" | "SCAFFOLDING" | "MIXER" | "VIBRATOR" | "GENERATOR" | "PUMP" | "TOOL" | "OTHER";
+                    /** @description equipment-utilisation only: one row per item (default) or per category */
+                    group?: "item" | "category";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report table (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "variance",
+                         *         "title": "Variance — company summary",
+                         *         "subtitle": "All projects · Up to 6 Oct 2026",
+                         *         "generatedAt": "2026-10-06T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": null,
+                         *           "from": null,
+                         *           "to": null
+                         *         },
+                         *         "columns": [
+                         *           {
+                         *             "key": "project",
+                         *             "label": "Project",
+                         *             "type": "text"
+                         *           },
+                         *           {
+                         *             "key": "value",
+                         *             "label": "Value",
+                         *             "type": "money"
+                         *           }
+                         *         ],
+                         *         "rows": [
+                         *           {
+                         *             "project": "MSB-2026-012",
+                         *             "value": "79890724"
+                         *           }
+                         *         ],
+                         *         "totals": {
+                         *           "project": null,
+                         *           "value": "79890724"
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/change-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Change order register
+         * @description finance.reports.view + changeorder.view (its project scope); the total needs fields.rates or fields.amounts. Every change order across the projects: project, code, title, type, status, total (signed; left out without the price permission), days, proof type, the invoice that billed it, created and approved dates. Filters: projectId, status, type, from / to (created date). Totals count the approved set only (APPROVED / IN_PROGRESS / COMPLETED / BILLED). `extra`: count per status, approved count / total. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    projectId?: string;
+                    from?: string;
+                    to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
+                    /** @description change-orders only: one change-order status */
+                    status?: "DRAFT" | "SENT" | "APPROVED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "BILLED";
+                    /** @description change-orders only: ADDITION or DEDUCTION */
+                    type?: "ADDITION" | "DEDUCTION";
+                    /** @description equipment-utilisation only: one equipment category */
+                    category?: "SHUTTERING_PLATE" | "PROP" | "SCAFFOLDING" | "MIXER" | "VIBRATOR" | "GENERATOR" | "PUMP" | "TOOL" | "OTHER";
+                    /** @description equipment-utilisation only: one row per item (default) or per category */
+                    group?: "item" | "category";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report table (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "change-orders",
+                         *         "title": "Change order register",
+                         *         "subtitle": "All projects · Up to 6 Oct 2026",
+                         *         "generatedAt": "2026-10-06T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": null,
+                         *           "from": null,
+                         *           "to": null
+                         *         },
+                         *         "columns": [
+                         *           {
+                         *             "key": "project",
+                         *             "label": "Project",
+                         *             "type": "text"
+                         *           },
+                         *           {
+                         *             "key": "value",
+                         *             "label": "Value",
+                         *             "type": "money"
+                         *           }
+                         *         ],
+                         *         "rows": [
+                         *           {
+                         *             "project": "MSB-2026-012",
+                         *             "value": "79890724"
+                         *           }
+                         *         ],
+                         *         "totals": {
+                         *           "project": null,
+                         *           "value": "79890724"
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/equipment-utilisation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Equipment utilisation
+         * @description finance.reports.view + equipment.view (sites of its project scope); hire / rent / loss value need fields.amounts (owner decision 3). Per item (`group=item`, default) or category: owned at the end of the period, days on site / idle, unit-days on site / idle (end-of-day ledger balances, Karachi days; idle = owned units at the yard or in transit), utilisation % (unit-days on site ÷ owned unit-days), rented unit-days, internal hire charged and rent of the period (EquipmentCharge), lost / damaged quantity and value (EquipmentLoss reported in the period). Filters: from / to (default the last 30 days, at most 366), projectId (that site only), category. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    projectId?: string;
+                    from?: string;
+                    to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
+                    /** @description change-orders only: one change-order status */
+                    status?: "DRAFT" | "SENT" | "APPROVED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "BILLED";
+                    /** @description change-orders only: ADDITION or DEDUCTION */
+                    type?: "ADDITION" | "DEDUCTION";
+                    /** @description equipment-utilisation only: one equipment category */
+                    category?: "SHUTTERING_PLATE" | "PROP" | "SCAFFOLDING" | "MIXER" | "VIBRATOR" | "GENERATOR" | "PUMP" | "TOOL" | "OTHER";
+                    /** @description equipment-utilisation only: one row per item (default) or per category */
+                    group?: "item" | "category";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report table (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "equipment-utilisation",
+                         *         "title": "Equipment utilisation",
+                         *         "subtitle": "All projects · Up to 6 Oct 2026",
+                         *         "generatedAt": "2026-10-06T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": null,
+                         *           "from": null,
+                         *           "to": null
+                         *         },
+                         *         "columns": [
+                         *           {
+                         *             "key": "project",
+                         *             "label": "Project",
+                         *             "type": "text"
+                         *           },
+                         *           {
+                         *             "key": "value",
+                         *             "label": "Value",
+                         *             "type": "money"
+                         *           }
+                         *         ],
+                         *         "rows": [
+                         *           {
+                         *             "project": "MSB-2026-012",
+                         *             "value": "79890724"
+                         *           }
+                         *         ],
+                         *         "totals": {
+                         *           "project": null,
+                         *           "value": "79890724"
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/snags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Snag summary — all projects
+         * @description finance.reports.view + closeout.snag.view (its project scope); cost attribution needs fields.amounts. One row per project with snags: total, open / fixed / verified, overdue (open past the target date), open snags by days open (0–7 / 8–30 / 31+), oldest open, defect-period snags (and still open), cost attributed to rework / sub-contractors / change orders (fields.amounts). Filters: projectId, from / to (logged date). Per project (by assignee, open list, defect-period list): GET /reports/snags/{projectId}. `format=json` (default) returns the table: `columns` (key, label, type text / money / qty / int / percent / date), `rows`, `totals`. `csv` / `xlsx` / `pdf` (letterhead) are stored as a REPORT attachment and answer `{ attachmentId, fileName, format, mimeType, sizeBytes, url, downloadUrl, expiresAt }` — signed links named after the file (`url` previews, `downloadUrl` saves; QA-B-15: `<report>[-<project code>]-<yyyy-mm-dd>.<ext>`), never the raw file. JSON free text (subtitle, notes, reason cells) follows `X-Lang`, else English. Money is paisa in JSON and rupees in files. Files are in `lang` (en / roman / ur; default the signed-in user’s language): title, headers, Total and status / type / unit cells; Urdu PDFs are right-to-left with an embedded Nastaliq font.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    projectId?: string;
+                    from?: string;
+                    to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
+                    /** @description change-orders only: one change-order status */
+                    status?: "DRAFT" | "SENT" | "APPROVED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "BILLED";
+                    /** @description change-orders only: ADDITION or DEDUCTION */
+                    type?: "ADDITION" | "DEDUCTION";
+                    /** @description equipment-utilisation only: one equipment category */
+                    category?: "SHUTTERING_PLATE" | "PROP" | "SCAFFOLDING" | "MIXER" | "VIBRATOR" | "GENERATOR" | "PUMP" | "TOOL" | "OTHER";
+                    /** @description equipment-utilisation only: one row per item (default) or per category */
+                    group?: "item" | "category";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report table (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "snags",
+                         *         "title": "Snag summary — all projects",
+                         *         "subtitle": "All projects · Up to 6 Oct 2026",
+                         *         "generatedAt": "2026-10-06T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": null,
+                         *           "from": null,
+                         *           "to": null
+                         *         },
+                         *         "columns": [
+                         *           {
+                         *             "key": "project",
+                         *             "label": "Project",
+                         *             "type": "text"
+                         *           },
+                         *           {
+                         *             "key": "value",
+                         *             "label": "Value",
+                         *             "type": "money"
+                         *           }
+                         *         ],
+                         *         "rows": [
+                         *           {
+                         *             "project": "MSB-2026-012",
+                         *             "value": "79890724"
+                         *           }
+                         *         ],
+                         *         "totals": {
+                         *           "project": null,
+                         *           "value": "79890724"
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/delay-analysis/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delay analysis — one project (book)
+         * @description finance.reports.view + control.view. Summary (original / baseline / planned / revised / projected end, progress, days by category, calendar days late, ahead) + sections: `categories` (days and reasons), `stoppages` (approved + pending: dates, days, reason, category, status, note; total = approved days), `changeOrders` (approved change orders with days), `milestones` (late, behind or slipped vs the baseline). No money. A project without a schedule → 409 NO_SCHEDULE. `format=json` (default) returns the book: `project`, `summary` [{ key, label, type, value }], `sections` [{ key, title, columns, rows, totals }]. `csv` (summary, then each section) / `xlsx` (a summary sheet + one sheet per section) / `pdf` (letterhead, summary, one table per section) answer a signed link like the other reports, in `lang`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
+                    /** @description snags only: snags created on / after */
+                    from?: string;
+                    /** @description snags only: snags created on / before */
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    projectId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report book (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "delay-analysis-project",
+                         *         "title": "Delay analysis — one project (book)",
+                         *         "subtitle": "MSB-2026-012 DHA Phase 6 · 10 Marla · as of 16 Oct 2026",
+                         *         "generatedAt": "2026-10-16T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": "0199a8c0-0000-7000-8000-000000000012",
+                         *           "from": null,
+                         *           "to": null
+                         *         },
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000012",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla",
+                         *           "status": "ACTIVE"
+                         *         },
+                         *         "summary": [
+                         *           {
+                         *             "key": "totalDays",
+                         *             "label": "Total delay days",
+                         *             "type": "int",
+                         *             "value": 5
+                         *           }
+                         *         ],
+                         *         "sections": [
+                         *           {
+                         *             "key": "stoppages",
+                         *             "title": "Stoppages",
+                         *             "columns": [
+                         *               {
+                         *                 "key": "reason",
+                         *                 "label": "Reason",
+                         *                 "type": "text"
+                         *               }
+                         *             ],
+                         *             "rows": [
+                         *               {
+                         *                 "reason": "RAIN"
+                         *               }
+                         *             ],
+                         *             "totals": null
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description NO_SCHEDULE */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/variance/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Variance — one project (book)
+         * @description finance.reports.view + control.view. Summary (progress, planned progress, cost totals, spent %, revised contract, projected margin — each with its money permission) + sections: `materials` (Step 14 material variance; PKR with fields.rates), `costBuckets` (estimate total / to date, actual, variance; money with fields.amounts + fields.rates), `burn` (per month: progress, cost, cumulative, spent %, gap). `format=json` (default) returns the book: `project`, `summary` [{ key, label, type, value }], `sections` [{ key, title, columns, rows, totals }]. `csv` (summary, then each section) / `xlsx` (a summary sheet + one sheet per section) / `pdf` (letterhead, summary, one table per section) answer a signed link like the other reports, in `lang`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
+                    /** @description snags only: snags created on / after */
+                    from?: string;
+                    /** @description snags only: snags created on / before */
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    projectId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report book (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "variance-project",
+                         *         "title": "Variance — one project (book)",
+                         *         "subtitle": "MSB-2026-012 DHA Phase 6 · 10 Marla · as of 16 Oct 2026",
+                         *         "generatedAt": "2026-10-16T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": "0199a8c0-0000-7000-8000-000000000012",
+                         *           "from": null,
+                         *           "to": null
+                         *         },
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000012",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla",
+                         *           "status": "ACTIVE"
+                         *         },
+                         *         "summary": [
+                         *           {
+                         *             "key": "totalDays",
+                         *             "label": "Total delay days",
+                         *             "type": "int",
+                         *             "value": 5
+                         *           }
+                         *         ],
+                         *         "sections": [
+                         *           {
+                         *             "key": "stoppages",
+                         *             "title": "Stoppages",
+                         *             "columns": [
+                         *               {
+                         *                 "key": "reason",
+                         *                 "label": "Reason",
+                         *                 "type": "text"
+                         *               }
+                         *             ],
+                         *             "rows": [
+                         *               {
+                         *                 "reason": "RAIN"
+                         *               }
+                         *             ],
+                         *             "totals": null
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/snags/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Snag summary — one project (book)
+         * @description finance.reports.view + closeout.snag.view. Summary (counts, defect period, cost attribution with fields.amounts) + sections: `byAssignee` (worker / sub-contractor / nobody: open, fixed, verified, overdue, cost), `open` (oldest first: location, assignee, days open, target, overdue days), `defectPeriod`. from / to = logged date. `format=json` (default) returns the book: `project`, `summary` [{ key, label, type, value }], `sections` [{ key, title, columns, rows, totals }]. `csv` (summary, then each section) / `xlsx` (a summary sheet + one sheet per section) / `pdf` (letterhead, summary, one table per section) answer a signed link like the other reports, in `lang`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language). JSON is not translated. */
+                    lang?: "en" | "roman" | "ur";
+                    /** @description snags only: snags created on / after */
+                    from?: string;
+                    /** @description snags only: snags created on / before */
+                    to?: string;
+                };
+                header?: never;
+                path: {
+                    projectId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report book (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "snags-project",
+                         *         "title": "Snag summary — one project (book)",
+                         *         "subtitle": "MSB-2026-012 DHA Phase 6 · 10 Marla · as of 16 Oct 2026",
+                         *         "generatedAt": "2026-10-16T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": "0199a8c0-0000-7000-8000-000000000012",
+                         *           "from": null,
+                         *           "to": null
+                         *         },
+                         *         "project": {
+                         *           "id": "0199a8c0-0000-7000-8000-000000000012",
+                         *           "code": "MSB-2026-012",
+                         *           "name": "DHA Phase 6 · 10 Marla",
+                         *           "status": "ACTIVE"
+                         *         },
+                         *         "summary": [
+                         *           {
+                         *             "key": "totalDays",
+                         *             "label": "Total delay days",
+                         *             "type": "int",
+                         *             "value": 5
+                         *           }
+                         *         ],
+                         *         "sections": [
+                         *           {
+                         *             "key": "stoppages",
+                         *             "title": "Stoppages",
+                         *             "columns": [
+                         *               {
+                         *                 "key": "reason",
+                         *                 "label": "Reason",
+                         *                 "type": "text"
+                         *               }
+                         *             ],
+                         *             "rows": [
+                         *               {
+                         *                 "reason": "RAIN"
+                         *               }
+                         *             ],
+                         *             "totals": null
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tax/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tax settings
+         * @description tax.view. Tax is OFF by default. Effective tax of a project: mode INHERIT = the company setting, ON / OFF = this project only; authority / rate = the project override when set, else the company value. An invoice gets a tax line when tax is on and the rate > 0: round half-up (taxable base × rate ÷ 100), base = every line except owner-recoverable purchases (CASH_ENTRY). Drafts are recalculated when settings change; issued invoices keep their snapshot. Default rates and rules are a starting point only — verify the rate, the taxable base and WHT with your tax adviser before switching tax on. `authorities` lists PRA / SRB / KPRA / ICT with their default rate and label (defaults only pre-fill the form).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Tax settings */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "enabled": true,
+                         *         "authority": "PRA",
+                         *         "ratePercent": 16,
+                         *         "label": null,
+                         *         "effectiveLabel": "PRA Sales Tax",
+                         *         "ntn": "1234567-8",
+                         *         "strn": "3277876123456",
+                         *         "whtDefaultRatePercent": 8,
+                         *         "authorities": [
+                         *           {
+                         *             "code": "PRA",
+                         *             "name": "Punjab Revenue Authority (Punjab Sales Tax on Services)",
+                         *             "defaultRatePercent": 16,
+                         *             "defaultLabel": "PRA Sales Tax"
+                         *           },
+                         *           {
+                         *             "code": "SRB",
+                         *             "name": "Sindh Revenue Board (Sindh Sales Tax on Services)",
+                         *             "defaultRatePercent": 15,
+                         *             "defaultLabel": "SRB Sales Tax"
+                         *           },
+                         *           {
+                         *             "code": "KPRA",
+                         *             "name": "Khyber Pakhtunkhwa Revenue Authority",
+                         *             "defaultRatePercent": 15,
+                         *             "defaultLabel": "KPRA Sales Tax"
+                         *           },
+                         *           {
+                         *             "code": "ICT",
+                         *             "name": "Islamabad Capital Territory (tax on services, FBR)",
+                         *             "defaultRatePercent": 16,
+                         *             "defaultLabel": "ICT Sales Tax"
+                         *           }
+                         *         ],
+                         *         "adviserNote": "Default rates and rules are a starting point only — verify the rate, the taxable base and WHT with your tax adviser before switching tax on."
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change tax settings
+         * @description tax.settings.manage (owner, Administrator). Switching on needs an authority and a rate > 0. `ntn` is the company profile NTN. DRAFT invoices are recalculated; audited (tax.settings.update). Default rates and rules are a starting point only — verify the rate, the taxable base and WHT with your tax adviser before switching tax on.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Sales tax on invoices (off by default) */
+                        enabled?: boolean;
+                        /**
+                         * @description PRA (Punjab) / SRB (Sindh) / KPRA (Khyber Pakhtunkhwa) / ICT (Islamabad)
+                         * @enum {string|null}
+                         */
+                        authority?: "PRA" | "SRB" | "KPRA" | "ICT" | null;
+                        /**
+                         * @description Sales tax % on the taxable base (verify with your tax adviser)
+                         * @example 16
+                         */
+                        ratePercent?: number;
+                        /**
+                         * @description Tax line label on invoices (null = the authority default)
+                         * @example PRA Sales Tax
+                         */
+                        label?: string | null;
+                        /**
+                         * @description Company NTN (same field as the company profile)
+                         * @example 1234567-8
+                         */
+                        ntn?: string | null;
+                        /**
+                         * @description Sales tax registration number printed on invoices
+                         * @example 3277876123456
+                         */
+                        strn?: string | null;
+                        /**
+                         * @description WHT % pre-filled on the payment form
+                         * @example 8
+                         */
+                        whtDefaultRatePercent?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Tax settings */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "enabled": true,
+                         *         "authority": "PRA",
+                         *         "ratePercent": 16,
+                         *         "label": null,
+                         *         "effectiveLabel": "PRA Sales Tax",
+                         *         "ntn": "1234567-8",
+                         *         "strn": "3277876123456",
+                         *         "whtDefaultRatePercent": 8,
+                         *         "authorities": [
+                         *           {
+                         *             "code": "PRA",
+                         *             "name": "Punjab Revenue Authority (Punjab Sales Tax on Services)",
+                         *             "defaultRatePercent": 16,
+                         *             "defaultLabel": "PRA Sales Tax"
+                         *           },
+                         *           {
+                         *             "code": "SRB",
+                         *             "name": "Sindh Revenue Board (Sindh Sales Tax on Services)",
+                         *             "defaultRatePercent": 15,
+                         *             "defaultLabel": "SRB Sales Tax"
+                         *           },
+                         *           {
+                         *             "code": "KPRA",
+                         *             "name": "Khyber Pakhtunkhwa Revenue Authority",
+                         *             "defaultRatePercent": 15,
+                         *             "defaultLabel": "KPRA Sales Tax"
+                         *           },
+                         *           {
+                         *             "code": "ICT",
+                         *             "name": "Islamabad Capital Territory (tax on services, FBR)",
+                         *             "defaultRatePercent": 16,
+                         *             "defaultLabel": "ICT Sales Tax"
+                         *           }
+                         *         ],
+                         *         "adviserNote": "Default rates and rules are a starting point only — verify the rate, the taxable base and WHT with your tax adviser before switching tax on."
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR | TAX_SETTINGS_INCOMPLETE */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/projects/{id}/tax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tax of a project
+         * @description billing.invoice.view (project scope). The project override (mode / authority / rate) and the effective tax its invoices get.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Project id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Project tax */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *         "mode": "ON",
+                         *         "authority": "SRB",
+                         *         "ratePercent": 15,
+                         *         "effective": {
+                         *           "taxOn": true,
+                         *           "applies": true,
+                         *           "authority": "SRB",
+                         *           "ratePercent": 15,
+                         *           "label": "SRB Sales Tax",
+                         *           "source": "PROJECT"
+                         *         },
+                         *         "company": {
+                         *           "enabled": false,
+                         *           "authority": "PRA",
+                         *           "ratePercent": 16,
+                         *           "whtDefaultRatePercent": 8
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Project tax override
+         * @description tax.settings.manage. INHERIT / ON / OFF, and authority / rate for a project in another province (null = the company value). ON needs an authority and rate (here or in the company settings). The project’s DRAFT invoices are recalculated; audited (project.tax.update).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Project id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @description INHERIT = company setting; ON / OFF = this project only
+                         * @enum {string}
+                         */
+                        mode?: "INHERIT" | "ON" | "OFF";
+                        /**
+                         * @description Project in another province (null = the company authority)
+                         * @enum {string|null}
+                         */
+                        authority?: "PRA" | "SRB" | "KPRA" | "ICT" | null;
+                        /** @description null = the company rate */
+                        ratePercent?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Project tax */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "projectId": "0199a8c0-0000-7000-8000-000000000301",
+                         *         "mode": "ON",
+                         *         "authority": "SRB",
+                         *         "ratePercent": 15,
+                         *         "effective": {
+                         *           "taxOn": true,
+                         *           "applies": true,
+                         *           "authority": "SRB",
+                         *           "ratePercent": 15,
+                         *           "label": "SRB Sales Tax",
+                         *           "source": "PROJECT"
+                         *         },
+                         *         "company": {
+                         *           "enabled": false,
+                         *           "authority": "PRA",
+                         *           "ratePercent": 16,
+                         *           "whtDefaultRatePercent": 8
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR | TAX_SETTINGS_INCOMPLETE */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED | ACCOUNT_READ_ONLY */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/reports/wht-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * WHT summary (tax year) (Step 18)
+         * @description tax.view + fields.amounts (403 FORBIDDEN without amounts). Per client × month: receipts, gross received (cash + WHT), cash, WHT deducted, WHT % of gross, certificates received / missing and WHT without a certificate. Bounced cheques left out. Default period: the current tax year (1 July – 30 June). `format=json` (default) returns the table; `csv` / `xlsx` / `pdf` are stored as a REPORT attachment and answer `{ url, expiresAt }`. Money is paisa in JSON and rupees in files.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    projectId?: string;
+                    /** @description Default: 1 July of the current tax year */
+                    from?: string;
+                    /** @description Default: 30 June of the current tax year */
+                    to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language) */
+                    lang?: "en" | "roman" | "ur";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report table (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "wht-summary",
+                         *         "title": "WHT summary (tax year)",
+                         *         "subtitle": "All projects · Tax year 2026-27 (1 Jul 2026 – 30 Jun 2027)",
+                         *         "generatedAt": "2026-10-16T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": null,
+                         *           "from": "2026-07-01",
+                         *           "to": "2027-06-30"
+                         *         },
+                         *         "columns": [
+                         *           {
+                         *             "key": "client",
+                         *             "label": "Client",
+                         *             "type": "text"
+                         *           },
+                         *           {
+                         *             "key": "month",
+                         *             "label": "Month",
+                         *             "type": "text"
+                         *           },
+                         *           {
+                         *             "key": "wht",
+                         *             "label": "WHT deducted",
+                         *             "type": "money"
+                         *           }
+                         *         ],
+                         *         "rows": [
+                         *           {
+                         *             "client": "Ahmed Raza",
+                         *             "month": "2026-09",
+                         *             "wht": "8000000"
+                         *           }
+                         *         ],
+                         *         "totals": {
+                         *           "client": null,
+                         *           "month": null,
+                         *           "wht": "8000000"
+                         *         },
+                         *         "notes": [
+                         *           "Default rates and rules are a starting point only — verify the rate, the taxable base and WHT with your tax adviser before switching tax on."
+                         *         ],
+                         *         "noteCodes": [
+                         *           {
+                         *             "code": "TAX_ADVISER",
+                         *             "params": {}
+                         *           }
+                         *         ]
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            success: true;
+                            data?: unknown;
+                        };
+                    };
+                };
+                /** @description VALIDATION_ERROR */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description UNAUTHENTICATED | TOKEN_INVALID | TOKEN_EXPIRED | SESSION_REVOKED | ACCOUNT_DISABLED | DEVICE_REVOKED */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description FORBIDDEN | COMPANY_SUSPENDED */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PROJECT_NOT_FOUND */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description PDF_UNAVAILABLE */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/tax-invoice-register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Tax-wise invoice register (Step 18)
+         * @description tax.view + fields.amounts (403 FORBIDDEN without amounts). Issued invoices of the period (cancelled ones listed, not counted): invoice no., date, client, client NTN, project, value, taxable value, tax rate, tax, total, authority, status. Sorted by authority, then date; notes give the subtotal per authority + rate. Default period: the current tax year (1 July – 30 June). `format=json` (default) returns the table; `csv` / `xlsx` / `pdf` are stored as a REPORT attachment and answer `{ url, expiresAt }`. Money is paisa in JSON and rupees in files.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description json for the screen; csv / xlsx / pdf return a signed download link */
+                    format?: "json" | "csv" | "xlsx" | "pdf";
+                    projectId?: string;
+                    /** @description Default: 1 July of the current tax year */
+                    from?: string;
+                    /** @description Default: 30 June of the current tax year */
+                    to?: string;
+                    /** @description Language of csv / xlsx / pdf titles, headers and labels (default: your language) */
+                    lang?: "en" | "roman" | "ur";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Report table (json) or a signed link (csv / xlsx / pdf) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "success": true,
+                         *       "data": {
+                         *         "name": "tax-invoice-register",
+                         *         "title": "Tax-wise invoice register",
+                         *         "subtitle": "All projects · Tax year 2026-27 (1 Jul 2026 – 30 Jun 2027)",
+                         *         "generatedAt": "2026-10-16T05:00:00.000Z",
+                         *         "filters": {
+                         *           "projectId": null,
+                         *           "from": "2026-07-01",
+                         *           "to": "2027-06-30"
+                         *         },
+                         *         "columns": [
+                         *           {
+                         *             "key": "number",
+                         *             "label": "Invoice no.",
+                         *             "type": "text"
+                         *           },
+                         *           {
+                         *             "key": "tax",
+                         *             "label": "Tax",
+                         *             "type": "money"
+                         *           }
+                         *         ],
+                         *         "rows": [
+                         *           {
+                         *             "number": "INV-2026-0050",
+                         *             "tax": "59200000"
+                         *           }
+                         *         ],
+                         *         "totals": {
+                         *           "number": null,
+                         *           "tax": "59200000"
+                         *         },
+                         *         "notes": [
+                         *           "Default rates and rules are a starting point only — verify the rate, the taxable base and WHT with your tax adviser before switching tax on."
+                         *         ],
+                         *         "noteCodes": [
+                         *           {
+                         *             "code": "TAX_ADVISER",
+                         *             "params": {}
+                         *           }
+                         *         ]
                          *       }
                          *     }
                          */
@@ -49858,7 +54667,7 @@ export interface paths {
         head?: never;
         /**
          * Set a revision’s approval date / notes
-         * @description closeout.drawing.manage. `approvedAt: null` clears the approval.
+         * @description closeout.drawing.manage. `approvedAt: null` clears the approval. Only the latest revision can be approved (409 REVISION_SUPERSEDED).
          */
         patch: {
             parameters: {
@@ -50014,7 +54823,7 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
-                /** @description PROJECT_LOCKED */
+                /** @description PROJECT_LOCKED | REVISION_SUPERSEDED */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -54912,7 +59721,7 @@ export interface paths {
         };
         /**
          * Change order slip PDF (owner) + WhatsApp text
-         * @description changeorder.view + fields.rates or fields.amounts. Letterhead, project, CO code / title / details, items at the owner price (no cost or markup), total (minus for a deduction), days impact, approval and signature lines. `?lang=en|roman|ur` (Urdu right-to-left). Signed link (10 min) + WhatsApp text + the owner’s phone.
+         * @description changeorder.view + fields.rates or fields.amounts. Letterhead, project, CO code / title / details, items at the owner price (no cost or markup), total (minus for a deduction), days impact, approval and signature lines. `?lang=en|roman|ur` (Urdu right-to-left). Durable share link (`url`, SHARE_LINK_TTL_DAYS) + short-lived `fileUrl` + WhatsApp text (asks for approval only while DRAFT / SENT, else states the status) + the owner’s phone.
          */
         get: {
             parameters: {
@@ -54940,8 +59749,10 @@ export interface paths {
                          *       "success": true,
                          *       "data": {
                          *         "attachmentId": "0199a8c0-0000-7000-8000-000000001506",
-                         *         "url": "https://…/file?sig=…",
-                         *         "expiresAt": "2026-10-16T10:10:00.000Z",
+                         *         "url": "https://…/api/v1/public/files/…?tid=…&exp=…&sig=…",
+                         *         "expiresAt": "2026-11-15T10:00:00.000Z",
+                         *         "fileUrl": "https://…/file/CO-001 MSB-2026-012.pdf?sig=…",
+                         *         "fileUrlExpiresAt": "2026-10-16T10:10:00.000Z",
                          *         "whatsappText": "Assalam o Alaikum Ahmed Raza sahib, DHA Phase 6 · 10 Marla ka tabdeeli order CO-001: …",
                          *         "clientPhone": "+923001112233"
                          *       }
@@ -56035,7 +60846,8 @@ export interface paths {
                          *             "rates": false,
                          *             "amounts": false,
                          *             "profit": false,
-                         *             "contract": false
+                         *             "contract": false,
+                         *             "wages": true
                          *           },
                          *           "scopes": {
                          *             "labor.attendance.view": "ASSIGNED_PROJECTS",
@@ -58822,6 +63634,7 @@ export interface components {
                 amounts: boolean;
                 profit: boolean;
                 contract: boolean;
+                wages: boolean;
             };
             /** @description Scope of every held project-data key */
             scopes: {
@@ -58937,6 +63750,7 @@ export interface components {
                 amounts: boolean;
                 profit: boolean;
                 contract: boolean;
+                wages: boolean;
             };
             /** @description Scope of every held project-data key */
             scopes: {
@@ -59003,6 +63817,27 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             current: boolean;
+        };
+        InvitationPreview: {
+            /** @example Malik & Sons Builders */
+            companyName: string;
+            /**
+             * @description The invited person
+             * @example Kamran Shah
+             */
+            name: string;
+            /**
+             * @description Account type
+             * @enum {string}
+             */
+            role: "THEKEDAR" | "PM" | "MUNSHI";
+            /**
+             * @description Permission role(s) given on accept, in the invite language
+             * @example Accountant
+             */
+            roleName: string | null;
+            /** Format: date-time */
+            expiresAt: string;
         };
         AdminAuthResult: {
             admin: components["schemas"]["PlatformAdmin"];
@@ -59100,6 +63935,43 @@ export interface components {
             }[];
             /** @description false = the built-in approximate dates */
             ramadanPeriodsCustom: boolean;
+            /**
+             * @description Rented equipment with no milestone activity at its site for this many days → EQUIPMENT_IDLE alert (1–60)
+             * @example 5
+             */
+            equipmentIdleDays: number;
+            /**
+             * @description Shuttering planner: props needed per plate (0–5, engineer review)
+             * @example 0.75
+             */
+            shutteringPropsPerPlate: number;
+            /**
+             * @description Shuttering planner: extra plates % for cut pieces / damage (0–30)
+             * @example 5
+             */
+            shutteringSparePercent: number;
+            /**
+             * @description Step 14: a milestone is behind plan when planned − actual progress ≥ this many points (5–50)
+             * @example 15
+             */
+            behindPlanAlertPoints: number;
+            /**
+             * @description Step 14: a milestone is late when not finished this many days after its planned end (0–30)
+             * @example 3
+             */
+            lateFinishGraceDays: number;
+            /**
+             * @description Step 14: quota exhausted when used ≥ this % of the milestone quota (50–150)
+             * @example 100
+             */
+            quotaAlertPercent: number;
+            /**
+             * @description Step 14: spend ahead of progress when cost % of contract − progress % > this many points (1–50)
+             * @example 10
+             */
+            spendAheadAlertPoints: number;
+            /** @description Step 14: false = the control alert engine stores / sends nothing */
+            controlAlertsEnabled: boolean;
         };
         Holiday: {
             /** Format: uuid */
@@ -59413,6 +64285,7 @@ export interface components {
             amounts: boolean;
             profit: boolean;
             contract: boolean;
+            wages: boolean;
         };
         SubscriptionDetail: {
             plan: components["schemas"]["Plan"];
@@ -59588,6 +64461,11 @@ export interface components {
              * @example 0
              */
             finishingAllowancePercent?: number;
+            /**
+             * Format: uuid
+             * @description Work from this saved estimate revision (the BoQ page sends the one on screen). null = the live BoQ preview (what Generate would save). Omitted = the draft, else the approved, else the newest revision, else the live BoQ preview
+             */
+            estimateId?: string | null;
             /**
              * @description Overwrite an existing contract value / rate (the user confirmed). Without it → 409 CONTRACT_VALUE_EXISTS
              * @default false

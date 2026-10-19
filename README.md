@@ -125,7 +125,10 @@ database (`src/db/access.ts`, kv `auth.access`) so the app works offline, and wi
   build) the old behaviour applies.
 * Tabs (`TAB_PERMS`), buttons and the Aaj to-dos / quick actions are hidden without their key;
   `components/RouteGuard.tsx` blocks a stack screen (`ROUTE_PERMS`) opened anyway.
-* Values the server leaves out (`fieldAccess`) are not shown; the worker rate needs `fields.rates`.
+* Values the server leaves out (`fieldAccess`) are not shown. Worker daily wages follow `fields.wages`
+  (`canSeeWages` / `visibleRate`: a rate is shown only with the key and a value in the row); setting
+  a rate on *Naya mazdoor* needs `fields.rates` and `fields.wages`. Equipment rows carry counts only
+  (money keys are dropped on pull).
 * A server `PERMISSION_DENIED` (REST 403, or a sync entry `REJECTED` → *Sync problems*) shows
   "Aap ko is ki ijazat nahi" (`err.PERMISSION_DENIED`).
 

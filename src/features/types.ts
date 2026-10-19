@@ -13,15 +13,15 @@ export type MaterialRow = Base & { name: string; unit: string; groupId: string; 
 export type MaterialGroupRow = Base & { code: string; name: string; sortOrder: number };
 export type SupplierRow = Base & { name: string };
 /** A company worker type (a DAILY labour rate); `key` is what `WorkerRow.type` holds. */
-export type WorkerTypeRow = Base & { key: string; label: string; labelRoman: string | null; labelUrdu: string | null; ratePaisa: string; overtimeMultiplier: number | null; isActive: boolean; updatedAt: string };
+export type WorkerTypeRow = Base & { key: string; label: string; labelRoman: string | null; labelUrdu: string | null; ratePaisa?: string | null; overtimeMultiplier: number | null; isActive: boolean; updatedAt: string };
 /** A worker_types `key`, or 'OTHER'. */
 export type WorkerType = string;
-export type WorkerRow = Base & { name: string; type: WorkerType; typeLabel?: string | null; typeLabelRoman?: string | null; typeLabelUrdu?: string | null; phone: string | null; dailyRatePaisa: string | null; isActive: boolean };
-export type ProjectWorkerRow = Base & { projectId: string; workerId: string; dailyRatePaisa: string | null; startDate: string | null; endDate: string | null; isActive: boolean };
+export type WorkerRow = Base & { name: string; type: WorkerType; typeLabel?: string | null; typeLabelRoman?: string | null; typeLabelUrdu?: string | null; phone: string | null; dailyRatePaisa?: string | null; isActive: boolean };
+export type ProjectWorkerRow = Base & { projectId: string; workerId: string; dailyRatePaisa?: string | null; startDate: string | null; endDate: string | null; isActive: boolean };
 export type AssignmentRow = Base & { projectId: string; subcontractor: { id: string; name: string; trade: string }; scope: string; rateType: string; unit: string; progressPercent: number | null; isActive: boolean };
 export type AttendanceStatus = 'FULL' | 'HALF' | 'ABSENT';
 export type AttendanceRow = Base & { projectId: string; workerId: string; date: string; status: AttendanceStatus; overtimeHours: number | null; note: string | null; clientId: string | null; lateSync?: boolean };
-export type SettlementLine = { id: string; workerId: string; fullDays: number; halfDays: number; daysWorked: number | null; dailyRatePaisa: string | null; overtimeHours: number | null; overtimePaisa: string | null; grossPaisa: string | null; advanceAdjustedPaisa: string | null; netPaisa: string | null; paymentStatus: string; paidFrom: string | null };
+export type SettlementLine = { id: string; workerId: string; fullDays: number; halfDays: number; daysWorked: number | null; dailyRatePaisa?: string | null; overtimeHours: number | null; overtimePaisa: string | null; grossPaisa: string | null; advanceAdjustedPaisa: string | null; netPaisa: string | null; paymentStatus: string; paidFrom: string | null };
 export type SettlementRow = Base & { projectId: string; weekStart: string; weekEnd: string; status: string; grossPaisa: string | null; advancePaisa: string | null; netPaisa: string | null; paidPaisa: string | null; returnComment: string | null; lines: SettlementLine[] };
 export type AdvanceRow = Base & { projectId: string; payeeType: 'WORKER' | 'SUBCONTRACTOR'; workerId: string | null; assignmentId: string | null; amountPaisa: string; date: string; paidFrom: string; note: string | null };
 export type MeasurementRow = Base & { projectId: string; assignmentId: string; date: string; description: string; quantity: number; unit: string; status: string; note: string | null; attachmentIds: string[] };
