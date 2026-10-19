@@ -8,7 +8,11 @@ import type { components } from '../api/schema';
 export type Role = 'THEKEDAR' | 'PM' | 'MUNSHI';
 
 type AuthResult = components['schemas']['AuthResult'];
-export type FieldAccess = components['schemas']['FieldAccess'];
+/**
+ * `wages` (decision 4, `fields.wages`): worker daily wages. Optional until every server sends it —
+ * an older server leaves it out, and then the rows decide (a rate is shown only when it is there).
+ */
+export type FieldAccess = Omit<components['schemas']['FieldAccess'], 'wages'> & { wages?: boolean };
 
 /** The access block as the API sends it (same shape in /auth/me, login and sync pull). */
 export interface Access {
@@ -30,7 +34,13 @@ export function accessFrom(src: unknown): Access | null {
   return {
     permissions: s.permissions.filter((p): p is string => typeof p === 'string'),
     legacyPermissions: Array.isArray(s.legacyPermissions) ? s.legacyPermissions : [],
-    fieldAccess: { rates: !!s.fieldAccess.rates, amounts: !!s.fieldAccess.amounts, profit: !!s.fieldAccess.profit, contract: !!s.fieldAccess.contract },
+    fieldAccess: {
+      rates: !!s.fieldAccess.rates,
+      amounts: !!s.fieldAccess.amounts,
+      profit: !!s.fieldAccess.profit,
+      contract: !!s.fieldAccess.contract,
+      ...(typeof s.fieldAccess.wages === 'boolean' ? { wages: s.fieldAccess.wages } : {}),
+    },
     scopes: s.scopes ?? {},
     approvalLimits: s.approvalLimits ?? {},
     permissionRole: s.permissionRole ?? null,
@@ -95,7 +105,7 @@ export const PERM = {
 } as const;
 
 const fieldOf = (key: string): FieldKey | null => {
-  const m = /^fields\.(rates|amounts|profit|contract)$/.exec(key);
+  const m = /^fields\.(rates|amounts|profit|contract|wages)$/.exec(key);
   return m ? (m[1] as FieldKey) : null;
 };
 
@@ -103,13 +113,16 @@ const fieldOf = (key: string): FieldKey | null => {
  * May this person use `key` (a catalogue key, a `fields.*` key or an old legacy name)?
  * THEKEDAR: always. No access block yet (signed in on an older build, before the first
  * /auth/me or pull): the old behaviour — every action, and rates for everyone but a munshi.
+ * `fields.wages` from a server that doesn't send `fieldAccess.wages` yet: allowed — that server
+ * still decides by sending the rate or not, and a missing rate is never shown.
  */
 export function can(access: Access | null | undefined, role: Role | null | undefined, key: string): boolean {
   if (role === 'THEKEDAR') return true;
   const k = LEGACY_KEYS[key] ?? key;
   const field = fieldOf(k);
-  if (!access) return field ? field === 'rates' && role !== 'MUNSHI' : true;
-  if (field) return access.fieldAccess[field] || access.permissions.includes(k);
+  if (!access) return field ? field === 'wages' || (field === 'rates' && role !== 'MUNSHI') : true;
+  if (field === 'wages' && access.fieldAccess.wages === undefined) return true;
+  if (field) return !!access.fieldAccess[field] || access.permissions.includes(k);
   return access.permissions.includes(k);
 }
 
@@ -118,10 +131,25 @@ export const canAny = (access: Access | null | undefined, role: Role | null | un
 /** Will the API send this kind of value (rates / amounts / profit / contract)? */
 export const seesField = (access: Access | null | undefined, role: Role | null | undefined, field: FieldKey) => can(access, role, `fields.${field}`);
 
+/** May this person see worker daily wages (`fields.wages`, decision 4; ON by default for a munshi)? */
+export const canSeeWages = (access: Access | null | undefined, role: Role | null | undefined) => can(access, role, 'fields.wages');
+
+/**
+ * A worker / worker-type rate to show, or null: needs `fields.wages` AND the value in the row
+ * (without the key the server leaves the rate out — never shown as "Rs 0").
+ */
+export function visibleRate(access: Access | null | undefined, role: Role | null | undefined, paisa: unknown): string | null {
+  if (!canSeeWages(access, role)) return null;
+  return typeof paisa === 'string' && /^\d+$/.test(paisa) ? paisa : null;
+}
+
 /** Account-type rules that stay with the role (not configurable), combined with the keys. */
 export const rules = {
-  /** Daily rate on "Naya mazdoor": needs the rates field (a default munshi never has it). */
-  setWorkerRate: (a: Access | null | undefined, role: Role) => can(a, role, 'fields.rates'),
+  /**
+   * Daily rate on "Naya mazdoor": needs the rates field (a default munshi never has it) and
+   * `fields.wages` (without it the server rejects a WORKER_CREATE that carries a rate).
+   */
+  setWorkerRate: (a: Access | null | undefined, role: Role) => can(a, role, 'fields.rates') && canSeeWages(a, role),
   payWages: (a: Access | null | undefined, role: Role) => can(a, role, PERM.wagePay),
   seeSubcontractRates: (a: Access | null | undefined, role: Role) => can(a, role, 'fields.rates'),
   /** The owner sends cash, he doesn't ask for it. */

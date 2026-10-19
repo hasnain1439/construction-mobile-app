@@ -31,7 +31,7 @@ export type WorkerTypeOption = { key: string; name: string; ratePaisa: string | 
 /** Choices for a new worker: active company types by name, then "Other". */
 export function workerTypeOptions(rows: WorkerTypeRow[], language: Language): WorkerTypeOption[] {
   const source = rows.length ? rows.filter((r) => r.isActive && r.key !== OTHER_TYPE) : BUILTIN_WORKER_TYPES;
-  const options = source.map((r) => ({ key: r.key, name: labelIn(language, r), ratePaisa: r.ratePaisa })).sort((a, b) => a.name.localeCompare(b.name));
+  const options = source.map((r) => ({ key: r.key, name: labelIn(language, r), ratePaisa: r.ratePaisa ?? null })).sort((a, b) => a.name.localeCompare(b.name));
   return [...options, { key: OTHER_TYPE, name: labelIn(language, OTHER_LABELS), ratePaisa: null }];
 }
 

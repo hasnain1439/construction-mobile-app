@@ -40,6 +40,20 @@ function dropAttendanceCopies(db: Db, row: Row) {
   }
 }
 
+/**
+ * Equipment tables carry counts only on the phone (decision 3: equipment rupee values need
+ * `fields.amounts`, and the app never shows them). Should a server ever send a money key
+ * (`hireRatePaisaPerDay`, `replacementValuePaisa`, `depositPaisa`, charges…), it is not stored.
+ */
+export const MONEY_FREE_TABLES: ReadonlySet<SyncTableName> = new Set(['equipment', 'equipment_stock', 'equipment_transfers', 'equipment_rentals', 'equipment_losses']);
+const MONEY_KEY = /paisa|charge|deposit|rentToDate|idleCost/i;
+
+export function withoutMoney<T>(value: T): T {
+  if (Array.isArray(value)) return value.map((v) => withoutMoney(v)) as T;
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).filter(([k]) => !MONEY_KEY.test(k)).map(([k, v]) => [k, withoutMoney(v)])) as T;
+}
+
 export function applyPull(db: Db, res: PullResponse, snapshot: boolean, now = Date.now()) {
   db.transaction((tx) => {
     const t = tx as unknown as Db;
@@ -55,7 +69,7 @@ export function applyPull(db: Db, res: PullResponse, snapshot: boolean, now = Da
       }
       for (const row of change.upserts) {
         if (keep.has(`${table}:${row.id}`)) continue;
-        putRow(t, table, row);
+        putRow(t, table, MONEY_FREE_TABLES.has(table) ? withoutMoney(row) : row);
         if (typeof row['clientId'] === 'string') dropLocalCopies(t, table, row['clientId'] as string, row.id);
         if (table === 'attendance') dropAttendanceCopies(t, row);
       }
