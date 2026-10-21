@@ -6,6 +6,10 @@ All notable changes to the Munshi site app. Format: [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Plain English
+
+- English texts are plain English (no Roman Urdu words); Roman Urdu / Urdu unchanged. The English UI now says advance (peshgi), attendance (hazri), site clerk (munshi), Owner (thekedar), balance owed / on credit (udhaar), site expense (kharcha), delivery note (challan), roof slab (lenter), mason / labourer (mistri / mazdoor), stair room (mumty) and so on. Keys, enum values and API codes are unchanged; a guard test fails if a Roman Urdu word comes back into the English texts.
+
 ### Owner decisions (integration)
 
 - API types (`src/api/schema.ts`) regenerated from the merged API (decisions 1–8: adds share links, `finishingAllowance`, `latestProject`, the loss-charge error codes). No app change.
