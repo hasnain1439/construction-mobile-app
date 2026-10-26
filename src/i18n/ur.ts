@@ -227,6 +227,7 @@ export const ur: Record<TKey, string> = {
   'err.DEVICE_REVOKED': 'دفتر نے اس فون کو لاگ آؤٹ کر دیا',
   'err.OTP_RESEND_WAIT': 'تھوڑا رک کر دوبارہ منگوائیں',
   'err.SMS_UNAVAILABLE': 'کوڈ نہیں بھیجا جا سکا — ایک منٹ بعد دوبارہ منگوائیں',
+  'err.REALTIME_DISABLED': 'سرور پر لائیو اپڈیٹس بند ہیں — نیچے کھینچ کر ریفریش کریں',
   'auth.updateOpen': 'پلے اسٹور کھولیں',
   'hazri.noWorkers': 'اس سائٹ پر ابھی کوئی مزدور نہیں',
   'hazri.noSubcontracts': 'اس سائٹ پر کوئی ٹھیکہ نہیں',

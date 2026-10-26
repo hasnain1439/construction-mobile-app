@@ -3,6 +3,7 @@
  * as token theft and ends the login), typed errors. A NetworkError means "offline / server not
  * reachable" — callers keep the work on the phone and try later.
  */
+import { CLIENT_ID, CLIENT_ID_HEADER } from './clientId';
 import { API_BASE_URL } from './config';
 import { ENDPOINTS } from './endpoints';
 import { clearSession, getTokens, setTokens } from './session';
@@ -77,7 +78,7 @@ export async function request<T>(path: string, opts: RequestOptions = {}, retrie
   const f = opts.fetchImpl ?? fetch;
   const qs = opts.query ? Object.entries(opts.query).filter(([, v]) => v !== undefined) : [];
   const url = `${API_BASE_URL}${path}${qs.length ? `?${qs.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')}` : ''}`;
-  const headers: Record<string, string> = { accept: 'application/json', ...opts.headers };
+  const headers: Record<string, string> = { accept: 'application/json', [CLIENT_ID_HEADER]: CLIENT_ID, ...opts.headers };
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
   if (opts.auth !== false) {
     const t = await getTokens();

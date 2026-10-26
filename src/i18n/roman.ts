@@ -224,6 +224,7 @@ export const roman: Record<TKey, string> = {
   'err.DEVICE_REVOKED': 'Office ne is phone ko logout kar diya',
   'err.OTP_RESEND_WAIT': 'Thora ruk kar dobara mangein',
   'err.SMS_UNAVAILABLE': 'Code nahi bheja ja saka — ek minute baad dobara mangein',
+  'err.REALTIME_DISABLED': 'Server par live updates band hain — neeche khench kar refresh karein',
   'auth.updateOpen': 'Play Store kholein',
   'hazri.noWorkers': 'Is site par abhi koi worker nahi',
   'hazri.noSubcontracts': 'Is site par koi theka nahi',
