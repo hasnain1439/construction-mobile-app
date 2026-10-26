@@ -21,6 +21,7 @@ import { COLORS } from '@/lib/theme';
 import { useQuietUpdateCheck } from '@/lib/updates';
 // Importing triggers also defines the background sync task at module scope (expo-task-manager needs that).
 import { startSyncTriggers } from '@/sync/triggers';
+import { startLiveSync } from '@/sync/live';
 
 // Crash reporting (no-op without EXPO_PUBLIC_SENTRY_DSN). Before anything else can throw.
 initSentry();
@@ -38,6 +39,8 @@ function Gate() {
   // Sync on foreground / reconnect / every 15 min only while signed in and set up.
   const syncMinutes = config?.syncIntervalMinutes ?? 15;
   useEffect(() => (status === 'ready' ? startSyncTriggers(syncMinutes) : undefined), [status, syncMinutes]);
+  // While the app is open: someone else's change → sync (no pull-to-refresh needed).
+  useEffect(() => (status === 'ready' ? startLiveSync() : undefined), [status]);
 
   // OTA: quiet download on foreground (store / pilot builds only); used on the next start.
   useQuietUpdateCheck(status !== 'booting');

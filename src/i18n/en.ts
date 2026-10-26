@@ -222,6 +222,7 @@ export const en = {
   'err.DEVICE_REVOKED': 'This phone was signed out by the office',
   'err.OTP_RESEND_WAIT': 'Wait a little before asking again',
   'err.SMS_UNAVAILABLE': 'The code could not be sent — try again in a minute',
+  'err.REALTIME_DISABLED': 'Live updates are off on the server — pull down to refresh',
   'auth.updateOpen': 'Open Play Store',
   'hazri.noWorkers': 'No workers on this site yet',
   'hazri.noSubcontracts': 'No sub-contracts on this site',

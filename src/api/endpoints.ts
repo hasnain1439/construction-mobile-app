@@ -11,5 +11,6 @@ export const ENDPOINTS = {
   attachments: '/attachments',
   syncPull: '/sync/pull',
   syncPush: '/sync/push',
+  realtimeStream: '/realtime/stream',
   syncStatus: '/sync/status',
 } as const;
