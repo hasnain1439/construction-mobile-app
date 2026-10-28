@@ -17,7 +17,7 @@ import { useProject } from '@/features/project';
 import { equipmentMap, incomingEquipment } from '@/features/equipment';
 import { incomingDispatches, incomingPurchases, siteStock } from '@/features/queries';
 import { useI18n } from '@/i18n';
-import { PERM } from '@/lib/permissions';
+import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { qty } from '@/lib/qty';
 import { CARD_SHADOW, COLORS } from '@/lib/theme';
 
@@ -46,6 +46,9 @@ export default function MaalScreen() {
   const canReceive = perms.can(PERM.receive);
   const canReceiveEq = perms.can(PERM.equipmentReceive);
   const seesEq = perms.can(PERM.equipmentView);
+  // Sections follow their view keys (a custom role may only record usage, say): no empty headings.
+  const seesIncoming = perms.canAny(...TAB_PERMS.incoming);
+  const seesStock = perms.can(PERM.stockView);
   const data = useQuery(
     (db) =>
       projectId
@@ -72,11 +75,13 @@ export default function MaalScreen() {
         {seesEq ? <BigButton testID="open-equipment" small variant="secondary" icon="crane" label={t('eq.title')} onPress={() => router.push('/maal/equipment')} /> : null}
         {perms.can(PERM.equipmentLoss) ? <BigButton small variant="secondary" icon="alert-octagon-outline" label={t('eq.reportLoss')} onPress={() => router.push('/maal/equipment-loss')} /> : null}
       </ScrollView>
-      <View className="mt-1 flex-row items-center gap-2">
-        <Icon name="truck-delivery-outline" size={20} color={COLORS.info} />
-        <Text className="font-bold text-lg text-ink">{t('maal.incoming')}</Text>
-      </View>
-      {!data.dispatches.length && !data.purchases.length && !data.equipment.length ? (
+      {seesIncoming ? (
+        <View className="mt-1 flex-row items-center gap-2">
+          <Icon name="truck-delivery-outline" size={20} color={COLORS.info} />
+          <Text className="font-bold text-lg text-ink">{t('maal.incoming')}</Text>
+        </View>
+      ) : null}
+      {seesIncoming && !data.dispatches.length && !data.purchases.length && !data.equipment.length ? (
         <View className="rounded-card border border-dashed border-border bg-card px-4 py-3">
           <Text className="text-sm text-muted">{t('maal.noIncoming')}</Text>
         </View>
@@ -116,23 +121,27 @@ export default function MaalScreen() {
           onPress={canReceiveEq ? () => router.push({ pathname: '/maal/equipment-receive', params: { id: tr.id } }) : undefined}
         />
       ))}
-      <View className="mt-3 flex-row items-center gap-2">
-        <Icon name="chart-box-outline" size={20} color={COLORS.primary} />
-        <Text className="font-bold text-lg text-ink">{t('maal.stock')}</Text>
-      </View>
+      {seesStock ? (
+        <View className="mt-3 flex-row items-center gap-2">
+          <Icon name="chart-box-outline" size={20} color={COLORS.primary} />
+          <Text className="font-bold text-lg text-ink">{t('maal.stock')}</Text>
+        </View>
+      ) : null}
     </View>
   );
 
   return (
     <Screen header={header} scroll={false}>
       <FlashList
-        data={data.stock}
+        data={seesStock ? data.stock : []}
         keyExtractor={(s) => s.id}
         ListHeaderComponent={top}
         ListEmptyComponent={
-          <View className="px-4">
-            <EmptyState icon="📦" title={t('common.empty')} />
-          </View>
+          seesStock ? (
+            <View className="px-4">
+              <EmptyState icon="📦" title={t('common.empty')} />
+            </View>
+          ) : null
         }
         renderItem={({ item }) => <StockItem item={item} />}
       />
