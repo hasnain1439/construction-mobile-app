@@ -104,6 +104,12 @@ export const PERM = {
   drawingView: 'closeout.drawing.view',
 } as const;
 
+/**
+ * Keys the phone never offers, whatever the role (even THEKEDAR): product decision — projects are
+ * created on the web only. Viewing / editing projects still follow their own keys.
+ */
+export const WEB_ONLY_KEYS: readonly string[] = ['projects.project.create'];
+
 const fieldOf = (key: string): FieldKey | null => {
   const m = /^fields\.(rates|amounts|profit|contract|wages)$/.exec(key);
   return m ? (m[1] as FieldKey) : null;
@@ -111,14 +117,15 @@ const fieldOf = (key: string): FieldKey | null => {
 
 /**
  * May this person use `key` (a catalogue key, a `fields.*` key or an old legacy name)?
- * THEKEDAR: always. No access block yet (signed in on an older build, before the first
+ * THEKEDAR: always (except the `WEB_ONLY_KEYS`). No access block yet (signed in on an older build, before the first
  * /auth/me or pull): the old behaviour — every action, and rates for everyone but a munshi.
  * `fields.wages` from a server that doesn't send `fieldAccess.wages` yet: allowed — that server
  * still decides by sending the rate or not, and a missing rate is never shown.
  */
 export function can(access: Access | null | undefined, role: Role | null | undefined, key: string): boolean {
-  if (role === 'THEKEDAR') return true;
   const k = LEGACY_KEYS[key] ?? key;
+  if (WEB_ONLY_KEYS.includes(k)) return false;
+  if (role === 'THEKEDAR') return true;
   const field = fieldOf(k);
   if (!access) return field ? field === 'wages' || (field === 'rates' && role !== 'MUNSHI') : true;
   if (field === 'wages' && access.fieldAccess.wages === undefined) return true;
@@ -192,6 +199,10 @@ export const TAB_PERMS = {
   hazri: [PERM.hazriView, PERM.hazriMark, PERM.workerCreate, PERM.peshgiCreate, PERM.measurementCreate, PERM.settlementView],
   maal: [PERM.dispatchView, PERM.receive, PERM.usageCreate, PERM.ownerDeliveryCreate, PERM.purchaseCreate, PERM.countCreate, PERM.stockView, PERM.equipmentView, PERM.equipmentReceive, PERM.equipmentLoss],
   kharcha: [PERM.cashView, PERM.expenseView, PERM.expenseCreate, PERM.topupCreate],
+  /** Not a tab: the attendance list on Hazri (day / week). Without these the tab only shows its other actions. */
+  attendance: [PERM.hazriView, PERM.hazriMark],
+  /** Not a tab: "Incoming" on Maal (deliveries and equipment on the way). */
+  incoming: [PERM.dispatchView, PERM.purchaseView, PERM.receive, PERM.equipmentView, PERM.equipmentReceive],
   /** Not a tab: the "Site" group on Mazeed and the Aaj cards (progress, stoppages, instructions, snags, drawings). */
   site: [PERM.planView, PERM.progressEdit, PERM.stoppageCreate, PERM.instructionCreate, PERM.instructionView, PERM.snagView, PERM.snagCreate, PERM.drawingView],
 } as const;

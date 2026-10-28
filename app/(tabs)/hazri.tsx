@@ -19,7 +19,7 @@ import type { AttendanceRow, AttendanceStatus } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { workerTypeMap, workerTypeName } from '@/features/workerTypes';
 import { useI18n, useT } from '@/i18n';
-import { PERM } from '@/lib/permissions';
+import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { addDays, todayPK, weekOf, type WeekDay } from '@/lib/dates';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW } from '@/lib/theme';
 
@@ -140,6 +140,8 @@ export default function HazriScreen() {
   const perms = usePermissions();
   const canMark = perms.can(PERM.hazriMark);
   const canAddWorker = perms.can(PERM.workerCreate);
+  // The day / week list needs hazri view or mark; others (e.g. an accountant) only get the buttons below.
+  const seesAttendance = perms.canAny(...TAB_PERMS.attendance);
   const today = todayPK();
   const [day, setDay] = useState(today);
   const [mode, setMode] = useState<'day' | 'week'>('day');
@@ -211,6 +213,23 @@ export default function HazriScreen() {
     setEdits({ key, draft, saved: true });
   };
 
+  const actions = (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+      {canAddWorker ? <BigButton small variant="secondary" icon="➕" label={t('hazri.addWorker')} onPress={() => router.push('/hazri/worker-new')} /> : null}
+      {perms.can(PERM.peshgiCreate) ? <BigButton small variant="secondary" icon="🤝" label={t('hazri.peshgi')} onPress={() => router.push('/hazri/peshgi')} /> : null}
+      {perms.can(PERM.measurementCreate) ? <BigButton small variant="secondary" icon="📏" label={t('hazri.measurement')} onPress={() => router.push('/hazri/measurement')} /> : null}
+      {perms.can(PERM.settlementView) ? <BigButton small variant="secondary" icon="🗓️" label={t('hazri.settlement')} onPress={() => router.push('/hazri/settlement')} /> : null}
+    </ScrollView>
+  );
+
+  if (!seesAttendance) {
+    return (
+      <Screen header={header}>
+        {actions}
+      </Screen>
+    );
+  }
+
   const top = (
     <View className="gap-3 p-4">
       <View className="flex-row rounded-full bg-stone p-1">
@@ -255,12 +274,7 @@ export default function HazriScreen() {
         </Pressable>
       </View>
       {data.locked ? <StatusChip tone="warning" icon="🔒" label={t('hazri.locked')} /> : null}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-        {canAddWorker ? <BigButton small variant="secondary" icon="➕" label={t('hazri.addWorker')} onPress={() => router.push('/hazri/worker-new')} /> : null}
-        {perms.can(PERM.peshgiCreate) ? <BigButton small variant="secondary" icon="🤝" label={t('hazri.peshgi')} onPress={() => router.push('/hazri/peshgi')} /> : null}
-        {perms.can(PERM.measurementCreate) ? <BigButton small variant="secondary" icon="📏" label={t('hazri.measurement')} onPress={() => router.push('/hazri/measurement')} /> : null}
-        {perms.can(PERM.settlementView) ? <BigButton small variant="secondary" icon="🗓️" label={t('hazri.settlement')} onPress={() => router.push('/hazri/settlement')} /> : null}
-      </ScrollView>
+      {actions}
       {mode === 'day' && data.workers.length > 0 && !data.locked && canMark ? (
         <BigButton
           testID="all-present"
