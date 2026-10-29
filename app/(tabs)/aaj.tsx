@@ -13,6 +13,7 @@ import { Screen } from '@components/Screen';
 import { StatusChip } from '@components/StatusChip';
 import { useQuery } from '@/db/live';
 import { usePermissions } from '@/features/access';
+import { useApprovalsCount } from '@/features/approvals';
 import { useProject } from '@/features/project';
 import { incomingEquipment } from '@/features/equipment';
 import { attendanceOn, cashAccount, incomingDispatches, incomingPurchases, materialMap, myLogOn, pendingFloats, settings, settlementFor, siteWorkers } from '@/features/queries';
@@ -49,6 +50,7 @@ export default function AajScreen() {
   const { t, f, rtl } = useI18n();
   const user = useUser();
   const perms = usePermissions();
+  const approvals = useApprovalsCount({ fetch: true });
   const { projectId, project } = useProject();
   const today = todayPK();
   const seesPlan = perms.can(PERM.planView);
@@ -148,6 +150,17 @@ export default function AajScreen() {
             <Icon name={rtl ? 'arrow-left' : 'arrow-right'} size={14} color={COLORS.ink} />
           </View>
         </Pressable>
+      ) : null}
+
+      {approvals.show && approvals.count ? (
+        <ListItem
+          testID="aaj-approvals"
+          icon="check-decagram-outline"
+          iconTone="accent"
+          title={t('appr.pending', { n: approvals.count })}
+          right={<StatusChip tone="danger" label={String(approvals.count)} />}
+          onPress={() => router.push('/approvals')}
+        />
       ) : null}
 
       <View className="mt-2 flex-row items-center justify-between">

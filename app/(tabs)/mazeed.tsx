@@ -13,6 +13,7 @@ import { APP_VERSION } from '@/api/config';
 import { useQuery } from '@/db/live';
 import { listRows } from '@/db/store';
 import { usePermissions } from '@/features/access';
+import { useApprovalsCount } from '@/features/approvals';
 import { useSession, useUser } from '@/features/session';
 import type { NotificationRow } from '@/features/types';
 import { LANGUAGE_NAMES, roleLabel, useI18n } from '@/i18n';
@@ -30,6 +31,7 @@ export default function MazeedScreen() {
   const { logout } = useSession();
   const perms = usePermissions();
   const s = useSyncStatus();
+  const approvals = useApprovalsCount({ fetch: true });
   const unread = useQuery((db) => listRows<NotificationRow>(db, 'notifications').filter((n) => !n.read).length, []);
   const [confirm, setConfirm] = useState<{ pending: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -60,6 +62,16 @@ export default function MazeedScreen() {
           <Text className="text-sm text-brand-muted">{user.tenantName}</Text>
         </View>
       </View>
+      {approvals.show ? (
+        <ListItem
+          testID="open-approvals"
+          icon="check-decagram-outline"
+          iconTone="success"
+          title={t('appr.title')}
+          right={approvals.count ? <StatusChip tone="danger" label={String(approvals.count)} /> : undefined}
+          onPress={() => router.push('/approvals')}
+        />
+      ) : null}
       {perms.can(PERM.logCreate) ? <ListItem icon="📝" iconTone="violet" title={t('mazeed.dailyLog')} onPress={() => router.push('/log/today')} /> : null}
       {perms.can(PERM.logView) ? <ListItem icon="📚" iconTone="info" title={t('mazeed.myLogs')} onPress={() => router.push('/log/history')} /> : null}
       {perms.canAny(...TAB_PERMS.site) ? <Text className="mt-2 font-bold text-lg text-ink">{t('site.title')}</Text> : null}

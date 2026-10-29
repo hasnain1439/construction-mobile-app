@@ -102,7 +102,17 @@ export const PERM = {
   snagCreate: 'closeout.snag.create',
   snagManage: 'closeout.snag.manage',
   drawingView: 'closeout.drawing.view',
+  // Approvals (online only, through REST — sync push has no approve mutations)
+  approvalsInbox: 'approvals.inbox.view',
+  settlementApprove: 'labor.settlement.approve',
+  measurementApprove: 'labor.measurement.approve',
+  expenseApprove: 'cashbook.expense.approve',
+  topupApprove: 'cashbook.topup.approve',
+  stoppageApprove: 'schedule.stoppage.approve',
 } as const;
+
+/** Every key that lets a person approve something on the phone ("Meri approvals" is shown with any of them). */
+export const APPROVE_KEYS: readonly string[] = [PERM.settlementApprove, PERM.measurementApprove, PERM.expenseApprove, PERM.topupApprove, PERM.stoppageApprove, PERM.snagManage];
 
 /**
  * Keys the phone never offers, whatever the role (even THEKEDAR): product decision — projects are
@@ -192,6 +202,7 @@ export const ROUTE_PERMS: Record<string, readonly string[]> = {
   '/site/snag-fix': [PERM.snagCreate],
   '/site/drawings': [PERM.drawingView],
   '/site/drawing': [PERM.drawingView],
+  '/approvals': APPROVE_KEYS,
 };
 
 /** The tabs: shown when the person may use anything on them. */
