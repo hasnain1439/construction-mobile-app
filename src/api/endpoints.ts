@@ -13,4 +13,9 @@ export const ENDPOINTS = {
   syncPush: '/sync/push',
   realtimeStream: '/realtime/stream',
   syncStatus: '/sync/status',
+  // Approvals (online only): the office inbox + its quick actions, and the stoppage / snag decisions.
+  approvals: '/approvals',
+  approvalsBulk: '/approvals/bulk',
+  stoppages: '/stoppages',
+  snags: '/snags',
 } as const;

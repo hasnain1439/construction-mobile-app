@@ -84,6 +84,7 @@ function Gate() {
         <Stack.Screen name="kharcha" />
         <Stack.Screen name="log" />
         <Stack.Screen name="site" />
+        <Stack.Screen name="approvals" />
         <Stack.Screen name="sync-problems" />
         <Stack.Screen name="notifications" />
       </Stack.Protected>
