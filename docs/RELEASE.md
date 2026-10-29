@@ -25,9 +25,9 @@ channel, so all three can be installed on the same phone:
 
 | Profile | App name | Package | Output | OTA channel |
 |---|---|---|---|---|
-| `development` | Munshi Dev | `pk.construction.munshi.dev` | dev-client APK (internal) | `development` |
-| `preview` | Munshi Pilot | `pk.construction.munshi.preview` | APK, internal distribution — **the pilot** | `preview` |
-| `production` | Munshi | `pk.construction.munshi` | AAB for Play Store | `production` |
+| `development` | Keystone Munshi Dev | `pk.construction.munshi.dev` | dev-client APK (internal) | `development` |
+| `preview` | Keystone Munshi Pilot | `pk.construction.munshi.preview` | APK, internal distribution — **the pilot** | `preview` |
+| `production` | Keystone Munshi | `pk.construction.munshi` | AAB for Play Store | `production` |
 
 Check what a variant resolves to: `APP_VARIANT=preview npx expo config --type public`
 (PowerShell: `$env:APP_VARIANT='preview'; npx expo config --type public`).
@@ -149,7 +149,7 @@ native change:
 4. Real-life test: airplane mode → add a kharcha → swipe the app away (do **not** *Force stop*, that
    cancels scheduled work) → airplane mode off → wait 15–30 minutes with the screen off → the
    web app shows the kharcha. Android may delay it more in Doze / battery saver.
-5. Pilot phones: Settings → Apps → Munshi Pilot → Battery → *Unrestricted / No restrictions*.
+5. Pilot phones: Settings → Apps → Keystone Munshi Pilot → Battery → *Unrestricted / No restrictions*.
    Xiaomi, Oppo, Vivo, Tecno and Infinix kill background work aggressively otherwise.
 6. Logout unregisters the task (`dumpsys jobscheduler` no longer lists it).
 

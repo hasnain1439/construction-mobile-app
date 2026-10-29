@@ -15,7 +15,7 @@ const BANNED = [
 ];
 const BANNED_RE = new RegExp(`\\b(${BANNED.join('|')})\\b`, 'i');
 
-/** The app itself is called "Munshi" (a brand name, kept in every language). */
+/** The app itself is called "Keystone Munshi" (a brand name, kept in every language). */
 const BRAND_KEYS = new Set(['app.name']);
 
 const offenders = (texts: Record<string, string>) =>
@@ -39,6 +39,6 @@ describe('English texts are plain English', () => {
 
   it('the guard itself catches Roman Urdu and lets plain English through', () => {
     expect(offenders({ a: 'Save hazri', b: 'Recent peshgi', c: 'Add kharcha' })).toHaveLength(3);
-    expect(offenders({ a: 'Save attendance', b: 'Recent advances', c: 'Add expense', 'app.name': 'Munshi' })).toEqual([]);
+    expect(offenders({ a: 'Save attendance', b: 'Recent advances', c: 'Add expense', 'app.name': 'Keystone Munshi' })).toEqual([]);
   });
 });

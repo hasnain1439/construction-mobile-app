@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Keystone">
+  <path d="M12 54V30a20 20 0 0 1 40 0v24H41V31a9 9 0 0 0-18 0v23z" fill="#B5A18B"/>
+  <path d="M26.2 4.5h11.6l-2.3 13.5h-7z" fill="#FFCF68" stroke="#201F1E" stroke-width="2.4" stroke-linejoin="round"/>
+  <rect x="9" y="56" width="46" height="3.2" rx="1.6" fill="#E4E0E0"/>
+</svg>

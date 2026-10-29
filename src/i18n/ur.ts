@@ -5,7 +5,7 @@ import type { TKey } from './en';
  * Western digits and "Rs" as on Pakistani receipts and bank SMS.
  */
 export const ur: Record<TKey, string> = {
-  'app.name': 'منشی',
+  'app.name': 'Keystone منشی',
   'common.save': 'محفوظ کریں',
   'common.cancel': 'واپس',
   'common.confirm': 'پکا کریں',

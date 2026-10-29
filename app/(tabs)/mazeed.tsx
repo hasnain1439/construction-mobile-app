@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { BigButton } from '@components/BigButton';
+import { BrandLogo } from '@components/BrandLogo';
 import { ConfirmSheet } from '@components/ConfirmSheet';
 import { Header } from '@components/Header';
 import { ListItem } from '@components/ListItem';
@@ -48,6 +49,7 @@ export default function MazeedScreen() {
 
   return (
     <Screen header={<Header title={t('mazeed.title')} right={<ProjectSwitcher />} />}>
+      <BrandLogo testID="brand-logo" variant="small" />
       <View className="flex-row items-center gap-4 rounded-card bg-brand-light p-4" style={CARD_SHADOW}>
         <View className="h-14 w-14 items-center justify-center rounded-full bg-accent">
           <Text className="font-bold text-xl text-brand">{user.name.charAt(0).toUpperCase()}</Text>
