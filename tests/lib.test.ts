@@ -69,7 +69,7 @@ describe('i18n', () => {
   it('Roman Urdu has every key; Urdu falls back to Roman Urdu; vars are filled', () => {
     expect(Object.keys(roman).sort()).toEqual(Object.keys(en).sort());
     expect(translate('roman', 'sync.waiting', { n: 12 })).toContain('12');
-    expect(translate('ur', 'app.name')).toBe('منشی');
+    expect(translate('ur', 'app.name')).toBe('Keystone منشی'); // the brand stays Latin in Urdu
   });
 
   it('server error codes map to the munshi’s language; unknown codes get a generic message', () => {

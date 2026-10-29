@@ -1,6 +1,6 @@
 /** English — the source of every key. Roman Urdu is the default language of the app. */
 export const en = {
-  'app.name': 'Munshi',
+  'app.name': 'Keystone Munshi',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.confirm': 'Confirm',

@@ -6,6 +6,13 @@ All notable changes to the Munshi site app. Format: [Keep a Changelog](https://k
 
 ## [Unreleased]
 
+### Keystone brand
+
+- **Keystone brand.** The phone shows **Keystone Munshi** (Dev / Pilot builds add their suffix); bundle id, package, slug and EAS project are unchanged. New app icon (charcoal square, dark-variant mark), Android adaptive icon (mark in the safe zone on charcoal, white monochrome for themed icons) and splash (charcoal, mark centred), all rendered from the owner's master SVGs (`assets/brand/`) by `scripts/generate-icons.mjs`. A white notification icon (`assets/notification-icon.png`) is ready for when push notifications are added.
+- Login shows the Keystone mark and wordmark (Cabin 700) above the form; *Mazeed* starts with the small mark + wordmark. The brand name is never translated and stays Latin in Urdu (`app.name` in Urdu: "Keystone منشی"; `Keystone` allowed in Urdu texts by the i18n test).
+- Needs a new build (`eas build`) to show the new icon, splash and name: native assets don't ship over the air.
+
+
 ### Plain English
 
 - English texts are plain English (no Roman Urdu words); Roman Urdu / Urdu unchanged. The English UI now says advance (peshgi), attendance (hazri), site clerk (munshi), Owner (thekedar), balance owed / on credit (udhaar), site expense (kharcha), delivery note (challan), roof slab (lenter), mason / labourer (mistri / mazdoor), stair room (mumty) and so on. Keys, enum values and API codes are unchanged; a guard test fails if a Roman Urdu word comes back into the English texts.

@@ -201,7 +201,7 @@ Every screen is fully translated in all three; there are no fallbacks.
   direction.
 * **Tests** (`tests/i18n.test.ts`, `tests/i18nLiterals.test.ts`) fail when a key is missing or
   extra in `roman` / `ur`, a text is empty, `{placeholders}` differ from English, Urdu text is
-  English (copied, or Latin words other than `Rs`, `kg`, `OTP`, `PDF`, `SMS`, `OT`, `PKR`), an
+  English (copied, or Latin words other than the brand `Keystone`, `Rs`, `kg`, `OTP`, `PDF`, `SMS`, `OT`, `PKR`), an
   error code the app can receive (read from `src/api/schema.ts` for the endpoints in
   `src/api/endpoints.ts`, plus codes named in the code) has no `err.*` text, or a `.tsx` file in
   `app/` or `components/` shows a literal word (JSX text, text props such as `label` / `title` /
@@ -247,7 +247,7 @@ src/
   lib/        money (paisa, Rs 27,75,000), dates (Asia/Karachi), phone, uuid v7, permissions (can, keys), theme, OTA update check
   lib/observability/  Sentry (off without DSN) + PII scrubber, PostHog fetch client, hashed user id
 tests/                   jest tests (sync engine, triggers, Wi-Fi-only, actions, worker types, permissions, api, upload, media, updates, components, observability)
-scripts/                 api-types (OpenAPI → TS), generate-icons (placeholder icons / splash from the brand colours)
+scripts/                 api-types (OpenAPI → TS), generate-icons (Keystone icons / splash / logo PNGs from assets/brand/*.svg)
 docs/RELEASE.md          pilot APK, OTA updates, Play Store, rollback, background-sync and low-end checks
 ```
 
@@ -318,9 +318,9 @@ Full guide (set-up, install, OTA, rollback, versioning): **[docs/RELEASE.md](doc
 
 | Profile | Output | App / package | OTA channel |
 |---|---|---|---|
-| `development` | dev client APK (internal) | Munshi Dev · `pk.construction.munshi.dev` | `development` |
-| `preview` | **pilot APK**, internal distribution | Munshi Pilot · `pk.construction.munshi.preview` | `preview` |
-| `production` | Android app bundle (Play Store) | Munshi · `pk.construction.munshi` | `production` |
+| `development` | dev client APK (internal) | Keystone Munshi Dev · `pk.construction.munshi.dev` | `development` |
+| `preview` | **pilot APK**, internal distribution | Keystone Munshi Pilot · `pk.construction.munshi.preview` | `preview` |
+| `production` | Android app bundle (Play Store) | Keystone Munshi · `pk.construction.munshi` | `production` |
 
 The three install side by side (`APP_VARIANT` in each profile). Set the real `EXPO_PUBLIC_API_BASE_URL`
 (HTTPS) per profile in `eas.json` and the EAS project id (`eas init`) in `app.config.ts` first.
@@ -331,8 +331,9 @@ APP_VARIANT=preview npx eas update --channel preview --message "…"           #
 ```
 
 Versions: `VERSION` in `app.config.ts` (semver) = runtime version for OTA; bump it for native changes.
-versionCode is kept by EAS (remote, auto-increment). Icons / splash are placeholders from
-`node scripts/generate-icons.mjs` (brand charcoal, sun, sand).
+versionCode is kept by EAS (remote, auto-increment). Icons, splash and the in-app
+Keystone mark are rendered from the master SVGs in `assets/brand/` by
+`PLAYWRIGHT_DIR=../construction_frontend node scripts/generate-icons.mjs`.
 
 ### From GitHub Actions
 

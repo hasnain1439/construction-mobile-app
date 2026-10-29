@@ -13,18 +13,20 @@ const sentryPlugin: NonNullable<ExpoConfig['plugins']> = sentryUpload
 
 /**
  * Build variants (APP_VARIANT, set per profile in eas.json) install side by side on one phone:
- *   development → "Munshi Dev",   pk.construction.munshi.dev      (dev client, channel development)
- *   preview     → "Munshi Pilot", pk.construction.munshi.preview  (pilot APK, channel preview)
- *   production  → "Munshi",       pk.construction.munshi          (Play Store AAB, channel production)
+ *   development → "Keystone Munshi Dev",   pk.construction.munshi.dev      (dev client, channel development)
+ *   preview     → "Keystone Munshi Pilot", pk.construction.munshi.preview  (pilot APK, channel preview)
+ *   production  → "Keystone Munshi",       pk.construction.munshi          (Play Store AAB, channel production)
  * No APP_VARIANT (local `expo start` / `expo run:android`) = development.
+ * Only the display name carries the Keystone brand: bundle id / package, slug, scheme and the EAS
+ * project stay as they are (changing them would make a new app and break OTA updates).
  */
 export type AppVariant = 'development' | 'preview' | 'production';
 const VARIANT: AppVariant = (['development', 'preview', 'production'] as const).find((v) => v === process.env.APP_VARIANT) ?? 'development';
 const BASE_ID = 'pk.construction.munshi';
 const VARIANTS: Record<AppVariant, { name: string; id: string; scheme: string }> = {
-  development: { name: 'Munshi Dev', id: `${BASE_ID}.dev`, scheme: 'munshi-dev' },
-  preview: { name: 'Munshi Pilot', id: `${BASE_ID}.preview`, scheme: 'munshi-preview' },
-  production: { name: 'Munshi', id: BASE_ID, scheme: 'munshi' },
+  development: { name: 'Keystone Munshi Dev', id: `${BASE_ID}.dev`, scheme: 'munshi-dev' },
+  preview: { name: 'Keystone Munshi Pilot', id: `${BASE_ID}.preview`, scheme: 'munshi-preview' },
+  production: { name: 'Keystone Munshi', id: BASE_ID, scheme: 'munshi' },
 };
 const variant = VARIANTS[VARIANT];
 
@@ -64,13 +66,15 @@ const config: ExpoConfig = {
       }
     : { enabled: false },
   orientation: 'portrait',
+  // Keystone artwork: every PNG below comes from the master SVGs in assets/brand/ via scripts/generate-icons.mjs.
+  // 1024 charcoal square with the dark-variant mark, no rounded corners / transparency (iOS applies its own mask).
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
   ios: { supportsTablet: false, bundleIdentifier: variant.id },
   android: {
     package: variant.id,
     adaptiveIcon: {
-      // Brand charcoal; the PNGs come from scripts/generate-icons.mjs (placeholders until real artwork).
+      // Charcoal background, dark-variant mark inside the 66 dp safe zone, white mark for themed icons.
       backgroundColor: '#201F1E',
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
@@ -90,7 +94,10 @@ const config: ExpoConfig = {
     ['expo-audio', { microphonePermission: 'Voice note record karne ke liye mic chahiye.' }],
     ['expo-image-picker', { cameraPermission: 'Challan, slip aur site ki photo ke liye camera chahiye.', photosPermission: 'Photo chunne ke liye gallery chahiye.' }],
     'expo-font',
-    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#201F1E', imageWidth: 160 }],
+    // Charcoal with the dark-variant mark centred (1024 transparent PNG).
+    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#201F1E', imageWidth: 180 }],
+    // No push notifications yet (expo-notifications is not installed). When it is added, wire the white
+    // monochrome mark: ['expo-notifications', { icon: './assets/notification-icon.png', color: '#201F1E' }].
     ...sentryPlugin, // see above: only with SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT
   ],
   experiments: { typedRoutes: true },
