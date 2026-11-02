@@ -24,6 +24,7 @@ import { useQuietUpdateCheck } from '@/lib/updates';
 // Importing triggers also defines the background sync task at module scope (expo-task-manager needs that).
 import { startSyncTriggers } from '@/sync/triggers';
 import { startLiveSync } from '@/sync/live';
+import { BrandLogo } from '@components/BrandLogo';
 
 // Crash reporting (no-op without EXPO_PUBLIC_SENTRY_DSN). Before anything else can throw.
 initSentry();
@@ -60,9 +61,7 @@ function Gate() {
   if (status === 'booting') {
     return (
       <View className="flex-1 items-center justify-center gap-6 bg-brand">
-        <View className="h-20 w-20 items-center justify-center rounded-3xl bg-accent">
-          <Icon name="crane" size={44} color={COLORS.brand} />
-        </View>
+        <BrandLogo variant="onDark" testID="boot-logo" />
         <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
     );

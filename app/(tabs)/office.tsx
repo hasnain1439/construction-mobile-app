@@ -10,17 +10,8 @@ import { approvalsCount, OFFICE_PERM, officeSections, useOnline, type OfficeSect
 import { ENDPOINTS } from '@/api/endpoints';
 import { roleLabel, useI18n, type TKey } from '@/i18n';
 import { useUser } from '@/features/session';
-import { CARD_SHADOW } from '@/lib/theme';
+import { StatTile } from '@components/StatTile';
 
-/** One number on the overview grid. */
-function Kpi({ label, children, tone }: { label: string; children: React.ReactNode; tone?: 'danger' | 'warning' }) {
-  return (
-    <View className="min-w-[46%] flex-1 gap-1 rounded-card bg-card p-3" style={CARD_SHADOW}>
-      <Text className="text-xs text-muted">{label}</Text>
-      <View>{typeof children === 'string' || typeof children === 'number' ? <Text className={`text-lg font-semibold ${tone === 'danger' ? 'text-danger' : tone === 'warning' ? 'text-warning' : 'text-ink'}`}>{children}</Text> : children}</View>
-    </View>
-  );
-}
 
 const LINKS: Record<Exclude<OfficeSection, 'overview'>, { icon: string; tone: 'primary' | 'info' | 'accent' | 'violet' | 'success' | 'warning'; title: TKey; hint: TKey; href: string }> = {
   projects: { icon: 'office-building-outline', tone: 'primary', title: 'office.projects', hint: 'office.projectsHint', href: '/office/projects' },
@@ -50,34 +41,34 @@ export default function OfficeScreen() {
         <OfficeState state={overview.state} onRetry={() => void overview.reload()}>
           {k ? (
             <View testID="office-overview" className="flex-row flex-wrap gap-3">
-              <Kpi label={t('office.kpi.active')}>{k.activeProjects.count}</Kpi>
-              <Kpi label={t('office.kpi.delayed')} tone={k.activeProjects.delayed ? 'warning' : undefined}>
+              <StatTile label={t('office.kpi.active')}>{k.activeProjects.count}</StatTile>
+              <StatTile label={t('office.kpi.delayed')} tone={k.activeProjects.delayed ? 'warning' : undefined}>
                 {k.activeProjects.delayed}
-              </Kpi>
-              <Kpi label={t('office.kpi.approvals')} tone={approvalsCount(k.pendingApprovals) ? 'warning' : undefined}>
+              </StatTile>
+              <StatTile label={t('office.kpi.approvals')} tone={approvalsCount(k.pendingApprovals) ? 'warning' : undefined}>
                 {approvalsCount(k.pendingApprovals)}
-              </Kpi>
-              <Kpi label={t('office.kpi.onTheWay')}>{k.dispatchesOnTheWay}</Kpi>
+              </StatTile>
+              <StatTile label={t('office.kpi.onTheWay')}>{k.dispatchesOnTheWay}</StatTile>
               {money ? (
                 <>
-                  <Kpi label={t('office.kpi.receivable')}>
+                  <StatTile label={t('office.kpi.receivable')}>
                     <MoneyText paisa={k.receivablesOutstandingPaisa!} className="text-lg" />
-                  </Kpi>
-                  <Kpi label={t('office.kpi.overdue')}>
+                  </StatTile>
+                  <StatTile label={t('office.kpi.overdue')}>
                     <MoneyText paisa={k.overduePaisa ?? '0'} className={`text-lg ${k.overduePaisa && k.overduePaisa !== '0' ? 'text-danger' : ''}`} />
-                  </Kpi>
-                  <Kpi label={t('office.kpi.supplierUdhaar')}>
+                  </StatTile>
+                  <StatTile label={t('office.kpi.supplierUdhaar')}>
                     <MoneyText paisa={k.supplierUdhaarPaisa ?? '0'} className="text-lg" />
-                  </Kpi>
-                  <Kpi label={t('office.kpi.cashWithStaff')}>
+                  </StatTile>
+                  <StatTile label={t('office.kpi.cashWithStaff')}>
                     <MoneyText paisa={k.cashWithSiteStaffPaisa ?? '0'} className="text-lg" />
-                  </Kpi>
-                  <Kpi label={t('office.kpi.storeStock')}>
+                  </StatTile>
+                  <StatTile label={t('office.kpi.storeStock')}>
                     <MoneyText paisa={k.storeStockValuePaisa ?? '0'} className="text-lg" />
-                  </Kpi>
-                  <Kpi label={t('office.kpi.atRisk')} tone={k.activeProjects.atRisk ? 'danger' : undefined}>
+                  </StatTile>
+                  <StatTile label={t('office.kpi.atRisk')} tone={k.activeProjects.atRisk ? 'danger' : undefined}>
                     {k.activeProjects.atRisk}
-                  </Kpi>
+                  </StatTile>
                 </>
               ) : null}
             </View>

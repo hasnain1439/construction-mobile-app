@@ -25,6 +25,9 @@ import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW, TOPBAR_SHADOW } from '@/lib/theme';
 import { MenuButton } from '@components/SideMenu';
 import { BRAND_NAME } from '@/lib/brand';
+import { StatTile } from '@components/StatTile';
+import { ENDPOINTS } from '@/api/endpoints';
+import { OFFICE_PERM, useOnline, type Overview } from '@/features/office';
 
 // Keystone mark (same artwork as the login screen and the web).
 const KEYSTONE_MARK = require('../../assets/brand/keystone-mark-small.png');
@@ -55,6 +58,8 @@ export default function AajScreen() {
   const user = useUser();
   const perms = usePermissions();
   const approvals = useApprovalsCount({ fetch: true });
+  // Company numbers for roles with the dashboard (online; the site numbers below come from the phone).
+  const company = useOnline<Overview>(perms.can(OFFICE_PERM.overview) ? ENDPOINTS.dashboardOverview : null);
   const { projectId, project } = useProject();
   const today = todayPK();
   const seesPlan = perms.can(PERM.planView);
@@ -134,8 +139,50 @@ export default function AajScreen() {
     ] satisfies { icon: string; tone: BadgeTone; label: string; href: Href; show: boolean }[]
   ).filter((q) => q.show);
 
+  const siteStats = [
+    ...(perms.canAny(...TAB_PERMS.attendance) && data.workers
+      ? [{ key: 'hazri', icon: 'account-hard-hat-outline', label: t('aaj.stat.hazri'), value: `${data.marked}/${data.workers}`, tone: data.marked < data.workers ? ('warning' as const) : ('success' as const), href: '/hazri' }]
+      : []),
+    ...(perms.canAny(...TAB_PERMS.incoming) ? [{ key: 'incoming', icon: 'truck-delivery-outline', label: t('aaj.stat.incoming'), value: String(data.incoming + data.incomingEq), tone: undefined, href: '/maal' }] : []),
+    ...(approvals.show ? [{ key: 'approvals', icon: 'check-decagram-outline', label: t('office.kpi.approvals'), value: String(approvals.count), tone: approvals.count ? ('warning' as const) : undefined, href: '/approvals' }] : []),
+  ];
+  const k = company.data?.kpis;
+  const money = Boolean(company.data?.seesFinancials && k?.receivablesOutstandingPaisa !== undefined);
+
   return (
     <Screen header={header} safeTop={false}>
+      {siteStats.length ? (
+        <View testID="aaj-stats" className="flex-row flex-wrap gap-3">
+          {siteStats.map((s) => (
+            <StatTile key={s.key} testID={`stat-${s.key}`} icon={s.icon} label={s.label} tone={s.tone} onPress={() => router.push(s.href as never)}>
+              {s.value}
+            </StatTile>
+          ))}
+        </View>
+      ) : null}
+      {k ? (
+        <>
+          <Text className="mt-1 font-bold text-lg text-ink">{t('aaj.stat.company')}</Text>
+          <View testID="aaj-company-stats" className="flex-row flex-wrap gap-3">
+            <StatTile icon="office-building-outline" label={t('office.kpi.active')} onPress={() => router.push('/office/projects' as never)}>
+              {k.activeProjects.count}
+            </StatTile>
+            <StatTile icon="clock-alert-outline" label={t('office.kpi.delayed')} tone={k.activeProjects.delayed ? 'warning' : undefined}>
+              {k.activeProjects.delayed}
+            </StatTile>
+            {money ? (
+              <>
+                <StatTile icon="cash-plus" label={t('office.kpi.receivable')}>
+                  <MoneyText paisa={k.receivablesOutstandingPaisa!} className="text-xl" />
+                </StatTile>
+                <StatTile icon="alert-circle-outline" label={t('office.kpi.overdue')}>
+                  <MoneyText paisa={k.overduePaisa ?? '0'} className={`text-xl ${k.overduePaisa && k.overduePaisa !== '0' ? 'text-danger' : ''}`} />
+                </StatTile>
+              </>
+            ) : null}
+          </View>
+        </>
+      ) : null}
       {data.account && perms.canAny(...TAB_PERMS.kharcha) ? (
         <Pressable accessibilityRole="button" onPress={() => router.push('/kharcha')} className="overflow-hidden rounded-card bg-sand p-5 active:opacity-95" style={RAISED_SHADOW}>
           {/* Big faint icon in the corner, like the web KPI tiles. */}
