@@ -19,6 +19,7 @@ import { SessionProvider, useSession } from '@/features/session';
 import { I18nProvider, useT } from '@/i18n';
 import { initSentry, wrapRoot } from '@/lib/observability';
 import { COLORS } from '@/lib/theme';
+import { ThemeProvider, useTheme } from '@/lib/themeMode';
 import { useQuietUpdateCheck } from '@/lib/updates';
 // Importing triggers also defines the background sync task at module scope (expo-task-manager needs that).
 import { startSyncTriggers } from '@/sync/triggers';
@@ -101,6 +102,12 @@ function Gate() {
   );
 }
 
+/** Dark icons on the light theme, light icons on the dark one. */
+function ThemedStatusBar() {
+  const { scheme } = useTheme();
+  return <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />;
+}
+
 function RootLayout() {
   const [fontsLoaded] = useFonts({ Cabin_400Regular, Cabin_500Medium, Cabin_600SemiBold, Cabin_700Bold });
   if (!fontsLoaded) return null;
@@ -108,8 +115,10 @@ function RootLayout() {
     <SafeAreaProvider>
       <I18nProvider>
         <SessionProvider>
-          <StatusBar style="dark" />
-          <Gate />
+          <ThemeProvider>
+            <ThemedStatusBar />
+            <Gate />
+          </ThemeProvider>
         </SessionProvider>
       </I18nProvider>
     </SafeAreaProvider>

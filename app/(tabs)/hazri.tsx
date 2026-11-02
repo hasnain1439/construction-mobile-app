@@ -242,8 +242,8 @@ export default function HazriScreen() {
             className={`min-h-11 flex-1 flex-row items-center justify-center gap-2 rounded-full ${mode === m ? 'bg-primary' : ''}`}
             style={mode === m ? RAISED_SHADOW : undefined}
           >
-            <Icon name={m === 'day' ? 'calendar-today' : 'calendar-week'} size={18} color={mode === m ? COLORS.white : COLORS.muted} />
-            <Text className={mode === m ? 'font-semibold text-white' : 'font-medium text-muted'}>{t(m === 'day' ? 'hazri.day' : 'hazri.week')}</Text>
+            <Icon name={m === 'day' ? 'calendar-today' : 'calendar-week'} size={18} color={mode === m ? COLORS.onPrimary : COLORS.muted} />
+            <Text className={mode === m ? 'font-semibold text-on-primary' : 'font-medium text-muted'}>{t(m === 'day' ? 'hazri.day' : 'hazri.week')}</Text>
           </Pressable>
         ))}
       </View>

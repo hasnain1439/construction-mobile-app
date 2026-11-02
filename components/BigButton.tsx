@@ -11,8 +11,9 @@ const BOX: Record<Variant, string> = {
   danger: 'bg-danger active:opacity-90',
   ghost: 'active:bg-primary-soft',
 };
-const TEXT: Record<Variant, string> = { primary: 'text-white', secondary: 'text-ink', accent: 'text-brand', danger: 'text-white', ghost: 'text-primary' };
-const INK: Record<Variant, string> = { primary: COLORS.white, secondary: COLORS.primary, accent: COLORS.brand, danger: COLORS.white, ghost: COLORS.primary };
+const TEXT: Record<Variant, string> = { primary: 'text-on-primary', secondary: 'text-ink', accent: 'text-brand', danger: 'text-white', ghost: 'text-primary' };
+/** Icon colours by variant (read while rendering: the theme can change). */
+const ink = (v: Variant) => ({ primary: COLORS.onPrimary, secondary: COLORS.primary, accent: COLORS.brand, danger: COLORS.white, ghost: COLORS.primary })[v];
 
 interface Props {
   label: string;
@@ -39,7 +40,7 @@ export function BigButton({ label, onPress, variant = 'primary', icon, disabled,
       onPress={onPress}
       className={`${small ? 'min-h-12 px-4' : 'min-h-14 px-5'} flex-row items-center justify-center gap-2 rounded-xl ${BOX[variant]} ${off ? 'opacity-50' : ''}`}
     >
-      {loading ? <ActivityIndicator color={INK[variant]} /> : icon ? <Icon name={icon} size={small ? 18 : 20} color={INK[variant]} /> : null}
+      {loading ? <ActivityIndicator color={ink(variant)} /> : icon ? <Icon name={icon} size={small ? 18 : 20} color={ink(variant)} /> : null}
       <Text className={`font-semibold ${small ? 'text-sm' : 'text-base'} ${TEXT[variant]}`}>{label}</Text>
     </Pressable>
   );
