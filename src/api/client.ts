@@ -72,6 +72,8 @@ export interface RequestOptions {
   fetchImpl?: typeof fetch;
   /** Default 20 s (60 s for uploads). */
   timeoutMs?: number;
+  /** Answer with `{ data, meta }` instead of just `data` (a paged list with its totals). */
+  envelope?: boolean;
 }
 
 export async function request<T>(path: string, opts: RequestOptions = {}, retried = false): Promise<T> {
@@ -95,8 +97,8 @@ export async function request<T>(path: string, opts: RequestOptions = {}, retrie
   } finally {
     clearTimeout(timer);
   }
-  const json = (await res.json().catch(() => null)) as { success: boolean; data?: T; error?: { code: string; message: string; details?: unknown } } | null;
-  if (res.ok && json?.success) return json.data as T;
+  const json = (await res.json().catch(() => null)) as { success: boolean; data?: T; meta?: unknown; error?: { code: string; message: string; details?: unknown } } | null;
+  if (res.ok && json?.success) return (opts.envelope ? { data: json.data, meta: json.meta } : json.data) as T;
   const code = json?.error?.code ?? `HTTP_${res.status}`;
   if (res.status === 401 && code === 'TOKEN_EXPIRED' && opts.auth !== false && !retried) {
     if (await refreshTokens(f)) return request<T>(path, opts, true);

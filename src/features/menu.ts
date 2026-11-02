@@ -68,6 +68,7 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
         ...(office.includes('reports')
           ? [{ ...item('/office/reports', 'office.reports', 'file-chart-outline'), items: reportsFor(access, role).map((r) => item(reportHref(r.name), r.title, 'file-document-outline')) }]
           : []),
+        ...(office.includes('expenses') ? [item('/office/expenses', 'office.expenses', 'receipt-text-outline')] : []),
         ...(office.includes('team') ? [item('/office/team', 'office.team', 'account-group-outline')] : []),
         ...(office.includes('suppliers') ? [item('/office/suppliers', 'office.suppliers', 'truck-outline')] : []),
         ...(office.includes('customers') ? [item('/office/customers', 'office.customers', 'account-tie-outline')] : []),

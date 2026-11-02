@@ -17,6 +17,7 @@ import { CompanyCharts } from '@components/CompanyCharts';
 const LINKS: Record<Exclude<OfficeSection, 'overview'>, { icon: string; tone: 'primary' | 'info' | 'accent' | 'violet' | 'success' | 'warning'; title: TKey; hint: TKey; href: string }> = {
   projects: { icon: 'office-building-outline', tone: 'primary', title: 'office.projects', hint: 'office.projectsHint', href: '/office/projects' },
   reports: { icon: 'file-chart-outline', tone: 'violet', title: 'office.reports', hint: 'office.reportsHint', href: '/office/reports' },
+  expenses: { icon: 'receipt-text-outline', tone: 'warning', title: 'office.expenses', hint: 'office.expensesHint', href: '/office/expenses' },
   team: { icon: 'account-group-outline', tone: 'info', title: 'office.team', hint: 'office.teamHint', href: '/office/team' },
   suppliers: { icon: 'truck-outline', tone: 'accent', title: 'office.suppliers', hint: 'office.suppliersHint', href: '/office/suppliers' },
   customers: { icon: 'account-tie-outline', tone: 'success', title: 'office.customers', hint: 'office.customersHint', href: '/office/customers' },

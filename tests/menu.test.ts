@@ -24,7 +24,7 @@ describe('side menu per role', () => {
     for (const h of ['/aaj', '/hazri', '/hazri/settlement', '/maal', '/maal/equipment', '/kharcha', '/site/drawings', '/office', '/office/report?name=cash-book', '/office/team', '/approvals']) expect(all).toContain(h);
     const office = menuFor(null, 'THEKEDAR').find((g) => g.key === 'office')!;
     expect(office.href).toBe('/office');
-    expect(office.items.map((i) => i.href)).toEqual(['/office/projects', '/office/reports', '/office/team', '/office/suppliers', '/office/customers', '/office/products']);
+    expect(office.items.map((i) => i.href)).toEqual(['/office/projects', '/office/reports', '/office/expenses', '/office/team', '/office/suppliers', '/office/customers', '/office/products']);
     // Reports opens inside the menu to every report — no in-between list page.
     const reports = office.items.find((i) => i.key === '/office/reports')!;
     expect(reports.items!.length).toBeGreaterThan(3);
@@ -34,7 +34,7 @@ describe('side menu per role', () => {
 
   it('only pages to look at: add / new forms open from their page, not the menu', () => {
     const all = hrefs(null, 'THEKEDAR');
-    for (const h of ['/kharcha/new', '/kharcha/topup', '/hazri/worker-new', '/hazri/peshgi', '/hazri/measurement', '/maal/receive', '/maal/usage', '/maal/purchase', '/maal/count']) expect(all).not.toContain(h);
+    for (const h of ['/office/expense-new', '/kharcha/new', '/kharcha/topup', '/hazri/worker-new', '/hazri/peshgi', '/hazri/measurement', '/maal/receive', '/maal/usage', '/maal/purchase', '/maal/count']) expect(all).not.toContain(h);
     expect(menuFor(null, 'THEKEDAR').find((g) => g.key === 'kharcha')!.items).toEqual([]);
   });
 

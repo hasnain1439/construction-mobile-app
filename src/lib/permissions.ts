@@ -207,6 +207,8 @@ export const ROUTE_PERMS: Record<string, readonly string[]> = {
   '/office/projects': ['dashboard.overview.view'],
   '/office/reports': ['finance.reports.view'],
   '/office/report': ['finance.reports.view'],
+  '/office/expenses': ['finance.officeexpense.view'],
+  '/office/expense-new': ['finance.officeexpense.manage'],
   '/office/team': ['team.member.view', 'team.member.manage'],
   '/office/suppliers': ['masterdata.supplier.view'],
   '/office/customers': ['clients.client.view'],

@@ -44,7 +44,7 @@ const ACCOUNTANT = block(['finance.reports.view', 'masterdata.supplier.view', 'c
 
 describe('office sections per role', () => {
   it('owner: everything; munshi: nothing (no tab); PM and accountant: what their keys allow', () => {
-    expect(officeSections(null, 'THEKEDAR')).toEqual(['overview', 'projects', 'reports', 'team', 'suppliers', 'customers', 'products']);
+    expect(officeSections(null, 'THEKEDAR')).toEqual(['overview', 'projects', 'reports', 'expenses', 'team', 'suppliers', 'customers', 'products']);
     expect(officeSections(MUNSHI, 'MUNSHI')).toEqual([]);
     expect(canAny(MUNSHI, 'MUNSHI', OFFICE_TAB_KEYS)).toBe(false);
     expect(officeSections(PM, 'PM')).toEqual(['overview', 'projects', 'suppliers', 'customers', 'products']);
@@ -97,7 +97,7 @@ describe('Office tab', () => {
     await renderOffice();
     expect(await screen.findByTestId('office-overview')).toBeTruthy();
     expect(mockRequest).toHaveBeenCalledWith('/dashboard/overview', expect.anything());
-    for (const s of ['projects', 'reports', 'team', 'suppliers', 'customers', 'products']) expect(screen.getByTestId(`office-${s}`)).toBeTruthy();
+    for (const s of ['projects', 'reports', 'expenses', 'team', 'suppliers', 'customers', 'products']) expect(screen.getByTestId(`office-${s}`)).toBeTruthy();
     expect(screen.getAllByText(/28,65,000/).length).toBeGreaterThan(0);
   });
 

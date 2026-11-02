@@ -6,7 +6,7 @@
  *
  * Online only: these read the REST API (the phone's database holds the site data, not the office's).
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ApiError, NetworkError, request } from '../api/client';
 import { ENDPOINTS } from '../api/endpoints';
 import type { TKey } from '../i18n/en';
@@ -21,9 +21,11 @@ export const OFFICE_PERM = {
   suppliers: 'masterdata.supplier.view',
   customers: 'clients.client.view',
   products: 'masterdata.material.view',
+  expenses: 'finance.officeexpense.view',
+  expensesManage: 'finance.officeexpense.manage',
 } as const;
 
-export type OfficeSection = 'overview' | 'projects' | 'reports' | 'team' | 'suppliers' | 'customers' | 'products';
+export type OfficeSection = 'overview' | 'projects' | 'reports' | 'expenses' | 'team' | 'suppliers' | 'customers' | 'products';
 
 /** Which sections this person may open (products only alongside another office section). */
 export function officeSections(access: Access | null | undefined, role: Role | null | undefined): OfficeSection[] {
@@ -31,6 +33,7 @@ export function officeSections(access: Access | null | undefined, role: Role | n
   const out: OfficeSection[] = [];
   if (has(OFFICE_PERM.overview)) out.push('overview', 'projects');
   if (has(OFFICE_PERM.reports) && reportsFor(access, role).length) out.push('reports');
+  if (has(OFFICE_PERM.expenses)) out.push('expenses');
   if (has(OFFICE_PERM.team) || has(OFFICE_PERM.teamManage)) out.push('team');
   if (has(OFFICE_PERM.suppliers)) out.push('suppliers');
   if (has(OFFICE_PERM.customers)) out.push('customers');
@@ -39,7 +42,7 @@ export function officeSections(access: Access | null | undefined, role: Role | n
 }
 
 /** Keys that put the Office tab on the bar (any section). */
-export const OFFICE_TAB_KEYS: readonly string[] = [OFFICE_PERM.overview, OFFICE_PERM.reports, OFFICE_PERM.team, OFFICE_PERM.teamManage, OFFICE_PERM.suppliers, OFFICE_PERM.customers];
+export const OFFICE_TAB_KEYS: readonly string[] = [OFFICE_PERM.overview, OFFICE_PERM.reports, OFFICE_PERM.expenses, OFFICE_PERM.team, OFFICE_PERM.teamManage, OFFICE_PERM.suppliers, OFFICE_PERM.customers];
 
 // ---------- reports: the web's list and access rules ----------
 
@@ -164,19 +167,22 @@ export type LoadState = 'loading' | 'ready' | 'offline' | 'denied' | 'error';
 
 /**
  * GET on open and whenever path / query change (a search keeps the last list until the new one
- * arrives); `reload` shows the spinner again. Offline / denied / error kept apart so the screen can
- * say why.
+ * arrives); `reload` shows the spinner again, `refetch` keeps what is shown while it loads (pull to
+ * refresh). Offline / denied / error kept apart so the screen can say why.
+ * `envelope`: answer with `{ data, meta }` (a list with its totals). `version`: fetch again when it
+ * changes (after a save on another screen); never sent to the server.
  */
-export function useOnline<T>(path: string | null, query?: Record<string, string | number | undefined>) {
+export function useOnline<T>(path: string | null, query?: Record<string, string | number | undefined>, opts: { envelope?: boolean; version?: number } = {}) {
   const [state, setState] = useState<LoadState>('loading');
   const [data, setData] = useState<T | null>(null);
-  const key = path ? `${path}?${JSON.stringify(query ?? {})}` : null;
+  const key = path ? `${path}?${JSON.stringify(query ?? {})}#${opts.version ?? 0}` : null;
+  const envelope = opts.envelope ?? false;
   const seq = useRef(0);
   const fetchNow = useCallback(
     (): Promise<void> => {
       if (!path) return Promise.resolve();
       const mine = ++seq.current;
-      return request<T>(path, { query }).then(
+      return request<T>(path, envelope ? { query, envelope } : { query }).then(
         (body) => {
           if (mine !== seq.current) return;
           setData(body);
@@ -199,8 +205,92 @@ export function useOnline<T>(path: string | null, query?: Record<string, string 
     setState('loading');
     await fetchNow();
   }, [fetchNow]);
-  return { state, data, reload };
+  return { state, data, reload, refetch: fetchNow };
 }
 
 /** A report file (PDF) for sharing: the API stores it and answers with a signed link. */
 export const reportFile = (name: string, format: 'pdf' | 'xlsx') => request<ReportFile>(ENDPOINTS.report(name), { query: { format } });
+
+// ---------- office expenses: company running costs not tied to a site (rent, bills, salaries) ----------
+
+export const OFFICE_EXPENSE_CATEGORIES = ['RENT', 'UTILITIES', 'SALARIES', 'INTERNET_PHONE', 'STATIONERY', 'VEHICLE', 'REPAIRS', 'TEA_REFRESHMENTS', 'TAXES_FEES', 'OTHER'] as const;
+export type OfficeExpenseCategory = (typeof OFFICE_EXPENSE_CATEGORIES)[number];
+export const OFFICE_PAID_VIA = ['CASH', 'BANK', 'JAZZCASH', 'EASYPAISA'] as const;
+export type OfficePaidVia = (typeof OFFICE_PAID_VIA)[number];
+
+export interface OfficeExpense {
+  id: string;
+  date: string;
+  category: OfficeExpenseCategory;
+  amountPaisa: string;
+  paidVia: OfficePaidVia;
+  paidTo: string | null;
+  description: string;
+  attachmentId: string | null;
+  createdBy: { id: string; name: string } | null;
+  createdAt: string;
+  updatedBy?: { id: string; name: string } | null;
+  updatedAt?: string;
+}
+export interface OfficeExpensesMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  totalPaisa: string;
+  /** Largest first. */
+  byCategory: { category: OfficeExpenseCategory; totalPaisa: string }[];
+}
+export interface OfficeExpenseInput {
+  date: string;
+  category: OfficeExpenseCategory;
+  amountPaisa: string;
+  paidVia: OfficePaidVia;
+  /** null: none (cleared when changing an expense, left out when adding one). */
+  paidTo: string | null;
+  description: string;
+}
+
+/** First and last day of a month ("2026-11" → 2026-11-01 … 2026-11-30). */
+export function monthRange(ym: string): { from: string; to: string } {
+  const [y, m] = ym.split('-').map(Number);
+  const last = new Date(Date.UTC(y!, m!, 0)).getUTCDate();
+  return { from: `${ym}-01`, to: `${ym}-${String(last).padStart(2, '0')}` };
+}
+/** The month `n` months later ("2026-01", -1 → "2025-12"). */
+export function shiftMonth(ym: string, n: number): string {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(Date.UTC(y!, m! - 1 + n, 1)).toISOString().slice(0, 7);
+}
+
+// The list (still open under the form) fetches again after a save / delete.
+let expensesVersion = 0;
+const expenseListeners = new Set<() => void>();
+const subscribeExpenses = (l: () => void) => {
+  expenseListeners.add(l);
+  return () => {
+    expenseListeners.delete(l);
+  };
+};
+const getExpensesVersion = () => expensesVersion;
+export const useOfficeExpensesVersion = () => useSyncExternalStore(subscribeExpenses, getExpensesVersion, getExpensesVersion);
+function expensesChanged() {
+  expensesVersion += 1;
+  expenseListeners.forEach((l) => l());
+}
+
+/** Add (no id) or change an office expense — online only, like every office page. */
+export async function saveOfficeExpense(id: string | null, input: OfficeExpenseInput): Promise<void> {
+  if (id) {
+    await request(`${ENDPOINTS.officeExpenses}/${id}`, { method: 'PATCH', body: input });
+  } else {
+    const { paidTo, ...rest } = input;
+    await request(ENDPOINTS.officeExpenses, { method: 'POST', body: paidTo ? { ...rest, paidTo } : rest });
+  }
+  expensesChanged();
+}
+
+export async function deleteOfficeExpense(id: string): Promise<void> {
+  await request(`${ENDPOINTS.officeExpenses}/${id}`, { method: 'DELETE' });
+  expensesChanged();
+}

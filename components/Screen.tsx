@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext, SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/lib/theme';
@@ -20,6 +20,8 @@ interface Props {
   scroll?: boolean;
   /** Pull-to-refresh runs a sync. */
   refresh?: boolean;
+  /** Pull-to-refresh runs this instead of a sync (online pages). */
+  onRefresh?: () => Promise<unknown>;
   footer?: ReactNode;
   banner?: boolean;
   /** false when the header paints its own status-bar area (navy home header). */
@@ -27,8 +29,16 @@ interface Props {
 }
 
 /** A plain page (the web dashboard's flat background, no gradient) with header, sync banner and footer. */
-export function Screen({ children, header, scroll = true, refresh = true, footer, banner = true, safeTop = true }: Props) {
-  const { refreshing, onRefresh } = useRefresh();
+export function Screen({ children, header, scroll = true, refresh = true, onRefresh: own, footer, banner = true, safeTop = true }: Props) {
+  const sync = useRefresh();
+  const [ownBusy, setOwnBusy] = useState(false);
+  const refreshing = own ? ownBusy : sync.refreshing;
+  const onRefresh = own
+    ? () => {
+        setOwnBusy(true);
+        void own().finally(() => setOwnBusy(false));
+      }
+    : sync.onRefresh;
   const inTabs = useContext(InTabsContext);
   // Space for the phone's gesture bar / 3 buttons (edge-to-edge Android, iPhone home bar).
   // Null without a SafeAreaProvider (some tests): then no extra space.
@@ -46,7 +56,7 @@ export function Screen({ children, header, scroll = true, refresh = true, footer
             contentContainerClassName="gap-3 p-4"
             contentContainerStyle={{ paddingBottom: (footer ? 24 : 96) + (footer ? 0 : bottom) }}
             keyboardShouldPersistTaps="handled"
-            refreshControl={refresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} /> : undefined}
+            refreshControl={refresh || own ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} /> : undefined}
           >
             {children}
           </ScrollView>
