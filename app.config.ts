@@ -24,9 +24,9 @@ export type AppVariant = 'development' | 'preview' | 'production';
 const VARIANT: AppVariant = (['development', 'preview', 'production'] as const).find((v) => v === process.env.APP_VARIANT) ?? 'development';
 const BASE_ID = 'pk.construction.munshi';
 const VARIANTS: Record<AppVariant, { name: string; id: string; scheme: string }> = {
-  development: { name: 'Keystone Munshi Dev', id: `${BASE_ID}.dev`, scheme: 'munshi-dev' },
-  preview: { name: 'Keystone Munshi Pilot', id: `${BASE_ID}.preview`, scheme: 'munshi-preview' },
-  production: { name: 'Keystone Munshi', id: BASE_ID, scheme: 'munshi' },
+  development: { name: 'Keystone Dev', id: `${BASE_ID}.dev`, scheme: 'munshi-dev' },
+  preview: { name: 'Keystone Pilot', id: `${BASE_ID}.preview`, scheme: 'munshi-preview' },
+  production: { name: 'Keystone', id: BASE_ID, scheme: 'munshi' },
 };
 const variant = VARIANTS[VARIANT];
 
