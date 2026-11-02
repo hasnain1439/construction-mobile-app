@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext, SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/lib/theme';
 import { useRefresh } from '@/sync/triggers';
 import { SyncBanner } from './SyncBanner';
@@ -31,8 +31,9 @@ export function Screen({ children, header, scroll = true, refresh = true, footer
   const { refreshing, onRefresh } = useRefresh();
   const inTabs = useContext(InTabsContext);
   // Space for the phone's gesture bar / 3 buttons (edge-to-edge Android, iPhone home bar).
-  const insets = useSafeAreaInsets();
-  const bottom = inTabs ? 0 : insets.bottom;
+  // Null without a SafeAreaProvider (some tests): then no extra space.
+  const insets = useContext(SafeAreaInsetsContext);
+  const bottom = inTabs ? 0 : (insets?.bottom ?? 0);
   return (
     <SafeAreaView edges={safeTop ? ['top', 'left', 'right'] : ['left', 'right']} className="flex-1 bg-bg">
       {header}
