@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@components/Icon';
 import { usePermissions } from '@/features/access';
 import { useT } from '@/i18n';
@@ -11,7 +12,7 @@ import { OFFICE_TAB_KEYS } from '@/features/office';
 const icon = (active: string, idle: string) =>
   function TabIcon({ focused }: { focused: boolean }) {
     return (
-      <View className={`h-8 w-14 items-center justify-center rounded-full ${focused ? 'bg-primary' : ''}`}>
+      <View className={`h-8 w-12 items-center justify-center rounded-full ${focused ? 'bg-primary' : ''}`}>
         <Icon name={focused ? active : idle} size={22} color={focused ? COLORS.white : COLORS.muted} />
       </View>
     );
@@ -21,6 +22,8 @@ export default function TabsLayout() {
   const t = useT();
   const s = useSyncStatus();
   const p = usePermissions();
+  // Clear of the phone's gesture bar / buttons: the bar grows by the bottom inset.
+  const insets = useSafeAreaInsets();
   // href: null hides a tab the person can't use (the server refuses it anyway).
   const tab = (keys: readonly string[]) => (p.canAny(...keys) ? {} : { href: null });
   return (
@@ -29,8 +32,9 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: COLORS.ink,
         tabBarInactiveTintColor: COLORS.muted,
-        tabBarStyle: { minHeight: 68, paddingTop: 8, borderTopColor: COLORS.border, backgroundColor: COLORS.card },
-        tabBarLabelStyle: { fontFamily: 'Cabin_600SemiBold', fontSize: 11, marginTop: 2 },
+        tabBarStyle: { height: 64 + insets.bottom, paddingTop: 8, paddingBottom: Math.max(insets.bottom, 8), borderTopColor: COLORS.border, backgroundColor: COLORS.card },
+        tabBarLabelStyle: { fontFamily: 'Cabin_600SemiBold', fontSize: 10, marginTop: 2 },
+        tabBarItemStyle: { paddingHorizontal: 0 },
         tabBarBadgeStyle: { backgroundColor: COLORS.danger, fontSize: 10 },
       }}
     >
