@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { BigButton } from '@components/BigButton';
 import { BarList, ChartCard } from '@components/Charts';
@@ -37,6 +37,14 @@ export default function OfficeExpenses() {
   const [month, setMonth] = useState(thisMonth);
   const version = useOfficeExpensesVersion();
   const { state, data, reload, refetch } = useOnline<{ data: OfficeExpense[]; meta: OfficeExpensesMeta }>(ENDPOINTS.officeExpenses, { ...monthRange(month), limit: 100 }, { envelope: true, version });
+  // Back on this page (or added on the web meanwhile): load the list again — not on the first visit, that load is already running.
+  const seen = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (seen.current) void refetch();
+      seen.current = true;
+    }, [refetch]),
+  );
   const rows = data?.data ?? [];
   const meta = data?.meta;
   const [y, m] = month.split('-');

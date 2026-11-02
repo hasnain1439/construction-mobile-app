@@ -21,7 +21,7 @@ let mockParams: Record<string, string> = {};
 const mockRequest = jest.fn();
 const mockPush = jest.fn();
 const mockBack = jest.fn();
-jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a), back: () => mockBack() }, useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({ router: { push: (...a: unknown[]) => mockPush(...a), back: () => mockBack() }, useLocalSearchParams: () => mockParams, useFocusEffect: () => undefined }));
 jest.mock('../src/sync/triggers', () => ({ syncFromApp: jest.fn(async () => undefined), useRefresh: () => ({ refreshing: false, onRefresh: jest.fn() }) }));
 jest.mock('../src/features/session', () => ({ useUser: () => ({ id: 'u1', name: 'Khalid Malik', role: mockRole }) }));
 jest.mock('../src/features/access', () => {
