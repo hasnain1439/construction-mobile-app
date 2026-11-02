@@ -34,7 +34,8 @@ const isPaidVia = (v: string | undefined): v is OfficePaidVia => (OFFICE_PAID_VI
  */
 export default function OfficeExpenseForm() {
   const { t, f, language } = useI18n();
-  const params = useLocalSearchParams<Params>();
+  // A cast, not the generic: the generic's constraint differs between expo-router versions.
+  const params = useLocalSearchParams() as Params;
   const id = params.id || null;
   const today = todayPK();
   const yesterday = addDays(today, -1);
