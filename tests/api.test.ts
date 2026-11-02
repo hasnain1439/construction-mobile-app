@@ -30,7 +30,7 @@ describe('api client', () => {
 
 describe('password sign-in (when the SMS code does not arrive)', () => {
   it('posts phone + password as a mobile client and keeps the session', async () => {
-    const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+    const calls: { url: string; body: Record<string, unknown> }[] = [];
     const realFetch = global.fetch;
     global.fetch = (async (url: string, init?: RequestInit) => {
       calls.push({ url, body: JSON.parse(String(init?.body)) });

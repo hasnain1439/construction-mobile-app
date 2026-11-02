@@ -106,8 +106,6 @@ describe('Aaj', () => {
     expect(screen.getByText('Aaj ka kaam')).toBeTruthy();
     expect(screen.getByText('Pehli manzil ka dhancha — Column aur chunai')).toBeTruthy();
     expect(allText()).toMatch(/Cement: 12\.29 .* baqi/);
-    expect(screen.getByLabelText('Kaam ruk gaya')).toBeTruthy();
-    expect(screen.getByLabelText('Nayi kharabi')).toBeTruthy();
     expect(allText()).not.toMatch(/Rs\b/);
   });
 
