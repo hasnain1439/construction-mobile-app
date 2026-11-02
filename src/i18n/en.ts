@@ -1,6 +1,6 @@
 /** English — the source of every key. Roman Urdu is the default language of the app. */
 export const en = {
-  'app.name': 'Keystone Munshi',
+  'app.name': 'Keystone',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.confirm': 'Confirm',
@@ -31,7 +31,12 @@ export const en = {
   'common.yes': 'Yes',
   'common.no': 'No',
 
-  'auth.title': 'Sign in with your phone',
+  'auth.title': 'Sign in to your account',
+  'auth.emailOrPhone': 'Email or mobile number',
+  'auth.loginHint': 'name@company.com or 0321 1234567',
+  'auth.invalidLogin': 'Enter your email or a Pakistani mobile number',
+  'auth.showPassword': 'Show password',
+  'auth.hidePassword': 'Hide password',
   'auth.phone': 'Mobile number',
   'auth.phoneHint': '0321 1234567',
   'auth.sendCode': 'Send code',

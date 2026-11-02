@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, RefreshControl, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext, SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/lib/theme';
 import { useRefresh } from '@/sync/triggers';
@@ -38,26 +38,29 @@ export function Screen({ children, header, scroll = true, refresh = true, footer
     <SafeAreaView edges={safeTop ? ['top', 'left', 'right'] : ['left', 'right']} className="flex-1 bg-bg">
       {header}
       {banner ? <SyncBanner /> : null}
-      {scroll ? (
-        <ScrollView
-          className="flex-1"
-          contentContainerClassName="gap-3 p-4"
-          contentContainerStyle={{ paddingBottom: (footer ? 24 : 96) + (footer ? 0 : bottom) }}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={refresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} /> : undefined}
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <View className="flex-1" style={footer ? undefined : { paddingBottom: bottom }}>
-          {children}
-        </View>
-      )}
-      {footer ? (
-        <View className="border-t border-border bg-card px-4 pt-4" style={[RAISED_FOOTER, { paddingBottom: 16 + bottom }]}>
-          {footer}
-        </View>
-      ) : null}
+      {/* The keyboard pushes the page up: the field being typed in and the footer buttons stay in view. */}
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
+        {scroll ? (
+          <ScrollView
+            className="flex-1"
+            contentContainerClassName="gap-3 p-4"
+            contentContainerStyle={{ paddingBottom: (footer ? 24 : 96) + (footer ? 0 : bottom) }}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={refresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} tintColor={COLORS.primary} /> : undefined}
+          >
+            {children}
+          </ScrollView>
+        ) : (
+          <View className="flex-1" style={footer ? undefined : { paddingBottom: bottom }}>
+            {children}
+          </View>
+        )}
+        {footer ? (
+          <View className="border-t border-border bg-card px-4 pt-4" style={[RAISED_FOOTER, { paddingBottom: 16 + bottom }]}>
+            {footer}
+          </View>
+        ) : null}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

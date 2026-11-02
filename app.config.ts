@@ -13,9 +13,9 @@ const sentryPlugin: NonNullable<ExpoConfig['plugins']> = sentryUpload
 
 /**
  * Build variants (APP_VARIANT, set per profile in eas.json) install side by side on one phone:
- *   development → "Keystone Munshi Dev",   pk.construction.munshi.dev      (dev client, channel development)
- *   preview     → "Keystone Munshi Pilot", pk.construction.munshi.preview  (pilot APK, channel preview)
- *   production  → "Keystone Munshi",       pk.construction.munshi          (Play Store AAB, channel production)
+ *   development → "Keystone Dev",   pk.construction.munshi.dev      (dev client, channel development)
+ *   preview     → "Keystone Pilot", pk.construction.munshi.preview  (pilot APK, channel preview)
+ *   production  → "Keystone",       pk.construction.munshi          (Play Store AAB, channel production)
  * No APP_VARIANT (local `expo start` / `expo run:android`) = development.
  * Only the display name carries the Keystone brand: bundle id / package, slug, scheme and the EAS
  * project stay as they are (changing them would make a new app and break OTA updates).
