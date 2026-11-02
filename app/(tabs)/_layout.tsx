@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@components/Icon';
+import { InTabsContext } from '@components/Screen';
 import { usePermissions } from '@/features/access';
 import { useT } from '@/i18n';
 import { TAB_PERMS } from '@/lib/permissions';
@@ -27,6 +28,7 @@ export default function TabsLayout() {
   // href: null hides a tab the person can't use (the server refuses it anyway).
   const tab = (keys: readonly string[]) => (p.canAny(...keys) ? {} : { href: null });
   return (
+    <InTabsContext.Provider value>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -48,5 +50,6 @@ export default function TabsLayout() {
         options={{ title: t('tabs.mazeed'), tabBarIcon: icon('dots-horizontal-circle', 'dots-horizontal-circle-outline'), tabBarBadge: s.problems > 0 ? s.problems : undefined }}
       />
     </Tabs>
+    </InTabsContext.Provider>
   );
 }

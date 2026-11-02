@@ -1,6 +1,6 @@
 import { router, type Href } from 'expo-router';
 import { useCallback } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@components/EmptyState';
 import { Icon } from '@components/Icon';
@@ -24,6 +24,10 @@ import { todayPK, weekOf, type WeekDay } from '@/lib/dates';
 import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW, TOPBAR_SHADOW } from '@/lib/theme';
 import { MenuButton } from '@components/SideMenu';
+import { BRAND_NAME } from '@/lib/brand';
+
+// Keystone mark (same artwork as the login screen and the web).
+const KEYSTONE_MARK = require('../../assets/brand/keystone-mark-small.png');
 
 /** Greeting bar (like the web top bar): avatar, name, date and the current site. */
 function HomeHeader({ name, date }: { name: string; date: string }) {
@@ -32,9 +36,7 @@ function HomeHeader({ name, date }: { name: string; date: string }) {
     <SafeAreaView edges={['top']} className="z-10 bg-card" style={TOPBAR_SHADOW}>
       <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
         <MenuButton />
-        <View className="h-11 w-11 items-center justify-center rounded-full bg-sand">
-          <Text className="font-bold text-lg text-ink">{name.charAt(0).toUpperCase()}</Text>
-        </View>
+        <Image source={KEYSTONE_MARK} accessibilityLabel={BRAND_NAME} style={{ width: 36, height: 36 }} resizeMode="contain" />
         <View className="flex-1">
           <Text className="font-bold text-lg text-ink" numberOfLines={1}>
             {t('aaj.greeting', { name })}
