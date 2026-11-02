@@ -26,10 +26,12 @@ const sentryPlugin: NonNullable<ExpoConfig["plugins"]> = sentryUpload
 
 /**
  * Build variants (APP_VARIANT, set per profile in eas.json) install side by side on one phone:
- *   development → "Munshi Dev",   pk.construction.munshi.dev      (dev client, channel development)
- *   preview     → "Munshi Pilot", pk.construction.munshi.preview  (pilot APK, channel preview)
- *   production  → "Munshi",       pk.construction.munshi          (Play Store AAB, channel production)
+ *   development → "Keystone Munshi Dev",   pk.construction.munshi.dev      (dev client, channel development)
+ *   preview     → "Keystone Munshi Pilot", pk.construction.munshi.preview  (pilot APK, channel preview)
+ *   production  → "Keystone Munshi",       pk.construction.munshi          (Play Store AAB, channel production)
  * No APP_VARIANT (local `expo start` / `expo run:android`) = development.
+ * Only the display name carries the Keystone brand: bundle id / package, slug, scheme and the EAS
+ * project stay as they are (changing them would make a new app and break OTA updates).
  */
 export type AppVariant = "development" | "preview" | "production";
 const VARIANT: AppVariant =
@@ -42,16 +44,16 @@ const VARIANTS: Record<
   { name: string; id: string; scheme: string }
 > = {
   development: {
-    name: "Munshi Dev",
+    name: "Keystone Munshi Dev",
     id: `${BASE_ID}.dev`,
     scheme: "munshi-dev",
   },
   preview: {
-    name: "Munshi Pilot",
+    name: "Keystone Munshi Pilot",
     id: `${BASE_ID}.preview`,
     scheme: "munshi-preview",
   },
-  production: { name: "Munshi", id: BASE_ID, scheme: "munshi" },
+  production: { name: "Keystone Munshi", id: BASE_ID, scheme: "munshi" },
 };
 const variant = VARIANTS[VARIANT];
 
@@ -98,7 +100,7 @@ const config: ExpoConfig = {
   android: {
     package: variant.id,
     adaptiveIcon: {
-      // Brand charcoal; the PNGs come from scripts/generate-icons.mjs (placeholders until real artwork).
+      // Charcoal background, dark-variant mark inside the 66 dp safe zone, white mark for themed icons.
       backgroundColor: "#201F1E",
       foregroundImage: "./assets/android-icon-foreground.png",
       backgroundImage: "./assets/android-icon-background.png",
@@ -135,7 +137,7 @@ const config: ExpoConfig = {
       {
         image: "./assets/splash-icon.png",
         backgroundColor: "#201F1E",
-        imageWidth: 160,
+        imageWidth: 180,
       },
     ],
     ...sentryPlugin,

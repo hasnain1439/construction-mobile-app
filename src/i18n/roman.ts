@@ -2,7 +2,7 @@ import type { TKey } from './en';
 
 /** Roman Urdu — the default language. */
 export const roman: Record<TKey, string> = {
-  'app.name': 'Munshi',
+  'app.name': 'Keystone Munshi',
   'common.save': 'Save karein',
   'common.cancel': 'Wapas',
   'common.confirm': 'Pakka karein',

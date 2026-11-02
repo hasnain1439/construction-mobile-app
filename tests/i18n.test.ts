@@ -16,7 +16,7 @@ const ROOT = join(__dirname, '..');
 const EN_KEYS = Object.keys(en).sort();
 
 /** Latin words that may stay in Urdu text (brands, units and abbreviations people read as they are). */
-const URDU_ALLOWED_LATIN = ['Rs', 'kg', 'OTP', 'PDF', 'SMS', 'OT', 'PKR'];
+const URDU_ALLOWED_LATIN = ['Keystone', 'Rs', 'kg', 'OTP', 'PDF', 'SMS', 'OT', 'PKR'];
 
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 const latinLeft = (s: string) => URDU_ALLOWED_LATIN.reduce((rest, word) => rest.replace(new RegExp(`\\b${word}\\b`, 'g'), ''), s.replace(/\{\w+\}/g, '')).match(/[A-Za-z]+/g) ?? [];

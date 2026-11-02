@@ -7,6 +7,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 import { BigButton } from '@components/BigButton';
+import { BrandLogo } from '@components/BrandLogo';
 import { BuildingHero } from '@components/BuildingHero';
 import { Icon } from '@components/Icon';
 import { passwordLogin, requestOtp, type Company } from '@/api/auth';
@@ -75,10 +76,7 @@ export default function LoginScreen() {
         <ScrollView className="flex-1" contentContainerClassName="flex-grow" keyboardShouldPersistTaps="handled">
           <BuildingHero>
             <View className="items-center gap-3 px-6 pb-14 pt-14">
-              <View className="h-20 w-20 items-center justify-center rounded-3xl bg-sand" style={RAISED_SHADOW}>
-                <Icon name="crane" size={44} color={COLORS.ink} />
-              </View>
-              <Text className="font-bold text-3xl text-white">{t('app.name')}</Text>
+              <BrandLogo testID="brand-logo" variant="onDark" />
               <Text className="text-center text-base text-white/80">{t('auth.title')}</Text>
             </View>
           </BuildingHero>
