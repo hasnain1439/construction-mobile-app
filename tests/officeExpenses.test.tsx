@@ -47,10 +47,10 @@ const VIEWER = block(['finance.officeexpense.view']);
 
 const LIST = {
   data: [
-    { id: 'e1', date: '2026-11-01', category: 'RENT', amountPaisa: '8500000', paidVia: 'BANK', paidTo: 'Ch. Aslam', description: 'Office rent, November', attachmentId: null, createdBy: { id: 'u1', name: 'Khalid Malik' }, createdAt: '2026-11-01T06:00:00Z', updatedBy: null, updatedAt: '2026-11-01T06:00:00Z' },
-    { id: 'e2', date: '2026-11-02', category: 'TEA_REFRESHMENTS', amountPaisa: '550000', paidVia: 'CASH', paidTo: null, description: 'Tea for the office', attachmentId: null, createdBy: null, createdAt: '2026-11-02T06:00:00Z', updatedBy: null, updatedAt: '2026-11-02T06:00:00Z' },
+    { id: 'e1', date: '2026-11-01', category: { id: 'c-rent', name: 'Rent' }, amountPaisa: '8500000', paidVia: 'BANK', paidTo: 'Ch. Aslam', description: 'Office rent, November', attachmentId: null, createdBy: { id: 'u1', name: 'Khalid Malik' }, createdAt: '2026-11-01T06:00:00Z', updatedBy: null, updatedAt: '2026-11-01T06:00:00Z' },
+    { id: 'e2', date: '2026-11-02', category: { id: 'c-tea', name: 'Tea' }, amountPaisa: '550000', paidVia: 'CASH', paidTo: null, description: 'Tea for the office', attachmentId: null, createdBy: null, createdAt: '2026-11-02T06:00:00Z', updatedBy: null, updatedAt: '2026-11-02T06:00:00Z' },
   ],
-  meta: { page: 1, limit: 100, total: 2, totalPages: 1, totalPaisa: '9050000', byCategory: [{ category: 'RENT', totalPaisa: '8500000' }, { category: 'TEA_REFRESHMENTS', totalPaisa: '550000' }] },
+  meta: { page: 1, limit: 100, total: 2, totalPages: 1, totalPaisa: '9050000', byCategory: [{ categoryId: 'c-rent', name: 'Rent', totalPaisa: '8500000' }, { categoryId: 'c-tea', name: 'Tea', totalPaisa: '550000' }] },
 };
 
 const wrap = (ui: React.ReactElement) =>
@@ -111,7 +111,7 @@ describe('Office expenses list', () => {
     await press('oexp-add');
     expect(mockPush).toHaveBeenCalledWith('/office/expense-new');
     await press('oexp-e1');
-    expect(mockPush).toHaveBeenLastCalledWith(expect.objectContaining({ pathname: '/office/expense-new', params: expect.objectContaining({ id: 'e1', amountPaisa: '8500000', category: 'RENT' }) }));
+    expect(mockPush).toHaveBeenLastCalledWith(expect.objectContaining({ pathname: '/office/expense-new', params: expect.objectContaining({ id: 'e1', amountPaisa: '8500000', categoryId: 'c-rent' }) }));
   });
 
   it('the previous month asks for that month', async () => {
@@ -136,24 +136,35 @@ describe('Office expenses list', () => {
 });
 
 describe('Office expense form', () => {
-  it('adds one: rupees become paisa, no "paid to" when left empty', async () => {
-    mockRequest.mockResolvedValue({ id: 'new' });
+  const CATS = [
+    { id: 'c-bills', name: 'Bills', expenseCount: 4 },
+    { id: 'c-rent', name: 'Rent', expenseCount: 12 },
+  ];
+  /** The categories GET answers with the company's list; every other call with `other`. */
+  const answer = (other: () => Promise<unknown>) => mockRequest.mockImplementation((path: string) => (path === '/office-expenses/categories' ? Promise.resolve(CATS) : other()));
+  const sent = () => mockRequest.mock.calls.filter(([path]) => path !== '/office-expenses/categories');
+
+  it('adds one: types come from the company list, rupees become paisa, no "paid to" when left empty', async () => {
+    answer(async () => ({ id: 'new' }));
     await wrap(<ExpenseForm />);
+    expect(await screen.findByTestId('oexp-cat-c-rent')).toBeTruthy();
+    expect(screen.getByText('Bills')).toBeTruthy();
     await type('oexp-amount', '1,500.5');
-    await press('oexp-cat-UTILITIES');
+    await press('oexp-cat-c-bills');
     await press('oexp-via-BANK');
     await type('oexp-description', '  Electricity bill ');
     await press('oexp-save');
     expect(mockRequest).toHaveBeenCalledWith('/office-expenses', {
       method: 'POST',
-      body: { date: todayPK(), category: 'UTILITIES', amountPaisa: '150050', paidVia: 'BANK', description: 'Electricity bill' },
+      body: { date: todayPK(), categoryId: 'c-bills', amountPaisa: '150050', paidVia: 'BANK', description: 'Electricity bill' },
     });
     expect(mockBack).toHaveBeenCalled();
   });
 
   it('yesterday and a payee are sent too', async () => {
-    mockRequest.mockResolvedValue({ id: 'new' });
+    answer(async () => ({ id: 'new' }));
     await wrap(<ExpenseForm />);
+    await press('oexp-cat-c-rent');
     await type('oexp-amount', '85000');
     await press(`oexp-date-${addDays(todayPK(), -1)}`);
     await type('oexp-paid-to', 'Ch. Aslam');
@@ -161,22 +172,32 @@ describe('Office expense form', () => {
     await press('oexp-save');
     expect(mockRequest).toHaveBeenCalledWith('/office-expenses', {
       method: 'POST',
-      body: { date: addDays(todayPK(), -1), category: 'RENT', amountPaisa: '8500000', paidVia: 'CASH', paidTo: 'Ch. Aslam', description: 'Office rent' },
+      body: { date: addDays(todayPK(), -1), categoryId: 'c-rent', amountPaisa: '8500000', paidVia: 'CASH', paidTo: 'Ch. Aslam', description: 'Office rent' },
     });
   });
 
-  it('nothing is sent without an amount and a description', async () => {
+  it('nothing is sent without an amount, a type and a description', async () => {
+    answer(async () => ({}));
     await wrap(<ExpenseForm />);
+    await screen.findByTestId('oexp-cat-c-rent');
     await press('oexp-save');
-    expect(mockRequest).not.toHaveBeenCalled();
+    expect(sent()).toEqual([]);
     expect(screen.getByText('Required')).toBeTruthy();
+    expect(screen.getByText('Choose the type of expense')).toBeTruthy();
     expect(screen.getByText('Write what the money was paid for')).toBeTruthy();
+  });
+
+  it('no types yet: says the office adds them on the website', async () => {
+    mockRequest.mockResolvedValue([]);
+    await wrap(<ExpenseForm />);
+    expect(await screen.findByText('No expense types yet — the office adds them on the website')).toBeTruthy();
   });
 
   it('shows the server reason (a future date)', async () => {
     const { ApiError } = jest.requireActual('../src/api/client');
-    mockRequest.mockRejectedValue(new ApiError(400, 'FUTURE_DATE', 'x'));
+    answer(() => Promise.reject(new ApiError(400, 'FUTURE_DATE', 'x')));
     await wrap(<ExpenseForm />);
+    await press('oexp-cat-c-rent');
     await type('oexp-amount', '100');
     await type('oexp-description', 'Pens');
     await press('oexp-save');
@@ -184,31 +205,33 @@ describe('Office expense form', () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  const OPENED = { id: 'e1', date: '2026-10-20', category: 'RENT', amountPaisa: '8500000', paidVia: 'BANK', paidTo: 'Ch. Aslam', description: 'Office rent' };
+  const OPENED = { id: 'e1', date: '2026-10-20', categoryId: 'c-rent', amountPaisa: '8500000', paidVia: 'BANK', paidTo: 'Ch. Aslam', description: 'Office rent' };
 
-  it('opened from the list: changes with PATCH (cleared payee → null)', async () => {
+  it('opened from the list: its type is chosen, changes go with PATCH (cleared payee → null)', async () => {
     mockParams = OPENED;
-    mockRequest.mockResolvedValue({});
+    answer(async () => ({}));
     await wrap(<ExpenseForm />);
+    expect((await screen.findByTestId('oexp-cat-c-rent')).props.accessibilityState).toEqual(expect.objectContaining({ selected: true }));
     expect(screen.getByTestId('oexp-amount').props.value).toBe('85000');
     await type('oexp-amount', '90000');
     await type('oexp-paid-to', '');
     await press('oexp-save');
     expect(mockRequest).toHaveBeenCalledWith('/office-expenses/e1', {
       method: 'PATCH',
-      body: { date: '2026-10-20', category: 'RENT', amountPaisa: '9000000', paidVia: 'BANK', paidTo: null, description: 'Office rent' },
+      body: { date: '2026-10-20', categoryId: 'c-rent', amountPaisa: '9000000', paidVia: 'BANK', paidTo: null, description: 'Office rent' },
     });
     expect(mockBack).toHaveBeenCalled();
   });
 
   it('opened from the list: deletes only after confirming', async () => {
     mockParams = OPENED;
-    mockRequest.mockResolvedValue({ deleted: true });
+    answer(async () => ({ deleted: true }));
     await wrap(<ExpenseForm />);
+    await screen.findByTestId('oexp-cat-c-rent');
     const cancel = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
     await press('oexp-delete');
     expect(cancel).toHaveBeenCalled();
-    expect(mockRequest).not.toHaveBeenCalled();
+    expect(sent()).toEqual([]);
     cancel.mockRestore();
 
     const confirm = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => buttons?.find((b) => b.style === 'destructive')?.onPress?.());
@@ -219,7 +242,9 @@ describe('Office expense form', () => {
   });
 
   it('a new expense has no delete button', async () => {
+    answer(async () => ({}));
     await wrap(<ExpenseForm />);
+    await screen.findByTestId('oexp-cat-c-rent');
     expect(screen.queryByTestId('oexp-delete')).toBeNull();
   });
 });

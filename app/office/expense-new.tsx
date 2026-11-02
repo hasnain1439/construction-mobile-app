@@ -7,29 +7,18 @@ import { Header } from '@components/Header';
 import { QuantityInput } from '@components/QuantityInput';
 import { Screen } from '@components/Screen';
 import { ApiError, NetworkError } from '@/api/client';
-import { deleteOfficeExpense, OFFICE_EXPENSE_CATEGORIES, OFFICE_PAID_VIA, saveOfficeExpense, type OfficeExpenseCategory, type OfficePaidVia } from '@/features/office';
+import { OfficeState } from '@components/OfficeParts';
+import { ENDPOINTS } from '@/api/endpoints';
+import { deleteOfficeExpense, OFFICE_PAID_VIA, saveOfficeExpense, useOnline, type OfficeExpenseCategory, type OfficePaidVia } from '@/features/office';
 import { errorText, useI18n, type TKey } from '@/i18n';
 import { addDays, todayPK } from '@/lib/dates';
 import { paisaToRupees, rupeesToPaisa } from '@/lib/money';
 import { COLORS } from '@/lib/theme';
 
-const CATEGORY_ICON: Record<OfficeExpenseCategory, string> = {
-  RENT: 'home-city-outline',
-  UTILITIES: 'flash-outline',
-  SALARIES: 'account-cash-outline',
-  INTERNET_PHONE: 'wifi',
-  STATIONERY: 'pencil-outline',
-  VEHICLE: 'car-outline',
-  REPAIRS: 'wrench-outline',
-  TEA_REFRESHMENTS: 'coffee-outline',
-  TAXES_FEES: 'bank-outline',
-  OTHER: 'dots-horizontal',
-};
-
 interface Params {
   id?: string;
   date?: string;
-  category?: string;
+  categoryId?: string;
   amountPaisa?: string;
   paidVia?: string;
   paidTo?: string;
@@ -37,7 +26,6 @@ interface Params {
   [key: string]: string | undefined;
 }
 
-const isCategory = (v: string | undefined): v is OfficeExpenseCategory => (OFFICE_EXPENSE_CATEGORIES as readonly string[]).includes(v ?? '');
 const isPaidVia = (v: string | undefined): v is OfficePaidVia => (OFFICE_PAID_VIA as readonly string[]).includes(v ?? '');
 
 /**
@@ -50,7 +38,8 @@ export default function OfficeExpenseForm() {
   const id = params.id || null;
   const today = todayPK();
   const yesterday = addDays(today, -1);
-  const [category, setCategory] = useState<OfficeExpenseCategory>(isCategory(params.category) ? params.category : 'RENT');
+  const categories = useOnline<OfficeExpenseCategory[]>(ENDPOINTS.officeExpenseCategories);
+  const [categoryId, setCategoryId] = useState<string | null>(params.categoryId || null);
   const [amount, setAmount] = useState(paisaToRupees(params.amountPaisa));
   const [date, setDate] = useState(params.date && params.date <= today ? params.date : today);
   const [paidVia, setPaidVia] = useState<OfficePaidVia>(isPaidVia(params.paidVia) ? params.paidVia : 'CASH');
@@ -68,11 +57,11 @@ export default function OfficeExpenseForm() {
 
   const save = async () => {
     setTried(true);
-    if (!paisa || !descOk) return;
+    if (!paisa || !descOk || !categoryId) return;
     setBusy('save');
     setError(null);
     try {
-      await saveOfficeExpense(id, { date, category, amountPaisa: paisa, paidVia, paidTo: paidTo.trim() || null, description: description.trim() });
+      await saveOfficeExpense(id, { date, categoryId, amountPaisa: paisa, paidVia, paidTo: paidTo.trim() || null, description: description.trim() });
       router.back();
     } catch (e) {
       failed(e);
@@ -115,7 +104,14 @@ export default function OfficeExpenseForm() {
     >
       <QuantityInput testID="oexp-amount" money label={t('common.amount')} value={amount} onChange={setAmount} error={tried && !paisa ? t('common.required') : null} />
       <Text className="font-semibold text-sm text-ink">{t('oexp.category')}</Text>
-      <ChoiceChips testIDPrefix="oexp-cat" options={OFFICE_EXPENSE_CATEGORIES.map((c) => ({ id: c, label: t(`oexp.cat.${c}` as TKey), icon: CATEGORY_ICON[c] }))} value={category} onChange={setCategory} />
+      <OfficeState state={categories.state} onRetry={() => void categories.reload()}>
+        {categories.data?.length ? (
+          <ChoiceChips testIDPrefix="oexp-cat" options={categories.data.map((c) => ({ id: c.id, label: c.name }))} value={categoryId} onChange={setCategoryId} />
+        ) : (
+          <Text className="text-sm text-muted">{t('oexp.noCategories')}</Text>
+        )}
+      </OfficeState>
+      {tried && !categoryId ? <Text className="text-sm text-danger">{t('oexp.chooseCategory')}</Text> : null}
       <Text className="font-semibold text-sm text-ink">{t('oexp.whatFor')}</Text>
       <TextInput
         testID="oexp-description"

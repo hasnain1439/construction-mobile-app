@@ -213,15 +213,20 @@ export const reportFile = (name: string, format: 'pdf' | 'xlsx') => request<Repo
 
 // ---------- office expenses: company running costs not tied to a site (rent, bills, salaries) ----------
 
-export const OFFICE_EXPENSE_CATEGORIES = ['RENT', 'UTILITIES', 'SALARIES', 'INTERNET_PHONE', 'STATIONERY', 'VEHICLE', 'REPAIRS', 'TEA_REFRESHMENTS', 'TAXES_FEES', 'OTHER'] as const;
-export type OfficeExpenseCategory = (typeof OFFICE_EXPENSE_CATEGORIES)[number];
 export const OFFICE_PAID_VIA = ['CASH', 'BANK', 'JAZZCASH', 'EASYPAISA'] as const;
 export type OfficePaidVia = (typeof OFFICE_PAID_VIA)[number];
+
+/** The company's own expense types (managed on the web; names shown as the company wrote them), A–Z. */
+export interface OfficeExpenseCategory {
+  id: string;
+  name: string;
+  expenseCount?: number;
+}
 
 export interface OfficeExpense {
   id: string;
   date: string;
-  category: OfficeExpenseCategory;
+  category: { id: string; name: string };
   amountPaisa: string;
   paidVia: OfficePaidVia;
   paidTo: string | null;
@@ -239,11 +244,11 @@ export interface OfficeExpensesMeta {
   totalPages: number;
   totalPaisa: string;
   /** Largest first. */
-  byCategory: { category: OfficeExpenseCategory; totalPaisa: string }[];
+  byCategory: { categoryId: string; name: string; totalPaisa: string }[];
 }
 export interface OfficeExpenseInput {
   date: string;
-  category: OfficeExpenseCategory;
+  categoryId: string;
   amountPaisa: string;
   paidVia: OfficePaidVia;
   /** null: none (cleared when changing an expense, left out when adding one). */
