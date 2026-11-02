@@ -1,4 +1,4 @@
-import type { ExpoConfig } from 'expo/config';
+import type { ExpoConfig } from "expo/config";
 
 /**
  * Sentry config plugin (source-map upload during native builds) only when the build has
@@ -6,10 +6,23 @@ import type { ExpoConfig } from 'expo/config';
  * them the plugin is left out so local / CI builds don't fail on the upload step; the SDK itself
  * still works (it is autolinked) and stays off at runtime unless EXPO_PUBLIC_SENTRY_DSN is set.
  */
-const sentryUpload = Boolean(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT);
-const sentryPlugin: NonNullable<ExpoConfig['plugins']> = sentryUpload
-  ? [['@sentry/react-native/expo', { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT, url: process.env.SENTRY_URL || 'https://sentry.io/' }]]
-  : [];
+const sentryUpload = Boolean(
+  process.env.SENTRY_AUTH_TOKEN &&
+  process.env.SENTRY_ORG &&
+  process.env.SENTRY_PROJECT,
+);
+const sentryPlugin: NonNullable<ExpoConfig["plugins"]> = sentryUpload
+  ? [
+      [
+        "@sentry/react-native/expo",
+        {
+          organization: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          url: process.env.SENTRY_URL || "https://sentry.io/",
+        },
+      ],
+    ]
+  : ["@sentry/react-native"];
 
 /**
  * Build variants (APP_VARIANT, set per profile in eas.json) install side by side on one phone:
@@ -18,13 +31,27 @@ const sentryPlugin: NonNullable<ExpoConfig['plugins']> = sentryUpload
  *   production  → "Munshi",       pk.construction.munshi          (Play Store AAB, channel production)
  * No APP_VARIANT (local `expo start` / `expo run:android`) = development.
  */
-export type AppVariant = 'development' | 'preview' | 'production';
-const VARIANT: AppVariant = (['development', 'preview', 'production'] as const).find((v) => v === process.env.APP_VARIANT) ?? 'development';
-const BASE_ID = 'pk.construction.munshi';
-const VARIANTS: Record<AppVariant, { name: string; id: string; scheme: string }> = {
-  development: { name: 'Munshi Dev', id: `${BASE_ID}.dev`, scheme: 'munshi-dev' },
-  preview: { name: 'Munshi Pilot', id: `${BASE_ID}.preview`, scheme: 'munshi-preview' },
-  production: { name: 'Munshi', id: BASE_ID, scheme: 'munshi' },
+export type AppVariant = "development" | "preview" | "production";
+const VARIANT: AppVariant =
+  (["development", "preview", "production"] as const).find(
+    (v) => v === process.env.APP_VARIANT,
+  ) ?? "development";
+const BASE_ID = "pk.construction.munshi";
+const VARIANTS: Record<
+  AppVariant,
+  { name: string; id: string; scheme: string }
+> = {
+  development: {
+    name: "Munshi Dev",
+    id: `${BASE_ID}.dev`,
+    scheme: "munshi-dev",
+  },
+  preview: {
+    name: "Munshi Pilot",
+    id: `${BASE_ID}.preview`,
+    scheme: "munshi-preview",
+  },
+  production: { name: "Munshi", id: BASE_ID, scheme: "munshi" },
 };
 const variant = VARIANTS[VARIANT];
 
@@ -32,8 +59,9 @@ const variant = VARIANTS[VARIANT];
  * EAS project id: run `npx eas init` once (Expo account), then paste the id it prints here or set
  * EAS_PROJECT_ID (EAS environment variable + your shell). Without it OTA updates stay off.
  */
-const EAS_PROJECT_ID_FROM_INIT = '';
-const projectId = process.env.EAS_PROJECT_ID || EAS_PROJECT_ID_FROM_INIT || undefined;
+const EAS_PROJECT_ID_FROM_INIT = "";
+const projectId =
+  process.env.EAS_PROJECT_ID || EAS_PROJECT_ID_FROM_INIT || undefined;
 
 /**
  * Version scheme (docs/RELEASE.md): `version` is semver and the only number people bump.
@@ -41,7 +69,7 @@ const projectId = process.env.EAS_PROJECT_ID || EAS_PROJECT_ID_FROM_INIT || unde
  * version, so bump it for every native change. Android versionCode is kept by EAS (remote +
  * autoIncrement in eas.json), never here.
  */
-const VERSION = '1.0.0';
+const VERSION = "1.0.0";
 
 /**
  * API_BASE_URL: set EXPO_PUBLIC_API_BASE_URL in .env (see .env.example) or per profile in
@@ -50,52 +78,72 @@ const VERSION = '1.0.0';
  */
 const config: ExpoConfig = {
   name: variant.name,
-  slug: 'construction-mobile',
+  slug: "construction-mobile",
   scheme: variant.scheme,
   version: VERSION,
-  runtimeVersion: { policy: 'appVersion' },
+  runtimeVersion: { policy: "appVersion" },
   updates: projectId
     ? {
         url: `https://u.expo.dev/${projectId}`,
         enabled: true,
         // Checked on every cold start; the download finishes in the background and is used on the next start.
-        checkAutomatically: 'ON_LOAD',
+        checkAutomatically: "ON_LOAD",
         fallbackToCacheTimeout: 0,
       }
     : { enabled: false },
-  orientation: 'portrait',
-  icon: './assets/icon.png',
-  userInterfaceStyle: 'light',
+  orientation: "portrait",
+  icon: "./assets/icon.png",
+  userInterfaceStyle: "light",
   ios: { supportsTablet: false, bundleIdentifier: variant.id },
   android: {
     package: variant.id,
     adaptiveIcon: {
       // Brand charcoal; the PNGs come from scripts/generate-icons.mjs (placeholders until real artwork).
-      backgroundColor: '#201F1E',
-      foregroundImage: './assets/android-icon-foreground.png',
-      backgroundImage: './assets/android-icon-background.png',
-      monochromeImage: './assets/android-icon-monochrome.png',
+      backgroundColor: "#201F1E",
+      foregroundImage: "./assets/android-icon-foreground.png",
+      backgroundImage: "./assets/android-icon-background.png",
+      monochromeImage: "./assets/android-icon-monochrome.png",
     },
     // Plain http to a dev API on the LAN only in development builds; pilot and store builds need HTTPS.
-    usesCleartextTraffic: VARIANT === 'development',
+    usesCleartextTraffic: VARIANT === "development",
     predictiveBackGestureEnabled: false,
-  } as ExpoConfig['android'],
-  web: { favicon: './assets/favicon.png', bundler: 'metro' },
+  } as ExpoConfig["android"],
+  web: { favicon: "./assets/favicon.png", bundler: "metro" },
   plugins: [
-    'expo-router',
-    ['expo-sqlite', { useSQLCipher: true }],
-    'expo-secure-store',
-    'expo-background-task',
-    'expo-updates',
-    ['expo-audio', { microphonePermission: 'Voice note record karne ke liye mic chahiye.' }],
-    ['expo-image-picker', { cameraPermission: 'Challan, slip aur site ki photo ke liye camera chahiye.', photosPermission: 'Photo chunne ke liye gallery chahiye.' }],
-    'expo-font',
-    ['expo-splash-screen', { image: './assets/splash-icon.png', backgroundColor: '#201F1E', imageWidth: 160 }],
-    ...sentryPlugin, // see above: only with SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT
+    "expo-router",
+    "expo-asset",
+    "expo-status-bar",
+    ["expo-sqlite", { useSQLCipher: true }],
+    "expo-secure-store",
+    "expo-background-task",
+    "expo-updates",
+    [
+      "expo-audio",
+      { microphonePermission: "Voice note record karne ke liye mic chahiye." },
+    ],
+    [
+      "expo-image-picker",
+      {
+        cameraPermission:
+          "Challan, slip aur site ki photo ke liye camera chahiye.",
+        photosPermission: "Photo chunne ke liye gallery chahiye.",
+      },
+    ],
+    "expo-font",
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/splash-icon.png",
+        backgroundColor: "#201F1E",
+        imageWidth: 160,
+      },
+    ],
+    ...sentryPlugin,
   ],
   experiments: { typedRoutes: true },
   extra: {
-    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://10.0.2.2:4000/api/v1',
+    apiBaseUrl:
+      process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://10.0.2.2:4000/api/v1",
     appVariant: VARIANT,
     eas: { projectId },
   },
