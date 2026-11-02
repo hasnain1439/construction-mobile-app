@@ -26,4 +26,5 @@ export const ENDPOINTS = {
   clients: '/clients',
   materials: '/materials',
   officeExpenses: '/office-expenses',
+  officeExpenseCategories: '/office-expenses/categories',
 } as const;

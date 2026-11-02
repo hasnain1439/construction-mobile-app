@@ -21,7 +21,7 @@ import { COLORS } from '@/lib/theme';
 const openExpense = (e: OfficeExpense) =>
   router.push({
     pathname: '/office/expense-new',
-    params: { id: e.id, date: e.date, category: e.category, amountPaisa: e.amountPaisa, paidVia: e.paidVia, paidTo: e.paidTo ?? '', description: e.description },
+    params: { id: e.id, date: e.date, categoryId: e.category.id, amountPaisa: e.amountPaisa, paidVia: e.paidVia, paidTo: e.paidTo ?? '', description: e.description },
   } as never);
 
 /**
@@ -41,7 +41,6 @@ export default function OfficeExpenses() {
   const meta = data?.meta;
   const [y, m] = month.split('-');
   const monthLabel = `${t(`date.m${Number(m)}` as TKey)} ${y}`;
-  const catLabel = (c: string) => t(`oexp.cat.${c}` as TKey);
 
   return (
     <Screen
@@ -79,7 +78,7 @@ export default function OfficeExpenses() {
         </View>
         {meta?.byCategory.length ? (
           <ChartCard title={t('oexp.byCategory')} subtitle={monthLabel} testID="oexp-by-category">
-            <BarList rows={meta.byCategory.map((c) => ({ key: c.category, label: catLabel(c.category), value: Number(toPaisa(c.totalPaisa) / 100n), display: formatPKR(c.totalPaisa) }))} />
+            <BarList rows={meta.byCategory.map((c) => ({ key: c.categoryId, label: c.name, value: Number(toPaisa(c.totalPaisa) / 100n), display: formatPKR(c.totalPaisa) }))} />
           </ChartCard>
         ) : null}
         {!rows.length ? <Text className="py-6 text-center text-sm text-muted">{t('office.empty')}</Text> : null}
@@ -92,7 +91,7 @@ export default function OfficeExpenses() {
               key={e.id}
               testID={`oexp-${e.id}`}
               title={e.description}
-              subtitle={`${f.shortDate(e.date)} · ${catLabel(e.category)}`}
+              subtitle={`${f.shortDate(e.date)} · ${e.category.name}`}
               right={<MoneyText paisa={e.amountPaisa} className="text-base" />}
               lines={lines}
               onPress={manage ? () => openExpense(e) : undefined}
