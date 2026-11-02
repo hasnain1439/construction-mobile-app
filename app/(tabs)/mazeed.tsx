@@ -25,9 +25,11 @@ import { versionLabel } from '@/lib/updates';
 import { syncFromApp } from '@/sync/triggers';
 import { useWifiOnly } from '@/sync/uploadPolicy';
 import { useSyncStatus } from '@/sync/useSyncStatus';
+import { useTheme } from '@/lib/themeMode';
 
 export default function MazeedScreen() {
   const { t, f, language, setLanguage } = useI18n();
+  const theme = useTheme();
   const user = useUser();
   const { logout } = useSession();
   const perms = usePermissions();
@@ -142,6 +144,27 @@ export default function MazeedScreen() {
               className={`min-h-12 flex-1 items-center justify-center rounded-xl border ${language === l.id ? 'border-primary bg-primary-soft' : 'border-border'}`}
             >
               <Text className={language === l.id ? 'font-semibold text-primary' : 'text-ink'}>{l.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View className="gap-2 rounded-card bg-card p-4" style={CARD_SHADOW}>
+        <View className="flex-row items-center gap-2">
+          <Icon name="theme-light-dark" size={20} color={COLORS.primary} />
+          <Text className="font-bold text-base text-ink">{t('mazeed.theme')}</Text>
+        </View>
+        <View className="flex-row gap-2">
+          {(['system', 'light', 'dark'] as const).map((m) => (
+            <Pressable
+              key={m}
+              testID={`theme-${m}`}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: theme.mode === m }}
+              onPress={() => theme.setMode(m)}
+              className={`min-h-12 flex-1 items-center justify-center rounded-xl border ${theme.mode === m ? 'border-primary bg-primary-soft' : 'border-border'}`}
+            >
+              <Text className={theme.mode === m ? 'font-semibold text-primary' : 'text-ink'}>{t(`mazeed.theme_${m}`)}</Text>
             </Pressable>
           ))}
         </View>
