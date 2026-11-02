@@ -148,7 +148,8 @@ describe('no project-create entry point in the app', () => {
 
   it('has no project route and no screen asks for projects.project.create', () => {
     const screens = [...files(join(root, 'app')), ...files(join(root, 'components'))];
-    expect(screens.filter((f) => /project/i.test(f.slice(root.length)) && !/ProjectSwitcher/.test(f))).toEqual([]);
+    // Office → Projects is a view-only list (no create): allowed by name; the key check below still holds for it.
+    expect(screens.filter((f) => /project/i.test(f.slice(root.length)) && !/ProjectSwitcher|office[\\/]projects\.tsx$/.test(f))).toEqual([]);
     for (const f of screens) expect(readFileSync(f, 'utf8')).not.toMatch(/projects\.project\.create|PROJECT_CREATE|\/projects?\/new/);
   });
 });
