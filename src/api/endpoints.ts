@@ -25,4 +25,5 @@ export const ENDPOINTS = {
   suppliers: '/suppliers',
   clients: '/clients',
   materials: '/materials',
+  officeExpenses: '/office-expenses',
 } as const;
