@@ -16,6 +16,7 @@ import { useQuery } from '@/db/live';
 import { acknowledgeFloat } from '@/features/actions';
 import { cashAccount, cashEntries, pendingFloats, topups } from '@/features/queries';
 import { usePermissions } from '@/features/access';
+import { OFFICE_PERM } from '@/features/office';
 import type { CashEntryRow } from '@/features/types';
 import { useSave } from '@/features/useSave';
 import { translateMaybe, useI18n, type TKey } from '@/i18n';
@@ -68,10 +69,15 @@ export default function KharchaScreen() {
     return { account, entries: cashEntries(db, account?.id), floats: pendingFloats(db, account?.id), topup: topups(db).find((x) => x.status === 'PENDING') ?? null };
   }, []);
   const header = <Header title={t('kharcha.title')} right={<ProjectSwitcher />} />;
+  // Office expenses (rent, bills, salaries) aren't site cash — a way to them for whoever records them.
+  const officeExpense = perms.can(OFFICE_PERM.expensesManage) ? (
+    <BigButton testID="add-office-expense" variant="secondary" icon="office-building-outline" label={t('oexp.add')} onPress={() => router.push('/office/expense-new' as never)} />
+  ) : null;
   if (!data.account) {
     return (
       <Screen header={header}>
         <EmptyState icon="💵" title={t('kharcha.noAccount')} />
+        {officeExpense}
       </Screen>
     );
   }
@@ -118,6 +124,7 @@ export default function KharchaScreen() {
           <BigButton variant="secondary" icon="🙏" label={t('kharcha.topup')} onPress={() => router.push('/kharcha/topup')} />
         )
       ) : null}
+      {officeExpense}
       {data.floats.length ? <Text className="mt-2 font-bold text-lg text-ink">{t('kharcha.floats')}</Text> : null}
       {data.floats.map((f) => (
         <View key={f.id} className="flex-row items-center gap-3 rounded-card border border-primary/30 bg-primary-soft p-3">
