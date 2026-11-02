@@ -13,6 +13,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Icon } from '@components/Icon';
 import { IconBadge } from '@components/IconBadge';
+import { SideMenuProvider } from '@components/SideMenu';
 import { ProjectProvider } from '@/features/project';
 import { SessionProvider, useSession } from '@/features/session';
 import { I18nProvider, useT } from '@/i18n';
@@ -85,12 +86,19 @@ function Gate() {
         <Stack.Screen name="log" />
         <Stack.Screen name="site" />
         <Stack.Screen name="approvals" />
+        <Stack.Screen name="office" />
         <Stack.Screen name="sync-problems" />
         <Stack.Screen name="notifications" />
       </Stack.Protected>
     </Stack>
   );
-  return status === 'ready' ? <ProjectProvider>{stack}</ProjectProvider> : stack;
+  return status === 'ready' ? (
+    <ProjectProvider>
+      <SideMenuProvider>{stack}</SideMenuProvider>
+    </ProjectProvider>
+  ) : (
+    stack
+  );
 }
 
 function RootLayout() {

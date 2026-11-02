@@ -23,6 +23,7 @@ import { useI18n } from '@/i18n';
 import { todayPK, weekOf, type WeekDay } from '@/lib/dates';
 import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW, TOPBAR_SHADOW } from '@/lib/theme';
+import { MenuButton } from '@components/SideMenu';
 
 /** Greeting bar (like the web top bar): avatar, name, date and the current site. */
 function HomeHeader({ name, date }: { name: string; date: string }) {
@@ -30,6 +31,7 @@ function HomeHeader({ name, date }: { name: string; date: string }) {
   return (
     <SafeAreaView edges={['top']} className="z-10 bg-card" style={TOPBAR_SHADOW}>
       <View className="flex-row items-center gap-3 px-4 pb-4 pt-3">
+        <MenuButton />
         <View className="h-11 w-11 items-center justify-center rounded-full bg-sand">
           <Text className="font-bold text-lg text-ink">{name.charAt(0).toUpperCase()}</Text>
         </View>
