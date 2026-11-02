@@ -11,7 +11,6 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Icon } from '@components/Icon';
 import { IconBadge } from '@components/IconBadge';
 import { SideMenuProvider } from '@components/SideMenu';
 import { ProjectProvider } from '@/features/project';
