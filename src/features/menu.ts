@@ -1,6 +1,7 @@
 /**
- * The side menu (☰): every screen of the app in groups, like the web's sidebar — each item only when
- * the person may open it (the same keys the routes and tabs use), so every role gets its own menu.
+ * The side menu (☰): the main parts of the app; a part with more screens opens to show them (its own
+ * page first), like the web's sidebar. Each entry only when the person may open it (the same keys the
+ * routes and tabs use), so every role gets its own menu.
  */
 import type { TKey } from '../i18n/en';
 import { canAny, routeAllowed, rules, TAB_PERMS, type Access, type Role } from '../lib/permissions';
@@ -12,8 +13,13 @@ export interface MenuItem {
   icon: string;
   href: string;
 }
+/** A main entry: a plain link (no `items`) or a part that opens to its screens. */
 export interface MenuGroup {
+  key: string;
   title: TKey;
+  icon: string;
+  /** Its own page (a tab), listed first when the part is opened. */
+  href?: string;
   items: MenuItem[];
 }
 
@@ -22,19 +28,14 @@ const item = (href: string, label: TKey, icon: string): MenuItem => ({ key: href
 export function menuFor(access: Access | null | undefined, role: Role | null | undefined): MenuGroup[] {
   const route = (i: MenuItem) => routeAllowed(access, role, i.href);
   const office = officeSections(access, role);
+  const tab = (keys: readonly string[], href: string) => (canAny(access, role, keys) ? href : undefined);
   const groups: MenuGroup[] = [
+    { key: 'aaj', title: 'tabs.aaj', icon: 'home-variant-outline', href: '/aaj', items: [] },
     {
-      title: 'menu.main',
-      items: [
-        item('/aaj', 'tabs.aaj', 'home-variant-outline'),
-        ...(canAny(access, role, TAB_PERMS.hazri) ? [item('/hazri', 'tabs.hazri', 'account-hard-hat-outline')] : []),
-        ...(canAny(access, role, TAB_PERMS.maal) ? [item('/maal', 'tabs.maal', 'wall')] : []),
-        ...(canAny(access, role, TAB_PERMS.kharcha) ? [item('/kharcha', 'tabs.kharcha', 'wallet-outline')] : []),
-        ...(canAny(access, role, OFFICE_TAB_KEYS) ? [item('/office', 'tabs.office', 'briefcase-variant-outline')] : []),
-      ],
-    },
-    {
-      title: 'menu.labour',
+      key: 'hazri',
+      title: 'tabs.hazri',
+      icon: 'account-hard-hat-outline',
+      href: tab(TAB_PERMS.hazri, '/hazri'),
       items: [
         item('/hazri/worker-new', 'hazri.addWorker', 'account-plus-outline'),
         item('/hazri/peshgi', 'hazri.peshgi', 'hand-coin-outline'),
@@ -43,7 +44,10 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
       ].filter(route),
     },
     {
-      title: 'menu.material',
+      key: 'maal',
+      title: 'tabs.maal',
+      icon: 'wall',
+      href: tab(TAB_PERMS.maal, '/maal'),
       items: [
         item('/maal/receive', 'maal.receive', 'truck-delivery-outline'),
         item('/maal/usage', 'maal.usage', 'wall'),
@@ -55,7 +59,10 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
       ].filter(route),
     },
     {
-      title: 'menu.cash',
+      key: 'kharcha',
+      title: 'tabs.kharcha',
+      icon: 'wallet-outline',
+      href: tab(TAB_PERMS.kharcha, '/kharcha'),
       items: [
         item('/kharcha/new', 'kharcha.add', 'cash-minus'),
         // The owner sends cash; he doesn't ask for it.
@@ -63,7 +70,9 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
       ].filter(route),
     },
     {
+      key: 'site',
       title: 'menu.site',
+      icon: 'hammer-wrench',
       items: [
         item('/log/today', 'mazeed.dailyLog', 'notebook-edit-outline'),
         item('/log/history', 'mazeed.myLogs', 'notebook-outline'),
@@ -75,7 +84,10 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
       ].filter(route),
     },
     {
-      title: 'menu.office',
+      key: 'office',
+      title: 'tabs.office',
+      icon: 'briefcase-variant-outline',
+      href: tab(OFFICE_TAB_KEYS, '/office'),
       items: [
         ...(office.includes('projects') ? [item('/office/projects', 'office.projects', 'office-building-outline')] : []),
         ...(office.includes('reports') ? [item('/office/reports', 'office.reports', 'file-chart-outline')] : []),
@@ -85,15 +97,13 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
         ...(office.includes('products') ? [item('/office/products', 'office.products', 'package-variant-closed')] : []),
       ],
     },
-    {
-      title: 'menu.other',
-      items: [
-        ...[item('/approvals', 'appr.title', 'check-decagram-outline')].filter(route),
-        item('/notifications', 'mazeed.notifications', 'bell-outline'),
-        item('/sync-problems', 'menu.syncProblems', 'sync-alert'),
-        item('/mazeed', 'tabs.mazeed', 'dots-horizontal-circle-outline'),
-      ],
-    },
+    ...(routeAllowed(access, role, '/approvals') ? [{ key: 'approvals', title: 'appr.title' as TKey, icon: 'check-decagram-outline', href: '/approvals', items: [] }] : []),
+    { key: 'notifications', title: 'mazeed.notifications', icon: 'bell-outline', href: '/notifications', items: [] },
+    { key: 'sync', title: 'menu.syncProblems', icon: 'sync-alert', href: '/sync-problems', items: [] },
+    { key: 'more', title: 'tabs.mazeed', icon: 'dots-horizontal-circle-outline', href: '/mazeed', items: [] },
   ];
-  return groups.filter((g) => g.items.length);
+  return groups.filter((g) => g.href || g.items.length);
 }
+
+/** The part that holds this screen (opened when the menu opens). */
+export const groupOf = (groups: MenuGroup[], pathname: string) => groups.find((g) => g.href === pathname || g.items.some((i) => i.href === pathname))?.key ?? null;
