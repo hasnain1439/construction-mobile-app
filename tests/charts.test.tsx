@@ -21,7 +21,7 @@ describe('charts', () => {
       />,
     );
     expect(screen.getByText('12 present')).toBeTruthy();
-    fireEvent.press(screen.getByTestId('col-mon'));
+    await fireEvent.press(screen.getByTestId('col-mon'));
     expect(screen.getByText('8 present')).toBeTruthy();
   });
 
