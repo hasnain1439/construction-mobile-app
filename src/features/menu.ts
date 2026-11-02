@@ -1,17 +1,20 @@
 /**
  * The side menu (☰): the main parts of the app; a part with more screens opens to show them (its own
- * page first), like the web's sidebar. Each entry only when the person may open it (the same keys the
+ * page first), like the web's sidebar. Only pages to look at: "add / new" forms open from a button on
+ * their page, never from the menu. An entry with its own list (Reports) opens again inside the menu. Each entry only when the person may open it (the same keys the
  * routes and tabs use), so every role gets its own menu.
  */
 import type { TKey } from '../i18n/en';
-import { canAny, routeAllowed, rules, TAB_PERMS, type Access, type Role } from '../lib/permissions';
-import { OFFICE_TAB_KEYS, officeSections } from './office';
+import { canAny, routeAllowed, TAB_PERMS, type Access, type Role } from '../lib/permissions';
+import { OFFICE_TAB_KEYS, officeSections, reportsFor } from './office';
 
 export interface MenuItem {
   key: string;
   label: TKey;
   icon: string;
   href: string;
+  /** Opens to these inside the menu (no page of its own). */
+  items?: MenuItem[];
 }
 /** A main entry: a plain link (no `items`) or a part that opens to its screens. */
 export interface MenuGroup {
@@ -24,6 +27,7 @@ export interface MenuGroup {
 }
 
 const item = (href: string, label: TKey, icon: string): MenuItem => ({ key: href, label, icon, href });
+export const reportHref = (name: string) => `/office/report?name=${name}`;
 
 export function menuFor(access: Access | null | undefined, role: Role | null | undefined): MenuGroup[] {
   const route = (i: MenuItem) => routeAllowed(access, role, i.href);
@@ -36,39 +40,10 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
       title: 'tabs.hazri',
       icon: 'account-hard-hat-outline',
       href: tab(TAB_PERMS.hazri, '/hazri'),
-      items: [
-        item('/hazri/worker-new', 'hazri.addWorker', 'account-plus-outline'),
-        item('/hazri/peshgi', 'hazri.peshgi', 'hand-coin-outline'),
-        item('/hazri/measurement', 'hazri.measurement', 'tape-measure'),
-        item('/hazri/settlement', 'hazri.settlement', 'calendar-week'),
-      ].filter(route),
+      items: [item('/hazri/settlement', 'hazri.settlement', 'calendar-week')].filter(route),
     },
-    {
-      key: 'maal',
-      title: 'tabs.maal',
-      icon: 'wall',
-      href: tab(TAB_PERMS.maal, '/maal'),
-      items: [
-        item('/maal/receive', 'maal.receive', 'truck-delivery-outline'),
-        item('/maal/usage', 'maal.usage', 'wall'),
-        item('/maal/owner-delivery', 'maal.ownerDelivery', 'package-variant'),
-        item('/maal/purchase', 'maal.purchase', 'cart-outline'),
-        item('/maal/count', 'maal.count', 'counter'),
-        item('/maal/equipment', 'eq.title', 'crane'),
-        item('/maal/equipment-receive', 'eq.receive', 'tray-arrow-down'),
-      ].filter(route),
-    },
-    {
-      key: 'kharcha',
-      title: 'tabs.kharcha',
-      icon: 'wallet-outline',
-      href: tab(TAB_PERMS.kharcha, '/kharcha'),
-      items: [
-        item('/kharcha/new', 'kharcha.add', 'cash-minus'),
-        // The owner sends cash; he doesn't ask for it.
-        ...(role && rules.requestTopup(access, role) ? [item('/kharcha/topup', 'kharcha.topup', 'cash-plus')] : []),
-      ].filter(route),
-    },
+    { key: 'maal', title: 'tabs.maal', icon: 'wall', href: tab(TAB_PERMS.maal, '/maal'), items: [item('/maal/equipment', 'eq.title', 'crane')].filter(route) },
+    { key: 'kharcha', title: 'tabs.kharcha', icon: 'wallet-outline', href: tab(TAB_PERMS.kharcha, '/kharcha'), items: [] },
     {
       key: 'site',
       title: 'menu.site',
@@ -90,7 +65,9 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
       href: tab(OFFICE_TAB_KEYS, '/office'),
       items: [
         ...(office.includes('projects') ? [item('/office/projects', 'office.projects', 'office-building-outline')] : []),
-        ...(office.includes('reports') ? [item('/office/reports', 'office.reports', 'file-chart-outline')] : []),
+        ...(office.includes('reports')
+          ? [{ ...item('/office/reports', 'office.reports', 'file-chart-outline'), items: reportsFor(access, role).map((r) => item(reportHref(r.name), r.title, 'file-document-outline')) }]
+          : []),
         ...(office.includes('team') ? [item('/office/team', 'office.team', 'account-group-outline')] : []),
         ...(office.includes('suppliers') ? [item('/office/suppliers', 'office.suppliers', 'truck-outline')] : []),
         ...(office.includes('customers') ? [item('/office/customers', 'office.customers', 'account-tie-outline')] : []),
@@ -105,5 +82,8 @@ export function menuFor(access: Access | null | undefined, role: Role | null | u
   return groups.filter((g) => g.href || g.items.length);
 }
 
-/** The part that holds this screen (opened when the menu opens). */
-export const groupOf = (groups: MenuGroup[], pathname: string) => groups.find((g) => g.href === pathname || g.items.some((i) => i.href === pathname))?.key ?? null;
+/** Every screen under a menu entry (the entry itself, or what it opens to). */
+export const linksOf = (i: MenuItem): string[] => (i.items ? i.items.map((x) => x.href) : [i.href]);
+
+/** The part that holds this screen (opened when the menu opens); `href` may carry `?name=` (a report). */
+export const groupOf = (groups: MenuGroup[], href: string) => groups.find((g) => g.href === href || g.items.some((i) => linksOf(i).includes(href)))?.key ?? null;

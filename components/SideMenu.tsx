@@ -1,9 +1,9 @@
-import { router, usePathname } from 'expo-router';
+import { router, useGlobalSearchParams, usePathname } from 'expo-router';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Animated, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePermissions } from '@/features/access';
-import { groupOf, menuFor } from '@/features/menu';
+import { groupOf, linksOf, menuFor, reportHref, type MenuItem } from '@/features/menu';
 import { useUser } from '@/features/session';
 import { roleLabel, useI18n } from '@/i18n';
 import { COLORS } from '@/lib/theme';
@@ -20,9 +20,13 @@ function Drawer({ visible, onClose }: { visible: boolean; onClose: () => void })
   const p = usePermissions();
   const user = useUser();
   const pathname = usePathname();
+  const { name } = useGlobalSearchParams<{ name?: string }>();
+  // The open screen as a menu link (a report is one page with ?name=).
+  const here = pathname === '/office/report' && typeof name === 'string' ? reportHref(name) : pathname;
   const groups = useMemo(() => menuFor(p.access, p.role), [p.access, p.role]);
-  // Main options first; the part holding the open screen starts opened.
-  const [openKey, setOpenKey] = useState<string | null>(() => groupOf(groups, pathname));
+  // Main options first; the part (and the entry inside it) holding the open screen starts opened.
+  const [openKey, setOpenKey] = useState<string | null>(() => groupOf(groups, here));
+  const [openSub, setOpenSub] = useState<string | null>(() => groups.flatMap((g) => g.items).find((i) => i.items && linksOf(i).includes(here))?.key ?? null);
   const [slide] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(slide, { toValue: visible ? 1 : 0, duration: 200, useNativeDriver: true }).start();
@@ -52,38 +56,38 @@ function Drawer({ visible, onClose }: { visible: boolean; onClose: () => void })
               {groups.map((g) => {
                 const hasSub = g.items.length > 0;
                 const isOpen = openKey === g.key;
-                const here = g.href === pathname || g.items.some((i) => i.href === pathname);
+                const active = g.href === here || g.items.some((i) => linksOf(i).includes(here));
                 return (
                   <View key={g.key}>
                     <Pressable
                       testID={`menu-group-${g.key}`}
                       accessibilityRole="button"
-                      accessibilityState={hasSub ? { expanded: isOpen } : { selected: here }}
+                      accessibilityState={hasSub ? { expanded: isOpen } : { selected: active }}
                       onPress={() => (hasSub ? setOpenKey(isOpen ? null : g.key) : go(g.href!))}
-                      className={`min-h-12 flex-row items-center gap-3 rounded-xl px-3 ${here ? 'bg-primary/10' : 'active:bg-bg'}`}
+                      className={`min-h-12 flex-row items-center gap-3 rounded-xl px-3 ${active ? 'bg-primary/10' : 'active:bg-bg'}`}
                     >
-                      <Icon name={g.icon} size={22} color={here ? COLORS.primary : COLORS.ink} />
-                      <Text className={`flex-1 text-base ${here ? 'font-semibold text-primary' : 'font-medium text-ink'}`}>{t(g.title)}</Text>
+                      <Icon name={g.icon} size={22} color={active ? COLORS.primary : COLORS.ink} />
+                      <Text className={`flex-1 text-base ${active ? 'font-semibold text-primary' : 'font-medium text-ink'}`}>{t(g.title)}</Text>
                       {hasSub ? <Icon name={isOpen ? 'chevron-up' : 'chevron-down'} size={20} color={COLORS.muted} /> : null}
                     </Pressable>
                     {hasSub && isOpen ? (
                       <View testID={`menu-sub-${g.key}`} className="gap-0.5 py-1 ps-6">
-                        {[...(g.href ? [{ key: g.href, href: g.href, label: g.title, icon: 'view-dashboard-outline' }] : []), ...g.items].map((i) => {
-                          const active = pathname === i.href;
-                          return (
-                            <Pressable
-                              key={i.key}
-                              testID={`menu-${i.href}`}
-                              accessibilityRole="button"
-                              accessibilityState={{ selected: active }}
-                              onPress={() => go(i.href)}
-                              className={`min-h-11 flex-row items-center gap-3 rounded-xl px-3 ${active ? 'bg-primary/10' : 'active:bg-bg'}`}
-                            >
-                              <Icon name={i.icon} size={18} color={active ? COLORS.primary : COLORS.muted} />
-                              <Text className={`flex-1 text-[15px] ${active ? 'font-semibold text-primary' : 'text-ink'}`}>{t(i.label)}</Text>
-                            </Pressable>
-                          );
-                        })}
+                        {[...(g.href ? [{ key: g.href, href: g.href, label: g.title, icon: 'view-dashboard-outline' }] : []), ...g.items].map((i: MenuItem) =>
+                          i.items ? (
+                            <View key={i.key}>
+                              <Link item={i} active={linksOf(i).includes(here)} expanded={openSub === i.key} onPress={() => setOpenSub(openSub === i.key ? null : i.key)} />
+                              {openSub === i.key ? (
+                                <View testID={`menu-sub-${i.key}`} className="gap-0.5 py-1 ps-5">
+                                  {i.items.map((x) => (
+                                    <Link key={x.key} item={x} active={here === x.href} onPress={() => go(x.href)} small />
+                                  ))}
+                                </View>
+                              ) : null}
+                            </View>
+                          ) : (
+                            <Link key={i.key} item={i} active={here === i.href} onPress={() => go(i.href)} />
+                          ),
+                        )}
                       </View>
                     ) : null}
                   </View>
@@ -95,6 +99,25 @@ function Drawer({ visible, onClose }: { visible: boolean; onClose: () => void })
         <Pressable testID="side-menu-backdrop" accessibilityRole="button" accessibilityLabel={t('common.close')} onPress={onClose} className="flex-1 bg-black/40" />
       </View>
     </Modal>
+  );
+}
+
+/** One entry inside an opened part; `expanded` when it opens to more entries (Reports). */
+function Link({ item, active, onPress, expanded, small }: { item: MenuItem; active: boolean; onPress: () => void; expanded?: boolean; small?: boolean }) {
+  const { t } = useI18n();
+  const opens = expanded !== undefined;
+  return (
+    <Pressable
+      testID={`menu-${item.href}`}
+      accessibilityRole="button"
+      accessibilityState={opens ? { expanded } : { selected: active }}
+      onPress={onPress}
+      className={`${small ? 'min-h-10' : 'min-h-11'} flex-row items-center gap-3 rounded-xl px-3 ${active && !opens ? 'bg-primary/10' : 'active:bg-bg'}`}
+    >
+      <Icon name={item.icon} size={small ? 16 : 18} color={active ? COLORS.primary : COLORS.muted} />
+      <Text className={`flex-1 ${small ? 'text-sm' : 'text-[15px]'} ${active ? 'font-semibold text-primary' : 'text-ink'}`}>{t(item.label)}</Text>
+      {opens ? <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.muted} /> : null}
+    </Pressable>
   );
 }
 
