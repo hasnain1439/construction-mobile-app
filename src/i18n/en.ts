@@ -710,6 +710,8 @@ export const en = {
   'chart.receivedOf': "{received} received of {billed}",
   'chart.owing': "Still to receive, by project",
   'chart.owingHint': "The five projects owing the most",
+  'aaj.attention': "Needs attention",
+  'aaj.allDone': "All of today's work is done",
   'tabs.office': "Office",
   'office.title': "Office",
   'office.open': "Open",

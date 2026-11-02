@@ -4,13 +4,12 @@ import { Image, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@components/EmptyState';
 import { Icon } from '@components/Icon';
-import { IconBadge, type BadgeTone } from '@components/IconBadge';
+import type { BadgeTone } from '@components/IconBadge';
 import { ListItem } from '@components/ListItem';
 import { MilestoneCard } from '@components/MilestoneCard';
 import { MoneyText } from '@components/MoneyText';
 import { ProjectSwitcher } from '@components/ProjectSwitcher';
 import { Screen } from '@components/Screen';
-import { StatusChip } from '@components/StatusChip';
 import { useQuery } from '@/db/live';
 import { usePermissions } from '@/features/access';
 import { useApprovalsCount } from '@/features/approvals';
@@ -22,7 +21,7 @@ import { useUser } from '@/features/session';
 import { useI18n } from '@/i18n';
 import { todayPK, weekOf, type WeekDay, addDays } from '@/lib/dates';
 import { PERM, TAB_PERMS } from '@/lib/permissions';
-import { CARD_SHADOW, COLORS, RAISED_SHADOW, TOPBAR_SHADOW } from '@/lib/theme';
+import { COLORS, TOPBAR_SHADOW } from '@/lib/theme';
 import { MenuButton } from '@components/SideMenu';
 import { BRAND_NAME } from '@/lib/brand';
 import { StatTile } from '@components/StatTile';
@@ -56,7 +55,7 @@ function HomeHeader({ name, date }: { name: string; date: string }) {
 
 /** Today: what is still to do on this site, my cash and quick actions. */
 export default function AajScreen() {
-  const { t, f, rtl } = useI18n();
+  const { t, f } = useI18n();
   const user = useUser();
   const perms = usePermissions();
   const approvals = useApprovalsCount({ fetch: true });
@@ -126,27 +125,16 @@ export default function AajScreen() {
       testID: 'todo-settlement',
     });
   }
-  const doneCount = todo.filter((x) => x.done).length;
-
-  const quick = (
-    [
-      { icon: '👷', tone: 'primary', label: t('tabs.hazri'), href: '/hazri', show: perms.canAny(...TAB_PERMS.hazri) },
-      { icon: '🧱', tone: 'accent', label: t('maal.usage'), href: '/maal/usage', show: perms.can(PERM.usageCreate) },
-      { icon: '💵', tone: 'success', label: t('kharcha.add'), href: '/kharcha/new', show: perms.can(PERM.expenseCreate) },
-      { icon: '📝', tone: 'violet', label: t('mazeed.dailyLog'), href: '/log/today', show: perms.can(PERM.logCreate) },
-      { icon: '🤝', tone: 'info', label: t('hazri.peshgi'), href: '/hazri/peshgi', show: perms.can(PERM.peshgiCreate) },
-      { icon: '📦', tone: 'danger', label: t('maal.ownerDelivery'), href: '/maal/owner-delivery', show: perms.can(PERM.ownerDeliveryCreate) },
-      { icon: 'weather-pouring', tone: 'warning', label: t('stop.new'), href: '/site/stoppage-new', show: perms.can(PERM.stoppageCreate) },
-      { icon: 'message-draw', tone: 'info', label: t('si.new'), href: '/site/instruction-new', show: perms.can(PERM.instructionCreate) },
-      { icon: 'map-marker-alert-outline', tone: 'danger', label: t('snag.new'), href: '/site/snag-new', show: perms.can(PERM.snagCreate) },
-    ] satisfies { icon: string; tone: BadgeTone; label: string; href: Href; show: boolean }[]
-  ).filter((q) => q.show);
+  const open = todo.filter((x) => !x.done);
 
   const siteStats = [
     ...(perms.canAny(...TAB_PERMS.attendance) && data.workers
       ? [{ key: 'hazri', icon: 'account-hard-hat-outline', label: t('aaj.stat.hazri'), value: `${data.marked}/${data.workers}`, tone: data.marked < data.workers ? ('warning' as const) : ('success' as const), href: '/hazri' }]
       : []),
     ...(perms.canAny(...TAB_PERMS.incoming) ? [{ key: 'incoming', icon: 'truck-delivery-outline', label: t('aaj.stat.incoming'), value: String(data.incoming + data.incomingEq), tone: undefined, href: '/maal' }] : []),
+    ...(data.account && perms.canAny(...TAB_PERMS.kharcha)
+      ? [{ key: 'cash', icon: 'wallet-outline', label: t('aaj.myCash'), value: <MoneyText paisa={data.account.balancePaisa} className="text-xl" />, tone: undefined, href: '/kharcha' }]
+      : []),
     ...(approvals.show ? [{ key: 'approvals', icon: 'check-decagram-outline', label: t('office.kpi.approvals'), value: String(approvals.count), tone: approvals.count ? ('warning' as const) : undefined, href: '/approvals' }] : []),
   ];
   const k = company.data?.kpis;
@@ -186,62 +174,25 @@ export default function AajScreen() {
           </View>
         </>
       ) : null}
+      {open.length ? (
+        <>
+          <Text className="mt-1 font-bold text-lg text-ink">{t('aaj.attention')}</Text>
+          {open.map((item) => (
+            <ListItem key={item.testID} testID={item.testID} icon={item.icon} iconTone={item.tone} title={item.title} onPress={() => router.push(item.href)} />
+          ))}
+        </>
+      ) : todo.length ? (
+        <View testID="aaj-all-done" className="flex-row items-center gap-2 rounded-card border border-border bg-card px-4 py-3">
+          <Icon name="check-circle-outline" size={20} color={COLORS.success} />
+          <Text className="text-sm text-ink">{t('aaj.allDone')}</Text>
+        </View>
+      ) : null}
       {perms.canAny(...TAB_PERMS.attendance) && data.week7.some((d) => d.present > 0) ? (
         <ChartCard testID="chart-hazri" title={t('chart.hazri7')} subtitle={project.name}>
           <ColumnChart data={data.week7.map((d) => ({ key: d.day, label: f.weekDayNarrow(d.day), value: d.present, display: t('chart.present', { n: d.present }) }))} />
         </ChartCard>
       ) : null}
       {company.data ? <CompanyCharts overview={company.data} /> : null}
-      {data.account && perms.canAny(...TAB_PERMS.kharcha) ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/kharcha')} className="overflow-hidden rounded-card bg-sand p-5 active:opacity-95" style={RAISED_SHADOW}>
-          {/* Big faint icon in the corner, like the web KPI tiles. */}
-          <View className="absolute -bottom-6 -right-4 opacity-15">
-            <Icon name="wallet-outline" size={120} color={COLORS.ink} />
-          </View>
-          <View className="flex-row items-center justify-between">
-            <Text className="font-medium text-sm text-ink">{t('aaj.myCash')}</Text>
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-white/45">
-              <Icon name="wallet-outline" size={18} color={COLORS.ink} />
-            </View>
-          </View>
-          <MoneyText paisa={data.account.balancePaisa} className="mt-1 text-3xl !text-ink" />
-          <View className="mt-3 flex-row items-center gap-1">
-            <Text className="font-semibold text-xs text-ink">{t('kharcha.title')}</Text>
-            <Icon name={rtl ? 'arrow-left' : 'arrow-right'} size={14} color={COLORS.ink} />
-          </View>
-        </Pressable>
-      ) : null}
-
-      {approvals.show && approvals.count ? (
-        <ListItem
-          testID="aaj-approvals"
-          icon="check-decagram-outline"
-          iconTone="accent"
-          title={t('appr.pending', { n: approvals.count })}
-          right={<StatusChip tone="danger" label={String(approvals.count)} />}
-          onPress={() => router.push('/approvals')}
-        />
-      ) : null}
-
-      <View className="mt-2 flex-row items-center justify-between">
-        <Text className="font-bold text-lg text-ink">{t('aaj.todo')}</Text>
-        <StatusChip tone={doneCount === todo.length ? 'success' : 'primary'} label={`${doneCount}/${todo.length}`} />
-      </View>
-      <View className="h-1.5 overflow-hidden rounded-full bg-border">
-        <View className="h-full rounded-full bg-success" style={{ width: `${todo.length ? (doneCount / todo.length) * 100 : 0}%` }} />
-      </View>
-      {todo.map((item) => (
-        <ListItem
-          key={item.testID}
-          testID={item.testID}
-          icon={item.done ? 'check-circle-outline' : item.icon}
-          iconTone={item.done ? 'success' : item.tone}
-          title={item.title}
-          right={item.done ? <StatusChip tone="success" label="✓" /> : undefined}
-          onPress={() => router.push(item.href)}
-        />
-      ))}
-
       {seesPlan ? (
         <>
           <View className="mt-3 flex-row items-center justify-between">
@@ -262,24 +213,6 @@ export default function AajScreen() {
         </>
       ) : null}
 
-      {quick.length ? <Text className="mt-3 font-bold text-lg text-ink">{t('aaj.quick')}</Text> : null}
-      <View className="flex-row flex-wrap gap-3">
-        {quick.map((q) => (
-          <Pressable
-            key={q.label}
-            accessibilityRole="button"
-            accessibilityLabel={q.label}
-            onPress={() => router.push(q.href)}
-            className="min-h-28 w-[30%] flex-grow items-center justify-center gap-2 rounded-card bg-card p-3 active:bg-bg"
-            style={CARD_SHADOW}
-          >
-            <IconBadge name={q.icon} tone={q.tone} size={48} />
-            <Text className="text-center font-semibold text-xs text-ink" numberOfLines={2}>
-              {q.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
     </Screen>
   );
 }

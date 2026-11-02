@@ -712,6 +712,8 @@ export const roman: Record<TKey, string> = {
   'chart.receivedOf': "{billed} mein se {received} mil gaye",
   'chart.owing': "Project ke hisaab se baqi raqam",
   'chart.owingHint': "Sab se zyada baqi wale 5 projects",
+  'aaj.attention': "Tawajjoh chahiye",
+  'aaj.allDone': "Aaj ke saare kaam ho gaye",
   'tabs.office': "Office",
   'office.title': "Office",
   'office.open': "Kholein",

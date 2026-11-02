@@ -715,6 +715,8 @@ export const ur: Record<TKey, string> = {
   'chart.receivedOf': "{billed} میں سے {received} وصول ہوئے",
   'chart.owing': "پراجیکٹ کے حساب سے باقی رقم",
   'chart.owingHint': "سب سے زیادہ باقی والے 5 پراجیکٹس",
+  'aaj.attention': "توجہ درکار",
+  'aaj.allDone': "آج کے سارے کام ہو گئے",
   'tabs.office': "دفتر",
   'office.title': "دفتر",
   'office.open': "کھولیں",
