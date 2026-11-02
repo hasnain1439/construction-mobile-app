@@ -20,7 +20,7 @@ import { attendanceOn, cashAccount, incomingDispatches, incomingPurchases, mater
 import { milestones, todayMilestones } from '@/features/schedule';
 import { useUser } from '@/features/session';
 import { useI18n } from '@/i18n';
-import { todayPK, weekOf, type WeekDay } from '@/lib/dates';
+import { todayPK, weekOf, type WeekDay, addDays } from '@/lib/dates';
 import { PERM, TAB_PERMS } from '@/lib/permissions';
 import { CARD_SHADOW, COLORS, RAISED_SHADOW, TOPBAR_SHADOW } from '@/lib/theme';
 import { MenuButton } from '@components/SideMenu';
@@ -28,6 +28,8 @@ import { BRAND_NAME } from '@/lib/brand';
 import { StatTile } from '@components/StatTile';
 import { ENDPOINTS } from '@/api/endpoints';
 import { OFFICE_PERM, useOnline, type Overview } from '@/features/office';
+import { ChartCard, ColumnChart } from '@components/Charts';
+import { CompanyCharts } from '@components/CompanyCharts';
 
 // Keystone mark (same artwork as the login screen and the web).
 const KEYSTONE_MARK = require('../../assets/brand/keystone-mark-small.png');
@@ -81,6 +83,7 @@ export default function AajScreen() {
         account: acc,
         settlement: settlementFor(db, projectId, week.weekStart),
         log: myLogOn(db, projectId, user.id, today),
+        week7: Array.from({ length: 7 }, (_, i) => addDays(today, i - 6)).map((day) => ({ day, present: attendanceOn(db, projectId, day).filter((a) => a.status !== 'ABSENT').length })),
       };
     },
     [projectId, today, user.id, seesPlan, canReceiveEq],
@@ -183,6 +186,12 @@ export default function AajScreen() {
           </View>
         </>
       ) : null}
+      {perms.canAny(...TAB_PERMS.attendance) && data.week7.some((d) => d.present > 0) ? (
+        <ChartCard testID="chart-hazri" title={t('chart.hazri7')} subtitle={project.name}>
+          <ColumnChart data={data.week7.map((d) => ({ key: d.day, label: f.weekDayNarrow(d.day), value: d.present, display: t('chart.present', { n: d.present }) }))} />
+        </ChartCard>
+      ) : null}
+      {company.data ? <CompanyCharts overview={company.data} /> : null}
       {data.account && perms.canAny(...TAB_PERMS.kharcha) ? (
         <Pressable accessibilityRole="button" onPress={() => router.push('/kharcha')} className="overflow-hidden rounded-card bg-sand p-5 active:opacity-95" style={RAISED_SHADOW}>
           {/* Big faint icon in the corner, like the web KPI tiles. */}

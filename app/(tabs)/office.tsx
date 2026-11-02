@@ -11,6 +11,7 @@ import { ENDPOINTS } from '@/api/endpoints';
 import { roleLabel, useI18n, type TKey } from '@/i18n';
 import { useUser } from '@/features/session';
 import { StatTile } from '@components/StatTile';
+import { CompanyCharts } from '@components/CompanyCharts';
 
 
 const LINKS: Record<Exclude<OfficeSection, 'overview'>, { icon: string; tone: 'primary' | 'info' | 'accent' | 'violet' | 'success' | 'warning'; title: TKey; hint: TKey; href: string }> = {
@@ -75,6 +76,7 @@ export default function OfficeScreen() {
           ) : null}
         </OfficeState>
       ) : null}
+      {overview.data ? <CompanyCharts overview={overview.data} /> : null}
       {sections.length ? <Text className="mt-2 font-bold text-lg text-ink">{t('office.open')}</Text> : null}
       {sections
         .filter((s): s is Exclude<OfficeSection, 'overview'> => s !== 'overview')

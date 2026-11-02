@@ -97,6 +97,8 @@ export interface Overview {
     receivablesOutstandingPaisa?: string;
     overduePaisa?: string;
     collectedPercent?: number;
+    invoicedPaisa?: string;
+    receivedPaisa?: string;
     supplierUdhaarPaisa?: string;
     storeStockValuePaisa?: string;
     cashWithSiteStaffPaisa?: string;
