@@ -18,4 +18,13 @@ export const ENDPOINTS = {
   approvalsBulk: '/approvals/bulk',
   stoppages: '/stoppages',
   snags: '/snags',
+  // Office (online only): the mini dashboard of the web's office side, per role.
+  dashboardOverview: '/dashboard/overview',
+  report: (name: string) => `/reports/${encodeURIComponent(name)}`,
+  users: '/users',
+  suppliers: '/suppliers',
+  clients: '/clients',
+  materials: '/materials',
+  officeExpenses: '/office-expenses',
+  officeExpenseCategories: '/office-expenses/categories',
 } as const;

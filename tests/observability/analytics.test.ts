@@ -127,7 +127,7 @@ describe('track', () => {
   it('never throws offline: keeps the events queued and retries with backoff', async () => {
     let online = false;
     let t = NOW.getTime();
-    const retries: Array<() => void> = [];
+    const retries: (() => void)[] = [];
     const fetch = jest.fn(async () => {
       if (!online) throw new TypeError('Network request failed');
       return new Response('{}');

@@ -203,6 +203,16 @@ export const ROUTE_PERMS: Record<string, readonly string[]> = {
   '/site/drawings': [PERM.drawingView],
   '/site/drawing': [PERM.drawingView],
   '/approvals': APPROVE_KEYS,
+  // Office (mini dashboard): each page needs its web key (src/features/office.ts).
+  '/office/projects': ['dashboard.overview.view'],
+  '/office/reports': ['finance.reports.view'],
+  '/office/report': ['finance.reports.view'],
+  '/office/expenses': ['finance.officeexpense.view'],
+  '/office/expense-new': ['finance.officeexpense.manage'],
+  '/office/team': ['team.member.view', 'team.member.manage'],
+  '/office/suppliers': ['masterdata.supplier.view'],
+  '/office/customers': ['clients.client.view'],
+  '/office/products': ['masterdata.material.view'],
 };
 
 /** The tabs: shown when the person may use anything on them. */

@@ -4,7 +4,7 @@
  * reason, APPROVAL_LIMIT_EXCEEDED from the server), reject / return / reopen reasons, offline,
  * and the REST calls each kind makes.
  */
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ApprovalsScreen from '../app/approvals';
 import AajScreen from '../app/(tabs)/aaj';
@@ -251,11 +251,11 @@ describe('entry points', () => {
     await waitFor(() => expect(screen.getByTestId('open-approvals')).toBeTruthy());
   });
 
-  it.each(['owner', 'admin', 'pm', 'pmFin'] as const)('%s: a "waiting for your approval" line on Aaj', async (who) => {
+  it.each(['owner', 'admin', 'pm', 'pmFin'] as const)('%s: a "waiting approval" number on Aaj', async (who) => {
     seed(who);
     mockRequest.mockResolvedValue(INBOX);
     await wrap(<AajScreen />);
-    await waitFor(() => expect(screen.getByTestId('aaj-approvals')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('stat-approvals')).toBeTruthy());
   });
 
   it.each(['munshi', 'accountant'] as const)('%s: no approvals entry on Mazeed', async (who) => {
@@ -268,7 +268,7 @@ describe('entry points', () => {
   it.each(['munshi', 'accountant'] as const)('%s: no approvals line on Aaj', async (who) => {
     seed(who);
     await wrap(<AajScreen />);
-    expect(screen.queryByTestId('aaj-approvals')).toBeNull();
+    expect(screen.queryByTestId('stat-approvals')).toBeNull();
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
@@ -277,7 +277,7 @@ describe('entry points', () => {
     mockRequest.mockResolvedValue(INBOX);
     await wrap(<AajScreen />);
     // 4 inbox items (no top-up key, no invoices) + 1 stoppage + 1 fixed snag
-    await waitFor(() => expect(screen.getByText(roman('appr.pending', { n: 6 }))).toBeTruthy());
+    await waitFor(() => expect(within(screen.getByTestId('stat-approvals')).getByText('6')).toBeTruthy());
   });
 });
 

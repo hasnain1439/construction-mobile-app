@@ -148,7 +148,8 @@ describe('no project-create entry point in the app', () => {
 
   it('has no project route and no screen asks for projects.project.create', () => {
     const screens = [...files(join(root, 'app')), ...files(join(root, 'components'))];
-    expect(screens.filter((f) => /project/i.test(f.slice(root.length)) && !/ProjectSwitcher/.test(f))).toEqual([]);
+    // Office → Projects is a view-only list (no create): allowed by name; the key check below still holds for it.
+    expect(screens.filter((f) => /project/i.test(f.slice(root.length)) && !/ProjectSwitcher|office[\\/]projects\.tsx$/.test(f))).toEqual([]);
     for (const f of screens) expect(readFileSync(f, 'utf8')).not.toMatch(/projects\.project\.create|PROJECT_CREATE|\/projects?\/new/);
   });
 });
@@ -212,20 +213,19 @@ describe('Maal tab', () => {
   });
 });
 
-describe('Aaj quick actions', () => {
-  const QUICK = ['Hazri', 'Maal lag gaya', 'Kharcha likhein', 'Roz ka log', 'Peshgi', 'Maalik ka maal'];
-  it.each(['owner', 'pm'] as const)('%s gets every site action; nothing offers a new project', async (who) => {
+// Aaj is a dashboard (numbers, what needs attention, charts): the actions live in the side menu and tabs (tests/menu.test.ts).
+describe('Aaj dashboard per role', () => {
+  it.each(['owner', 'pm'] as const)('%s: no shortcut grid; nothing offers a new project', async (who) => {
     as(who);
     await wrap(<AajScreen />);
-    for (const q of QUICK) expect(screen.getByLabelText(q)).toBeTruthy();
+    for (const q of ['Maal lag gaya', 'Kharcha likhein', 'Maalik ka maal']) expect(screen.queryByLabelText(q)).toBeNull();
     expect(allText()).not.toMatch(/naya project|new project/i);
   });
 
-  it('custom role: only its own actions', async () => {
+  it('custom role: only the numbers its keys allow', async () => {
     as('custom');
     await wrap(<AajScreen />);
-    expect(screen.getByLabelText('Maal lag gaya')).toBeTruthy();
-    expect(screen.getByLabelText('Roz ka log')).toBeTruthy();
-    for (const q of ['Hazri', 'Kharcha likhein', 'Peshgi', 'Maalik ka maal']) expect(screen.queryByLabelText(q)).toBeNull();
+    expect(screen.queryByTestId('stat-hazri')).toBeNull();
+    expect(screen.queryByTestId('stat-cash')).toBeNull();
   });
 });
