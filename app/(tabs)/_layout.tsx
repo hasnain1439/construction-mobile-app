@@ -6,6 +6,7 @@ import { useT } from '@/i18n';
 import { TAB_PERMS } from '@/lib/permissions';
 import { COLORS } from '@/lib/theme';
 import { useSyncStatus } from '@/sync/useSyncStatus';
+import { OFFICE_TAB_KEYS } from '@/features/office';
 
 const icon = (active: string, idle: string) =>
   function TabIcon({ focused }: { focused: boolean }) {
@@ -37,6 +38,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="hazri" options={{ ...tab(TAB_PERMS.hazri), title: t('tabs.hazri'), tabBarIcon: icon('account-hard-hat', 'account-hard-hat-outline') }} />
       <Tabs.Screen name="maal" options={{ ...tab(TAB_PERMS.maal), title: t('tabs.maal'), tabBarIcon: icon('wall', 'wall') }} />
       <Tabs.Screen name="kharcha" options={{ ...tab(TAB_PERMS.kharcha), title: t('tabs.kharcha'), tabBarIcon: icon('wallet', 'wallet-outline') }} />
+      <Tabs.Screen name="office" options={{ ...tab(OFFICE_TAB_KEYS), title: t('tabs.office'), tabBarIcon: icon('briefcase-variant', 'briefcase-variant-outline') }} />
       <Tabs.Screen
         name="mazeed"
         options={{ title: t('tabs.mazeed'), tabBarIcon: icon('dots-horizontal-circle', 'dots-horizontal-circle-outline'), tabBarBadge: s.problems > 0 ? s.problems : undefined }}
