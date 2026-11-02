@@ -180,12 +180,14 @@ describe('Office expense form', () => {
     await type('oexp-amount', '100');
     await type('oexp-description', 'Pens');
     await press('oexp-save');
-    expect(within(screen.getByTestId('oexp-error')).getByText('The date is in the future')).toBeTruthy();
+    expect(screen.getByTestId('oexp-error').props.children).toBe('The date is in the future');
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it('opened from the list: changes with PATCH (cleared payee → null) and deletes after confirming', async () => {
-    mockParams = { id: 'e1', date: '2026-10-20', category: 'RENT', amountPaisa: '8500000', paidVia: 'BANK', paidTo: 'Ch. Aslam', description: 'Office rent' };
+  const OPENED = { id: 'e1', date: '2026-10-20', category: 'RENT', amountPaisa: '8500000', paidVia: 'BANK', paidTo: 'Ch. Aslam', description: 'Office rent' };
+
+  it('opened from the list: changes with PATCH (cleared payee → null)', async () => {
+    mockParams = OPENED;
     mockRequest.mockResolvedValue({});
     await wrap(<ExpenseForm />);
     expect(screen.getByTestId('oexp-amount').props.value).toBe('85000');
@@ -196,12 +198,28 @@ describe('Office expense form', () => {
       method: 'PATCH',
       body: { date: '2026-10-20', category: 'RENT', amountPaisa: '9000000', paidVia: 'BANK', paidTo: null, description: 'Office rent' },
     });
+    expect(mockBack).toHaveBeenCalled();
+  });
 
-    mockRequest.mockClear();
-    const alert = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => buttons?.find((b) => b.style === 'destructive')?.onPress?.());
+  it('opened from the list: deletes only after confirming', async () => {
+    mockParams = OPENED;
+    mockRequest.mockResolvedValue({ deleted: true });
+    await wrap(<ExpenseForm />);
+    const cancel = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
     await press('oexp-delete');
-    expect(alert).toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalled();
+    expect(mockRequest).not.toHaveBeenCalled();
+    cancel.mockRestore();
+
+    const confirm = jest.spyOn(Alert, 'alert').mockImplementation((_t, _m, buttons) => buttons?.find((b) => b.style === 'destructive')?.onPress?.());
+    await press('oexp-delete');
+    await waitFor(() => expect(mockBack).toHaveBeenCalled());
     expect(mockRequest).toHaveBeenCalledWith('/office-expenses/e1', { method: 'DELETE' });
-    alert.mockRestore();
+    confirm.mockRestore();
+  });
+
+  it('a new expense has no delete button', async () => {
+    await wrap(<ExpenseForm />);
+    expect(screen.queryByTestId('oexp-delete')).toBeNull();
   });
 });
