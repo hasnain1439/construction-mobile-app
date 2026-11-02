@@ -7,6 +7,7 @@ import { groupOf, menuFor } from '@/features/menu';
 import { useUser } from '@/features/session';
 import { roleLabel, useI18n } from '@/i18n';
 import { COLORS } from '@/lib/theme';
+import { BrandLogo } from './BrandLogo';
 import { Icon } from './Icon';
 
 const MenuCtx = createContext<{ open: () => void } | null>(null);
@@ -37,6 +38,9 @@ function Drawer({ visible, onClose }: { visible: boolean; onClose: () => void })
         <Animated.View style={{ width: WIDTH, transform: [{ translateX: offset }] }} className="bg-card">
           <SafeAreaView edges={['top', 'bottom', rtl ? 'right' : 'left']} className="flex-1">
             <View className="gap-1 border-b border-border px-5 pb-4 pt-3">
+              <View className="mb-2">
+                <BrandLogo variant="small" />
+              </View>
               <Text className="font-bold text-lg text-ink" numberOfLines={1}>
                 {user.name}
               </Text>
