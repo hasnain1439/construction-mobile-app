@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useI18n } from '@/i18n';
 import { COLORS, TOPBAR_SHADOW } from '@/lib/theme';
 import { Icon } from './Icon';
+import { MenuButton } from './SideMenu';
 
 interface Props {
   title: string;
@@ -21,7 +22,7 @@ export function Header({ title, subtitle, back = false, right }: Props) {
           <Icon name={rtl ? 'arrow-right' : 'arrow-left'} size={22} color={COLORS.ink} />
         </Pressable>
       ) : (
-        <View className="w-1" />
+        <MenuButton />
       )}
       <View className="flex-1 py-2">
         <Text accessibilityRole="header" className="font-bold text-xl text-ink" numberOfLines={1}>
