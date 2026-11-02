@@ -5,7 +5,7 @@ import type { TKey } from './en';
  * Western digits and "Rs" as on Pakistani receipts and bank SMS.
  */
 export const ur: Record<TKey, string> = {
-  'app.name': 'Keystone منشی',
+  'app.name': 'Keystone',
   'common.save': 'محفوظ کریں',
   'common.cancel': 'واپس',
   'common.confirm': 'پکا کریں',
@@ -36,7 +36,12 @@ export const ur: Record<TKey, string> = {
   'common.yes': 'ہاں',
   'common.no': 'نہیں',
 
-  'auth.title': 'فون نمبر سے لاگ ان کریں',
+  'auth.title': 'اپنے اکاؤنٹ میں لاگ ان کریں',
+  'auth.emailOrPhone': 'ای میل یا موبائل نمبر',
+  'auth.loginHint': 'ای میل یا 0321 1234567',
+  'auth.invalidLogin': 'اپنا ای میل یا پاکستانی موبائل نمبر لکھیں',
+  'auth.showPassword': 'پاس ورڈ دکھائیں',
+  'auth.hidePassword': 'پاس ورڈ چھپائیں',
   'auth.phone': 'موبائل نمبر',
   'auth.phoneHint': '0321 1234567',
   'auth.sendCode': 'کوڈ بھیجیں',

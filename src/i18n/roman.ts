@@ -2,7 +2,7 @@ import type { TKey } from './en';
 
 /** Roman Urdu — the default language. */
 export const roman: Record<TKey, string> = {
-  'app.name': 'Keystone Munshi',
+  'app.name': 'Keystone',
   'common.save': 'Save karein',
   'common.cancel': 'Wapas',
   'common.confirm': 'Pakka karein',
@@ -33,7 +33,12 @@ export const roman: Record<TKey, string> = {
   'common.yes': 'Haan',
   'common.no': 'Nahi',
 
-  'auth.title': 'Phone number se login karein',
+  'auth.title': 'Apne account mein login karein',
+  'auth.emailOrPhone': 'Email ya mobile number',
+  'auth.loginHint': 'name@company.com ya 0321 1234567',
+  'auth.invalidLogin': 'Apna email ya Pakistani mobile number likhein',
+  'auth.showPassword': 'Password dikhayein',
+  'auth.hidePassword': 'Password chhupayein',
   'auth.phone': 'Mobile number',
   'auth.phoneHint': '0321 1234567',
   'auth.sendCode': 'Code bhejein',

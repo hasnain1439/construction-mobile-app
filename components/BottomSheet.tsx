@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useT } from '@/i18n';
 
@@ -15,7 +15,7 @@ export function BottomSheet({ visible, onClose, title, children }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 justify-end">
+      <KeyboardAvoidingView behavior="padding" className="flex-1 justify-end">
         <Pressable accessibilityLabel={t('common.close')} onPress={onClose} className="absolute inset-0 bg-black/40" />
         <View className="max-h-[85%] rounded-t-[28px] bg-card" style={{ paddingBottom: insets.bottom + 16 }}>
           <View className="items-center py-2">

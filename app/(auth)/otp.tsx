@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BigButton } from '@components/BigButton';
 import { Header } from '@components/Header';
@@ -65,7 +65,7 @@ export default function OtpScreen() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <Header back title={t('auth.otpTitle')} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 gap-5 p-6">
+      <KeyboardAvoidingView behavior="padding" className="flex-1 gap-5 p-6">
         <View className="flex-row items-center gap-3 rounded-card bg-card p-4" style={CARD_SHADOW}>
           <IconBadge name="message-text-outline" tone="primary" />
           <View className="flex-1 gap-1">

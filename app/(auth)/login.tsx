@@ -1,11 +1,9 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { z } from 'zod';
 import { BigButton } from '@components/BigButton';
 import { BrandLogo } from '@components/BrandLogo';
 import { BuildingHero } from '@components/BuildingHero';
@@ -15,35 +13,39 @@ import { ApiError } from '@/api/client';
 import { setPendingLogin } from '@/features/pendingLogin';
 import { useSession } from '@/features/session';
 import { errorText, LANGUAGE_NAMES, useI18n } from '@/i18n';
+import { loginIdentifier } from '@/lib/loginId';
 import { normalisePhone } from '@/lib/phone';
 import { COLORS, RAISED_SHADOW } from '@/lib/theme';
 
-const schema = z.object({
-  phone: z.string().refine((v) => normalisePhone(v) !== null, 'auth.invalidPhone'),
-  password: z.string(),
-});
-type Form = z.infer<typeof schema>;
-type Mode = 'code' | 'password';
+type Form = { login: string; password: string };
+type Mode = 'password' | 'code';
 
 /**
- * Phone + SMS code (default), or phone + password — for when the SMS doesn't arrive (the
- * Thekedar can set the munshi's password, or give a one-time code from the web app).
+ * Same as the web dashboard's sign-in: email or mobile number + password (default), or a mobile
+ * number + SMS code — for site staff without a password.
  */
 export default function LoginScreen() {
   const { t, language, setLanguage } = useI18n();
   const { signedIn } = useSession();
-  const [mode, setMode] = useState<Mode>('code');
+  const [mode, setMode] = useState<Mode>('password');
+  const [showPassword, setShowPassword] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const {
     control,
     handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<Form>({ resolver: zodResolver(schema), defaultValues: { phone: '', password: '' } });
+    formState: { isSubmitting },
+  } = useForm<Form>({ defaultValues: { login: '', password: '' } });
 
-  const submit = handleSubmit(async ({ phone, password }) => {
+  const submit = handleSubmit(async ({ login, password }) => {
     setError(null);
-    const e164 = normalisePhone(phone)!;
+    setFieldError(null);
     if (mode === 'code') {
+      const e164 = normalisePhone(login);
+      if (!e164) {
+        setFieldError(t('auth.invalidPhone'));
+        return;
+      }
       try {
         const res = await requestOtp(e164);
         router.push({ pathname: '/otp', params: { phone: e164, resendAfter: String(res.resendAfter), ...(res.emailed ? { emailed: '1' } : {}) } });
@@ -52,16 +54,21 @@ export default function LoginScreen() {
       }
       return;
     }
+    const id = loginIdentifier(login);
+    if (!id) {
+      setFieldError(t('auth.invalidLogin'));
+      return;
+    }
     if (!password) {
       setError(t('auth.passwordRequired'));
       return;
     }
     try {
-      signedIn(await passwordLogin(e164, password), 'password');
+      signedIn(await passwordLogin(id, password), 'password');
     } catch (err) {
       if (err instanceof ApiError && err.code === 'MULTIPLE_COMPANIES') {
         const companies = (err.details as { companies?: Company[] } | undefined)?.companies ?? [];
-        setPendingLogin({ mode: 'password', phone: e164, password });
+        setPendingLogin({ mode: 'password', phone: id, password });
         router.push({ pathname: '/select-company', params: { companies: JSON.stringify(companies) } });
       } else {
         setError(err instanceof ApiError ? errorText(language, err.code) : t('err.network'));
@@ -72,8 +79,8 @@ export default function LoginScreen() {
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-brand">
       <StatusBar style="light" />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1">
-        <ScrollView className="flex-1" contentContainerClassName="flex-grow" keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
+        <ScrollView className="flex-1" contentContainerClassName="flex-grow" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
           <BuildingHero>
             <View className="items-center gap-3 px-6 pb-14 pt-14">
               <BrandLogo testID="brand-logo" variant="onDark" />
@@ -83,7 +90,7 @@ export default function LoginScreen() {
 
           <View className="-mt-6 flex-1 gap-5 rounded-t-[28px] bg-bg px-6 pb-8 pt-7">
             <View className="flex-row rounded-full bg-stone p-1" accessibilityRole="tablist">
-              {(['code', 'password'] as const).map((m) => (
+              {(['password', 'code'] as const).map((m) => (
                 <Pressable
                   key={m}
                   testID={`mode-${m}`}
@@ -92,6 +99,7 @@ export default function LoginScreen() {
                   onPress={() => {
                     setMode(m);
                     setError(null);
+                    setFieldError(null);
                   }}
                   className={`min-h-12 flex-1 flex-row items-center justify-center gap-2 rounded-full ${mode === m ? 'bg-primary' : ''}`}
                   style={mode === m ? RAISED_SHADOW : undefined}
@@ -103,22 +111,24 @@ export default function LoginScreen() {
             </View>
 
             <View className="gap-2">
-              <Text className="font-semibold text-sm text-ink">{t('auth.phone')}</Text>
+              <Text className="font-semibold text-sm text-ink">{t(mode === 'password' ? 'auth.emailOrPhone' : 'auth.phone')}</Text>
               <Controller
                 control={control}
-                name="phone"
+                name="login"
                 render={({ field }) => (
-                  <View className={`min-h-14 flex-row items-center gap-3 rounded-xl border bg-card px-4 ${errors.phone ? 'border-danger' : 'border-border'}`}>
-                    <Icon name="phone-outline" size={20} color={COLORS.muted} />
+                  <View className={`min-h-14 flex-row items-center gap-3 rounded-xl border bg-card px-4 ${fieldError ? 'border-danger' : 'border-border'}`}>
+                    <Icon name={mode === 'password' ? 'account-outline' : 'phone-outline'} size={20} color={COLORS.muted} />
                     <TextInput
-                      testID="phone-input"
-                      accessibilityLabel={t('auth.phone')}
+                      testID="login-input"
+                      accessibilityLabel={t(mode === 'password' ? 'auth.emailOrPhone' : 'auth.phone')}
                       value={field.value}
                       onChangeText={field.onChange}
                       onBlur={field.onBlur}
-                      keyboardType="phone-pad"
-                      autoComplete="tel"
-                      placeholder={t('auth.phoneHint')}
+                      keyboardType={mode === 'password' ? 'email-address' : 'phone-pad'}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete={mode === 'password' ? 'username' : 'tel'}
+                      placeholder={t(mode === 'password' ? 'auth.loginHint' : 'auth.phoneHint')}
                       placeholderTextColor={COLORS.neutral}
                       className="min-h-14 flex-1 font-semibold text-lg text-ink"
                       onSubmitEditing={() => void submit()}
@@ -126,7 +136,7 @@ export default function LoginScreen() {
                   </View>
                 )}
               />
-              {errors.phone ? <Text className="text-sm text-danger">{t('auth.invalidPhone')}</Text> : null}
+              {fieldError ? <Text className="text-sm text-danger">{fieldError}</Text> : null}
               {mode === 'password' ? (
                 <>
                   <Text className="mt-2 font-semibold text-sm text-ink">{t('auth.password')}</Text>
@@ -134,18 +144,28 @@ export default function LoginScreen() {
                     control={control}
                     name="password"
                     render={({ field }) => (
-                      <View className="min-h-14 flex-row items-center gap-3 rounded-xl border border-border bg-card px-4">
+                      <View className="min-h-14 flex-row items-center gap-3 rounded-xl border border-border bg-card pl-4">
                         <Icon name="lock-outline" size={20} color={COLORS.muted} />
                         <TextInput
                           testID="password-input"
                           accessibilityLabel={t('auth.password')}
                           value={field.value}
                           onChangeText={field.onChange}
-                          secureTextEntry
+                          secureTextEntry={!showPassword}
+                          autoCapitalize="none"
                           autoComplete="password"
                           className="min-h-14 flex-1 text-lg text-ink"
                           onSubmitEditing={() => void submit()}
                         />
+                        <Pressable
+                          testID="toggle-password"
+                          accessibilityRole="button"
+                          accessibilityLabel={t(showPassword ? 'auth.hidePassword' : 'auth.showPassword')}
+                          onPress={() => setShowPassword((s) => !s)}
+                          className="min-h-14 justify-center px-4"
+                        >
+                          <Icon name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={COLORS.muted} />
+                        </Pressable>
                       </View>
                     )}
                   />

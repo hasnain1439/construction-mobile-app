@@ -15,7 +15,7 @@ const BANNED = [
 ];
 const BANNED_RE = new RegExp(`\\b(${BANNED.join('|')})\\b`, 'i');
 
-/** The app itself is called "Keystone Munshi" (a brand name, kept in every language). */
+/** The app itself is called "Keystone" (a brand name, kept in every language). */
 const BRAND_KEYS = new Set(['app.name']);
 
 const offenders = (texts: Record<string, string>) =>
