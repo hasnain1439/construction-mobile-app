@@ -25,7 +25,8 @@
       },
       "env": {
         "APP_VARIANT": "preview",
-        "EXPO_PUBLIC_API_BASE_URL": "https://pilot-api.example.pk/api/v1"
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.3-25-18-84.sslip.io/api/v1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
