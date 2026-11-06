@@ -61,7 +61,7 @@ const variant = VARIANTS[VARIANT];
  * EAS project id: run `npx eas init` once (Expo account), then paste the id it prints here or set
  * EAS_PROJECT_ID (EAS environment variable + your shell). Without it OTA updates stay off.
  */
-const EAS_PROJECT_ID_FROM_INIT = "";
+const EAS_PROJECT_ID_FROM_INIT = "2e3d5316-7d64-4675-ab2e-38d5ff57497b";
 const projectId =
   process.env.EAS_PROJECT_ID || EAS_PROJECT_ID_FROM_INIT || undefined;
 
