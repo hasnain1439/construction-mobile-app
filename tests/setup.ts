@@ -33,3 +33,11 @@ jest.mock('@react-native-community/netinfo', () => ({
   default: { addEventListener: () => () => undefined, fetch: async () => ({ isConnected: true, isInternetReachable: true }) },
   useNetInfo: () => ({ isConnected: true, isInternetReachable: true }),
 }));
+
+// Icon fonts: @expo/vector-icons loads them through expo-asset, whose asset registry has no fonts
+// under jest. The tests never look at glyphs, so the fonts count as loaded.
+jest.mock('expo-font', () => ({
+  ...jest.requireActual('expo-font'),
+  isLoaded: jest.fn(() => true),
+  loadAsync: jest.fn(() => Promise.resolve()),
+}));
