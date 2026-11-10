@@ -17,6 +17,7 @@
  *   assets/brand/keystone-mark-dark.png       72 pt @1x/@2x/@3x (login, on charcoal)
  *   assets/brand/keystone-mark-small.png      28 pt @1x/@2x/@3x (settings header, on light)
  */
+import { Buffer } from 'node:buffer';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
