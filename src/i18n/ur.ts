@@ -404,6 +404,7 @@ export const ur: Record<TKey, string> = {
 
   'err.ACCOUNT_DISABLED': 'یہ اکاؤنٹ بند ہے — اپنے ٹھیکیدار سے کہیں',
   'err.ACCOUNT_READ_ONLY': 'اس اکاؤنٹ سے صرف دیکھ سکتے ہیں، اندراج نہیں کر سکتے',
+  'err.MOBILE_APP_NOT_ALLOWED': 'آپ کی کمپنی کے لیے موبائل ایپ بند ہے — ویب سائٹ استعمال کریں، یا دفتر سے کہیں سپورٹ سے رابطہ کرے',
   'err.COMPANY_SUSPENDED': 'کمپنی کا اکاؤنٹ رکا ہوا ہے — دفتر سے پوچھیں',
   'err.DEVICE_MISMATCH': 'یہ لاگ ان کسی اور فون کا ہے — دوبارہ لاگ ان کریں',
   'err.INVALID_TENANT': 'یہ کمپنی نہیں ملی — دوبارہ لاگ ان کریں',

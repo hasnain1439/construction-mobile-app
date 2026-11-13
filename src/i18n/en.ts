@@ -399,6 +399,7 @@ export const en = {
 
   'err.ACCOUNT_DISABLED': 'This account is switched off — ask the company owner',
   'err.ACCOUNT_READ_ONLY': 'This account can only view, not make entries',
+  'err.MOBILE_APP_NOT_ALLOWED': 'The mobile app is not switched on for your company — use the website, or ask the office to contact support',
   'err.COMPANY_SUSPENDED': 'The company account is paused — ask the office',
   'err.DEVICE_MISMATCH': 'This login belongs to another phone — log in again',
   'err.INVALID_TENANT': 'This company was not found — log in again',
