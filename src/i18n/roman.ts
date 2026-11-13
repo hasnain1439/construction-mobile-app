@@ -401,6 +401,7 @@ export const roman: Record<TKey, string> = {
 
   'err.ACCOUNT_DISABLED': 'Yeh account band hai — apne Thekedar se kahein',
   'err.ACCOUNT_READ_ONLY': 'Is account se sirf dekh sakte hain, entry nahi kar sakte',
+  'err.MOBILE_APP_NOT_ALLOWED': 'Aap ki company ke liye mobile app band hai — website istemal karein, ya office se kahein support se rabta kare',
   'err.COMPANY_SUSPENDED': 'Company ka account ruka hua hai — office se poochein',
   'err.DEVICE_MISMATCH': 'Yeh login kisi aur phone ka hai — dobara login karein',
   'err.INVALID_TENANT': 'Yeh company nahi mili — dobara login karein',
