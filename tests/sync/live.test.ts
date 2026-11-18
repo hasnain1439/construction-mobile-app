@@ -50,6 +50,13 @@ describe('sseParser', () => {
     expect(parse('retry: 3000\n\nevent: ready\ndata: {"syncLag')).toEqual([]);
     expect(parse('Ms":30000}\r\n\r\n: ping\n\n')).toEqual([{ event: 'ready', data: '{"syncLagMs":30000}' }]);
   });
+
+  it('remembers the last id, also from pings without data', () => {
+    const parse = sseParser();
+    expect(parse('id: 100\nevent: ready\ndata: {}\n\n')).toEqual([{ event: 'ready', data: '{}', id: '100' }]);
+    expect(parse('id: 200\n: ping\n\n')).toEqual([]);
+    expect(parse.lastEventId()).toBe('200');
+  });
 });
 
 describe('startLiveSync', () => {
@@ -85,6 +92,54 @@ describe('startLiveSync', () => {
     jest.advanceTimersByTime(60_000);
     await flush();
     expect(sync).not.toHaveBeenCalled();
+    stop();
+  });
+
+  it('serverless: on `reconnect` comes back at once with Last-Event-ID; a replayed change syncs, no extra sync', async () => {
+    const sync = jest.fn(async () => undefined);
+    const calls: { headers?: Record<string, string> }[] = [];
+    const fetchFn = jest.fn(async (_url: string, init?: { signal?: AbortSignal | null; headers?: Record<string, string> }) => {
+      calls.push(init ?? {});
+      const res = calls.length === 1
+        ? streamResponse([`id: 100\n${ready(0)}`, 'id: 200\n: ping\n\n', 'retry: 500\nid: 250\nevent: reconnect\ndata: {}\n\n'], init?.signal)
+        : streamResponse([`id: 250\n${ready(0)}`, `id: 240\n${change('office-tab-1')}`, 'id: 300\n\n'], init?.signal);
+      // The first stream stays open after `reconnect`: the phone must not wait for it to close.
+      return { ...res, body: { getReader: () => ({ ...res.body.getReader(), cancel: jest.fn(async () => undefined) }) } };
+    });
+    const stop = startLiveSync({ fetchFn: fetchFn as never, sync, now: () => 0 });
+    await flush();
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(calls[0]!.headers).not.toHaveProperty('last-event-id');
+    expect(calls[1]!.headers).toMatchObject({ 'last-event-id': '250' });
+    jest.advanceTimersByTime(10);
+    await flush();
+    expect(sync).toHaveBeenCalledTimes(1); // the replayed change, nothing else
+    stop();
+  });
+
+  it('after a failure a server without ids gets the old catch-up sync; one with ids replays instead', async () => {
+    const sync = jest.fn(async () => undefined);
+    let calls = 0;
+    const lastIds: (string | undefined)[] = [];
+    const fetchFn = jest.fn(async (_url: string, init?: { signal?: AbortSignal | null; headers?: Record<string, string> }) => {
+      calls += 1;
+      lastIds.push(init?.headers?.['last-event-id']);
+      if (calls === 1) {
+        // Numbered stream that breaks after `ready`.
+        const chunks = [`id: 100\n${ready(0)}`];
+        return { status: 200, ok: true, json: async () => null, body: { getReader: () => ({ read: () => (chunks.length ? Promise.resolve({ value: encoder.encode(chunks.shift()!), done: false }) : Promise.reject(new Error('reset'))) }) } };
+      }
+      return streamResponse([ready(0)], init?.signal); // no ids: replays nothing
+    });
+    const stop = startLiveSync({ fetchFn: fetchFn as never, sync, now: () => 0 });
+    await flush();
+    jest.advanceTimersByTime(1_000);
+    await flush();
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(lastIds).toEqual([undefined, '100']);
+    jest.advanceTimersByTime(10);
+    await flush();
+    expect(sync).toHaveBeenCalled(); // the server could not replay: catch up
     stop();
   });
 
